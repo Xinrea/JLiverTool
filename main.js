@@ -25,8 +25,9 @@ body {
 function createWindow () {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
+    width: 400,
     height: 600,
+    alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
@@ -47,10 +48,10 @@ function createWindow () {
       mainWindow.loadURL('https://live.bilibili.com/' + r)
       let contents = mainWindow.webContents
       contents.setAudioMuted(true)
-      contents.executeJavaScript(scriptKeepHistory).then((result) => {
-        console.log(result)
-      })
       contents.on('did-finish-load', () => {
+        contents.executeJavaScript(scriptKeepHistory).then((result) => {
+          console.log(result)
+        })
         contents.insertCSS(newCSS, 'user')
       })
     })
