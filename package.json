@@ -1,0 +1,17 @@
+{
+  "name": "jdanmaku",
+  "version": "1.0.0",
+  "description": "Simple Bilibili Danmaku Tool",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Xinrea",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^15.0.0"
+  },
+  "dependencies": {
+    "electron-prompt": "^1.7.0"
+  }
+}
