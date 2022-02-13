@@ -5,7 +5,7 @@ const Store = require('electron-store')
 const db = require('electron-db')
 const { v4: uuidv4 } = require('uuid')
 
-let dev = process.env !== 'production'
+let dev = process.env === 'development'
 
 Store.initRenderer()
 const store = new Store()
@@ -73,7 +73,6 @@ function createMainWindow() {
       room = parseInt(arg)
       store.set('config.room', room)
       stopBackendService()
-      startBackendService()
     }
   })
   ipcMain.on('openBrowser', () => {

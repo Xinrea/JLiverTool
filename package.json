@@ -4,8 +4,8 @@
   "description": "Simple Bilibili Danmaku Tool",
   "main": "src/main.js",
   "scripts": {
-    "start": "chcp 65001 && electron .",
-    "build": "chcp 65001 && set NODE_ENV=production && electron-builder build"
+    "start": "chcp 65001 && set NODE_ENV=production && electron .",
+    "build": "chcp 65001 && electron-builder build"
   },
   "build": {
     "win": {
