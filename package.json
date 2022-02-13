@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "electron-db": "^0.15.7",
-    "electron-prompt": "^1.7.0",
     "electron-store": "^8.0.1",
     "filereader": "^0.10.3",
     "node-fetch": "^3.2.0",
