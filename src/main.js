@@ -571,3 +571,8 @@ function loadPreSuperchats() {
     })
   })
 }
+
+// Catch Other Exception
+process.on('uncaughtException', function (err) {
+  console.log(err)
+})

@@ -121,111 +121,139 @@ function connecting(room, msgHandler) {
 
 function checkLiveStatus(room) {
   return new Promise(function (resolve, reject) {
-    http.get(
-      `http://api.live.bilibili.com/room/v1/Room/room_init?id=${room}`,
-      (res) => {
-        let data = ''
-        res.on('data', (chunk) => {
-          data += chunk
-        })
-        res.on('end', () => {
-          const result = JSON.parse(data)
-          if (result.code === 0) {
-            if (result.data.liveStatus === 1) {
-              resolve({
-                status: true,
-                room: result.data.room_id,
-                uid: result.data.uid
-              })
+    http
+      .get(
+        `http://api.live.bilibili.com/room/v1/Room/room_init?id=${room}`,
+        (res) => {
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            const result = JSON.parse(data)
+            if (result.code === 0) {
+              if (result.data.liveStatus === 1) {
+                resolve({
+                  status: true,
+                  room: result.data.room_id,
+                  uid: result.data.uid
+                })
+              } else {
+                resolve({
+                  status: false,
+                  room: result.data.room_id,
+                  uid: result.data.uid
+                })
+              }
             } else {
               resolve({
                 status: false,
-                room: result.data.room_id,
-                uid: result.data.uid
+                room: 0,
+                uid: 0
               })
             }
-          } else {
-            resolve({
-              status: false,
-              room: 0,
-              uid: 0
-            })
-          }
-        })
-      }
-    )
+          })
+        }
+      )
+      .on('error', (e) => {
+        console.error(e)
+      })
   })
 }
 
 function getRoomInfo(room) {
   return new Promise(function (resolve, reject) {
-    http.get(
-      `http://api.live.bilibili.com/room/v1/Room/get_info?id=${room}`,
-      (res) => {
-        let data = ''
-        res.on('data', (chunk) => {
-          data += chunk
-        })
-        res.on('end', () => {
-          const result = JSON.parse(data)
-          resolve(result.data)
-        })
-      }
-    )
+    http
+      .get(
+        `http://api.live.bilibili.com/room/v1/Room/get_info?id=${room}`,
+        (res) => {
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            const result = JSON.parse(data)
+            if (result.code === 0) {
+              resolve(result.data)
+            }
+          })
+        }
+      )
+      .on('error', (e) => {
+        console.error(e)
+      })
   })
 }
 
 function getGiftList(room) {
   return new Promise(function (resolve, reject) {
-    http.get(
-      `http://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${room}`,
-      (res) => {
-        let data = ''
-        res.on('data', (chunk) => {
-          data += chunk
-        })
-        res.on('end', () => {
-          const result = JSON.parse(data)
-          resolve(result.data)
-        })
-      }
-    )
+    http
+      .get(
+        `http://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${room}`,
+        (res) => {
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            const result = JSON.parse(data)
+            if (result.code === 0) {
+              resolve(result.data)
+            }
+          })
+        }
+      )
+      .on('error', (e) => {
+        console.error(e)
+      })
   })
 }
 
 function getOnlineNum(uid, room) {
   return new Promise(function (resolve, reject) {
-    http.get(
-      `http://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${uid}&roomId=${room}&page=1&pageSize=1`,
-      (res) => {
-        let data = ''
-        res.on('data', (chunk) => {
-          data += chunk
-        })
-        res.on('end', () => {
-          const result = JSON.parse(data)
-          resolve(result.data.onlineNum)
-        })
-      }
-    )
+    http
+      .get(
+        `http://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${uid}&roomId=${room}&page=1&pageSize=1`,
+        (res) => {
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            const result = JSON.parse(data)
+            if (result.code === 0) {
+              resolve(result.data.onlineNum)
+            }
+          })
+        }
+      )
+      .on('error', (e) => {
+        console.error(e)
+      })
   })
 }
 
 function getUserInfo(uid) {
   return new Promise(function (resolve, reject) {
-    http.get(
-      `http://api.bilibili.com/x/space/acc/info?mid=${uid}&jsonp=jsonp`,
-      (res) => {
-        let data = ''
-        res.on('data', (chunk) => {
-          data += chunk
-        })
-        res.on('end', () => {
-          const result = JSON.parse(data)
-          resolve(result.data)
-        })
-      }
-    )
+    http
+      .get(
+        `http://api.bilibili.com/x/space/acc/info?mid=${uid}&jsonp=jsonp`,
+        (res) => {
+          let data = ''
+          res.on('data', (chunk) => {
+            data += chunk
+          })
+          res.on('end', () => {
+            const result = JSON.parse(data)
+            if (result.code === 0) {
+              resolve(result.data)
+            }
+          })
+        }
+      )
+      .on('error', (e) => {
+        console.error(e)
+      })
   })
 }
 
