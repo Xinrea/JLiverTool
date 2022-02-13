@@ -1,0 +1,272 @@
+@import url(../common/common.css);
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  flex-direction: column;
+  border-radius: 10px;
+  background-color: #0c0c0c;
+  box-sizing: border-box;
+  border: 2px solid #ffffff50;
+}
+
+#roomInputPanel {
+  visibility: hidden;
+  position: fixed;
+  align-items: center;
+  align-content: center;
+  justify-content: center;
+  top: calc(50% - 40px);
+  left: calc(50% - 150px);
+  width: 300px;
+  height: 80px;
+  flex-direction: row;
+  padding: 10px;
+  border-radius: 4px;
+  background-color: #16161ac5;
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
+  box-shadow: 0 0 10px black;
+  border: 1px solid #ffffff75;
+  z-index: 100;
+}
+
+input {
+  color: #999999;
+  background-color: #25252c;
+  width: 180px;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  text-align: center;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+button {
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  text-align: center;
+  background-color: #00000000;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #25252cc2;
+}
+
+#enterRoom {
+  margin-left: 10px;
+}
+
+#dropdown {
+  position: relative;
+}
+
+#dropdown-content {
+  display: none;
+  top: 26px;
+  right: 24px;
+  flex-direction: column;
+  position: absolute;
+  background-color: #16161ace;
+  backdrop-filter: blur(10px);
+  min-width: 160px;
+  border-radius: 10px 0 10px 10px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.411);
+  overflow: hidden;
+  z-index: 100;
+  animation: ani 0.5s;
+  animation-fill-mode: forwards;
+  border: 1px solid #646464;
+}
+
+:any-link {
+  color: white;
+  padding: 12px 16px;
+  text-decoration: none;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+}
+
+#dropdown-content a:hover {
+  background-color: rgba(255, 255, 255, 0.329);
+}
+
+#statusbar {
+  bottom: 0px;
+  left: 0px;
+  width: 100%;
+  height: 40px;
+  position: absolute;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #16161a;
+  border-radius: 0 0 10px 10px;
+  box-sizing: border-box;
+  border-top: 1px solid #ffffff75;
+}
+
+#livetext {
+  font-family: 'Roboto';
+  font-size: 14px;
+  line-height: 16px;
+  color: white;
+  margin-left: 14px;
+  align-items: center;
+}
+
+#online {
+  font-family: 'Roboto';
+  font-size: 14px;
+  line-height: 16px;
+  color: white;
+  align-items: center;
+}
+
+#livetitle {
+  font-family: 'Roboto';
+  font-size: 14px;
+  line-height: 16px;
+  color: white;
+  margin-left: 14px;
+}
+
+#liveheat {
+  font-family: 'Roboto';
+  align-items: center;
+  justify-content: flex-end;
+  margin-right: 10px;
+  font-family: 'Roboto';
+  font-size: 14px;
+  line-height: 16px;
+  border-radius: 3px;
+  color: rgb(255, 255, 255);
+  transition: all 0.5s ease-in-out;
+}
+
+.check-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  margin-right: 12px;
+}
+
+#cover {
+  visibility: hidden;
+  background-color: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(1px);
+  border-radius: 10px;
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  z-index: 99;
+}
+
+.sender {
+  font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
+    'Microsoft SanSerf', 微软雅黑 !important;
+  font-size: var(--danmu-size);
+  word-wrap: normal;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  color: #999;
+  line-height: 20px;
+}
+
+.content {
+  font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
+    'Microsoft SanSerf', 微软雅黑 !important;
+  font-size: var(--danmu-size);
+  color: var(--dark-font-0) !important;
+  word-wrap: break-word;
+  white-space: normal;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: all cubic-bezier(0.22, 0.58, 0.12, 0.98) 0.2s;
+  line-height: var(--danmu-size);
+}
+
+.danmu_entry {
+  cursor: pointer;
+  font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
+    'Microsoft SanSerf', 微软雅黑 !important;
+  font-size: var(--danmu-size);
+  padding: 1px 1px 1px 10px;
+  transform: translateZ(0);
+  color: var(--dark-font-0) !important;
+  line-height: calc(var(--danmu-size) + 4px);
+  height: calc(var(--danmu-size) + 6px);
+  word-wrap: break-word;
+  white-space: normal;
+  display: flex;
+  align-items: center;
+  margin: 2px 5px 2px 5px;
+  border-radius: 4px;
+  width: auto;
+  transition: all 0.3s ease-in-out;
+  z-index: 1;
+  animation: ani 0.5s;
+  animation-fill-mode: forwards;
+}
+
+.danmu_entry.special {
+  background-color: var(--danmu-special-bg);
+}
+
+@keyframes ani {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.danmu_entry:hover {
+  box-shadow: rgba(255, 255, 255, 0.445) 0px 0px 0px 1px;
+}
+
+.danmu_entry.selected {
+  box-shadow: rgb(255, 255, 255) 0px 0px 0px 1px;
+}
+
+#danmu {
+  position: relative;
+  padding-top: 10px;
+  flex-direction: column;
+  height: calc(100% - 78px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#bottomIndicator {
+  visibility: hidden;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  bottom: 40px;
+  width: 100%;
+  font-size: 14px;
+  height: 26px;
+  color: white;
+  background-color: #00afeb;
+  z-index: 2;
+}

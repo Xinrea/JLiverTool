@@ -1,17 +1,26 @@
 {
-  "name": "jdanmaku",
+  "name": "jlivertool",
   "version": "1.0.0",
   "description": "Simple Bilibili Danmaku Tool",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "chcp 65001 && electron ."
   },
   "author": "Xinrea",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^15.0.0"
+    "electron": "^15.0.0",
+    "electron-reload": "^2.0.0-alpha.1"
   },
   "dependencies": {
-    "electron-prompt": "^1.7.0"
+    "electron-db": "^0.15.7",
+    "electron-prompt": "^1.7.0",
+    "electron-store": "^8.0.1",
+    "filereader": "^0.10.3",
+    "node-fetch": "^3.2.0",
+    "pako": "^2.0.4",
+    "reconnecting-websocket": "^4.4.0",
+    "uuid": "^8.3.2",
+    "ws": "^8.5.0"
   }
 }

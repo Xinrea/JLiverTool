@@ -1,23 +1,6 @@
-# JDanmaku
+# JLiverTool
 
-简单的弹幕姬，通过提取直播间弹幕栏显示而实现。核心代码其实就是注入运行的一段 js，如下所示：
+注意事项：
 
-```js
-const historyPanel = document.querySelector('.chat-history-panel')
-document.body.innerHTML = "<div id='panel' style='position:absolute;'></div>"
-document.querySelector('#panel').appendChild(historyPanel)
-```
-
-同时注入 CSS 修改样式，实现暗色模式：
-
-```css
-.chat-history-panel {
-  background-color: #1f1f1f !important;
-}
-.chat-history-panel .chat-history-list .chat-item.danmaku-item {
-  color: #e8e8e8 !important;
-}
-body {
-  background-color: #1f1f1f !important;
-}
-```
+1. 所有的付费礼物（包括上舰与醒目留言）均会按房间号自动保存记录
+2. 双击移除礼物和醒目留言记录

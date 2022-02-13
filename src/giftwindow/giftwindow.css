@@ -1,0 +1,141 @@
+@import url(../common/common.css);
+
+:root {
+  --danmu-size: 14px;
+  --free-gift: 'flex';
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  border-radius: 10px;
+  background-color: #0c0c0c;
+  box-sizing: border-box;
+  border: 2px solid #ffffff50;
+}
+
+#giftpanel {
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 5px 0px 10px 0px;
+}
+
+.gift-entry {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #ffffff75;
+  border-radius: 10px;
+  margin: 5px 10px 5px 10px;
+  padding: 5px 10px 5px 10px;
+  min-height: 75px;
+  width: auto;
+  color: white;
+  background-color: #16161a;
+  flex-direction: column;
+  transition: all 0.5s ease-in-out;
+}
+
+.gift-entry.free {
+  display: var(--free-gift);
+}
+
+.gift-entry:hover {
+  border: 1px solid #ffffffab;
+}
+
+.gift-entry.selected {
+  border: 1px solid white;
+}
+
+.gift-entry.flipped {
+  transform: translateX(100%) scale(0.5, 0.1);
+  visibility: hidden;
+}
+
+.gift-title {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gift-sender {
+  align-items: center;
+  white-space: nowrap;
+}
+
+.gift-time {
+  color: gray;
+  align-items: center;
+  font-size: calc(var(--danmu-size) - 2px);
+}
+
+.gift-content {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+
+.gift-info {
+  align-items: center;
+}
+
+.gift-icon {
+  width: 40px;
+  height: 40px;
+  margin-right: 20px;
+  background-size: cover;
+  animation: play calc(var(--frame-number) * 0.08s) steps(var(--frame-number))
+    infinite;
+}
+
+@keyframes play {
+  from {
+    background-position-x: 0px;
+  }
+  to {
+    background-position-x: calc(-40px * var(--frame-number));
+  }
+}
+
+.gift-count {
+  margin-left: 10px;
+}
+
+.gift-price-value {
+  position: absolute;
+  right: 5px;
+}
+
+.sender-name {
+  font-size: var(--danmu-size);
+  font-family: 'Roboto';
+}
+
+.sender-avator {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  margin-right: 10px;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.08);
+  -webkit-box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.08);
+}
+/* 滚动条滑块 */
+::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(202, 202, 202, 0.774);
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+  -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}

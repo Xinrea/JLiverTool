@@ -1,0 +1,108 @@
+:root {
+  --sc-b-level-0: rgb(237, 245, 255);
+  --sc-b-level-1: rgb(219, 255, 253);
+  --sc-b-level-2: rgb(255, 241, 197);
+  --sc-b-level-3: rgb(255, 234, 210);
+  --sc-b-level-4: rgb(255, 231, 228);
+  --sc-b-level-5: rgb(255, 216, 216);
+  --sc-f-level-0: rgb(42, 96, 178);
+  --sc-f-level-1: rgb(66, 125, 158);
+  --sc-f-level-2: rgb(226, 181, 43);
+  --sc-f-level-3: rgb(224, 148, 67);
+  --sc-f-level-4: rgb(229, 77, 77);
+  --sc-f-level-5: rgb(171, 26, 50);
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  flex-direction: column;
+  border-radius: 10px;
+  background-color: #0c0c0c;
+  box-sizing: border-box;
+  border: 2px solid #ffffff50;
+}
+
+#panel {
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sc-entry {
+  flex-direction: column;
+  width: auto;
+  margin: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.sc-entry:hover {
+  transform-origin: center;
+  transform: translateY(-5px) scale(1.01);
+}
+
+.sc-entry-header {
+  position: relative;
+  height: 50px;
+  padding: 8px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 6px 6px 0 0;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sc-entry-header-left-avatar {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  overflow: visible;
+  margin-right: 10px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  background-size: cover;
+  background-position: center;
+}
+
+.avatar-frame {
+  top: -4px;
+  left: -2px;
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  background-color: transparent;
+}
+
+.sc-entry-header-left {
+  align-items: center;
+}
+
+.sc-entry-header-left-name {
+  margin-left: 10px;
+  align-items: center;
+}
+
+.price {
+  margin-left: 10px;
+}
+
+.sc-entry-content {
+  position: relative;
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border-radius: 2px 2px 6px 6px;
+}
+
+.sc-entry-content-text {
+  color: white;
+}

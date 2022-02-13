@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="../common/common.css">
+    <link rel="stylesheet" href="mainwindow.css">
+    <title>弹幕</title>
+</head>
+
+<body>
+    <div id="roomInputPanel">
+        <input type="number" id="roomInput" placeholder="房间号">
+        <button id="enterRoom">进入</button>
+    </div>
+    <div id="cover"></div>
+    <div id="app">
+        <div id="titlebar">
+            <div>
+                <div id="livetext">LIVE</div>
+                <div>
+                    <div style="height: 24px;width: 24px;margin-left: 14px;">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="white" 
+                                d="M12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79086 12 8 10.2091 8 8C8 5.79086 9.79086 4 12 4ZM12 14C16.4183 14 20 15.7909 20 18L20 20L4 20L4 18C4 15.7909 7.58172 14 12 14Z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div id="online"></div>
+                </div>
+            </div>
+            <div>
+                <div id="enterButton" class="titlebutton">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M14 12L10 8V11H2V13H10V16M22 12A10 10 0 0 1 2.46 15H4.59A8 8 0 1 0 4.59 9H2.46A10 10 0 0 1 22 12Z" />
+                    </svg>
+                </div>
+                <div id="topButton" class="titlebutton">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+                    </svg>
+                </div>
+                <div id="dropdown">
+                    <div id="menubutton" class="titlebutton">
+                        <svg viewBox="0 0 24 24">
+                            <path fill="white"
+                                d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+                        </svg>
+                    </div>
+                    <div id="dropdown-content">
+                        <div style="width: 160px;">
+                            <a id="smallF" href="#" style="width:50px;justify-content: center;">S</a>
+                            <a id="middleF" href="#" style="width:50px;justify-content: center;">M</a>
+                            <a id="largeF" href="#" style="width:50px;justify-content: center;">L</a>
+                        </div>
+                        <a id="openGiftItem" href="#">礼物窗口</a>
+                        <a id="openSuperChatItem" href="#">醒目留言窗口</a>
+                        <a id="openBrowser" href="#">打开直播间</a>
+                        <a id="openSetting" href="#">设置直播间</a>
+                        <a id="quitItem" href="#">退出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="danmu">
+        </div>
+        <div id="bottomIndicator">
+            <span id="danmuCount">0</span> 条新弹幕
+        </div>
+        <div id="statusbar">
+            <marquee id="livetitle" scrollamount="0"></marquee>
+            <div id="liveheat">🔥<span id="heatValue" style="margin-left: 4px;"></span></div>
+        </div>
+    </div>
+</body>
+<script src="../common/medal.js"></script>
+<script src="danmuentry.js"></script>
+<script src="mainwindow.js"></script>
+</html>
