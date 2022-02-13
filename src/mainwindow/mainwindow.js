@@ -194,6 +194,7 @@ window.electron.onReset(() => {
   indicator.style.visibility = 'hidden'
   appStatus.newDanmuCount = 0
   appStatus.isCoutingNew = false
+  window.electron.send('reseted')
 })
 
 danmuArea.addEventListener('scroll', () => {

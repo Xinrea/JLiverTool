@@ -5,7 +5,7 @@ const Store = require('electron-store')
 const db = require('electron-db')
 const { v4: uuidv4 } = require('uuid')
 
-let dev = process.env === 'development'
+let dev = process.env !== 'production'
 
 Store.initRenderer()
 const store = new Store()
@@ -283,6 +283,7 @@ let giftList
 function startBackendService() {
   giftList = new Map()
   checkLiveStatus(room).then((res) => {
+    console.log('check room status')
     realroom = res.room
     uid = res.uid
     getRoomInfo(realroom).then((res) => {
@@ -300,6 +301,7 @@ function startBackendService() {
       })
     }, 10 * 1000)
     getGiftList(realroom).then((res) => {
+      console.log('get gift list')
       res.list.forEach((e) => {
         giftList.set(e.id, {
           animation_frame_num: e.animation_frame_num,
@@ -447,6 +449,15 @@ function stopBackendService() {
   superchatWindow?.webContents.send('reset')
 }
 
+let resetCount = 0
+ipcMain.on('reseted', () => {
+  resetCount++
+  if (resetCount === 3) {
+    resetCount = 0
+    startBackendService()
+  }
+})
+
 // DB related
 initDB()
 function initDB() {
@@ -490,6 +501,7 @@ function deleteAllRows(type, id) {
 function loadPreGifts() {
   return new Promise((resolve, reject) => {
     db.getRows('gifts', { room: room }, (s, r) => {
+      console.log('load pre gifts:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
           let id = r[i].sid
@@ -515,6 +527,7 @@ function loadPreGifts() {
 function loadPreGuards() {
   return new Promise((resolve, reject) => {
     db.getRows('guards', { room: room }, (s, r) => {
+      console.log('load pre guards:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
           let id = r[i].sid
@@ -544,6 +557,7 @@ function loadPreGuards() {
 function loadPreSuperchats() {
   return new Promise((resolve, reject) => {
     db.getRows('superchats', { room: room }, (s, r) => {
+      console.log('load pre superchats:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
           let id = r[i].sid

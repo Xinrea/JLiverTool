@@ -34,6 +34,7 @@ window.electron.onSuperchat((g) => {
 
 window.electron.onReset(() => {
   $panel.innerHTML = ''
+  window.electron.send('reseted')
 })
 
 function createSuperchatEntry(id, g) {

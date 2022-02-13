@@ -12,6 +12,7 @@ function hideWindow() {
 document.getElementById('hideButton').onclick = hideWindow
 
 window.electron.onGift((arg) => {
+  console.log(arg)
   handleGift(arg.id, arg.msg)
 })
 
@@ -26,6 +27,8 @@ window.electron.onGuard((arg) => {
 let panel = document.getElementById('giftpanel')
 window.electron.onReset(() => {
   panel.innerHTML = ''
+  giftMap = new Map()
+  window.electron.send('reseted')
 })
 
 let autoScroll = true
