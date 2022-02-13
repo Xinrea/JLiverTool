@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain, screen } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
@@ -55,6 +55,11 @@ function createMainWindow() {
     mainWindow.setPosition(0, 0)
     store.set('cache.mainSize', mainWindow.getSize())
   })
+  mainWindow.on('closed', () => {
+    mainWindow = null
+    stopBackendService()
+    app.quit()
+  })
   ipcMain.on('setAlwaysOnTop', (event, arg) => {
     mainWindow.setAlwaysOnTop(arg, 'screen-saver')
   })
@@ -93,6 +98,7 @@ function createGiftWindow() {
     show: false,
     title: '礼物',
     frame: false,
+    skipTaskbar: true,
     icon: path.join(__dirname, 'icons/gift.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
@@ -164,6 +170,7 @@ function createSuperchatWindow() {
     show: false,
     title: '醒目留言',
     frame: false,
+    skipTaskbar: true,
     icon: path.join(__dirname, 'icons/main.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
@@ -245,8 +252,8 @@ app.whenReady().then(() => {
 // explicitly with Cmd + Q.
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') {
-    app.quit()
     stopBackendService()
+    app.quit()
   }
 })
 
@@ -261,8 +268,6 @@ const {
   getGiftList,
   getUserInfo
 } = require('./bilibili')
-const { randomInt } = require('crypto')
-const { time } = require('console')
 
 let service = {
   stopConn: null,
