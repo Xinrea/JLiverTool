@@ -1,9 +1,12 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu } = require('electron')
+const { app, BrowserWindow, ipcMain, screen } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
 const { v4: uuidv4 } = require('uuid')
+
+let dev = process.env === 'development'
+
 Store.initRenderer()
 const store = new Store()
 
@@ -11,9 +14,11 @@ let room = store.get('config.room', 21484828)
 let realroom = 0
 let uid = 0
 
-require('electron-reload')(__dirname, {
-  electron: path.join('node_modules', '.bin', 'electron')
-})
+if (dev) {
+  require('electron-reload')(__dirname, {
+    electron: path.join('node_modules', '.bin', 'electron')
+  })
+}
 
 let mainWindow
 let giftWindow
@@ -47,7 +52,7 @@ function createMainWindow() {
   // and load the index.html of the app.
   mainWindow.loadFile('src/mainwindow/index.html')
   // Open the DevTools.
-  mainWindow.webContents.openDevTools()
+  if (dev) mainWindow.webContents.openDevTools()
   mainWindow.on('close', () => {
     store.set('cache.mainPos', mainWindow.getPosition())
     mainWindow.hide()
@@ -106,7 +111,7 @@ function createGiftWindow() {
   })
   giftWindow.loadFile('src/giftwindow/index.html')
   giftWindow.setAlwaysOnTop(true, 'screen-saver')
-  giftWindow.webContents.openDevTools()
+  if (dev) giftWindow.webContents.openDevTools()
   ipcMain.on('hideGiftWindow', () => {
     giftWindow.hide()
   })
@@ -178,7 +183,7 @@ function createSuperchatWindow() {
   })
   superchatWindow.loadFile('src/superchatwindow/index.html')
   superchatWindow.setAlwaysOnTop(true, 'screen-saver')
-  superchatWindow.webContents.openDevTools()
+  if (dev) superchatWindow.webContents.openDevTools()
   ipcMain.on('hideSuperchatWindow', () => {
     superchatWindow.hide()
   })
