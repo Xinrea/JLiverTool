@@ -1,11 +1,14 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow, ipcMain, screen } = require('electron')
+const { app, ipcMain, screen, BrowserWindow } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
 const { v4: uuidv4 } = require('uuid')
 
-let dev = process.env === 'development'
+let dev
+if (process.env.NODE_ENV) {
+  dev = process.env.NODE_ENV.includes('development')
+}
 
 Store.initRenderer()
 const store = new Store()

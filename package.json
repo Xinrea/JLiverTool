@@ -1,10 +1,10 @@
 {
   "name": "jlivertool",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Simple Bilibili Danmaku Tool",
   "main": "src/main.js",
   "scripts": {
-    "start": "chcp 65001 && set NODE_ENV=production && electron .",
+    "start": "chcp 65001 && set NODE_ENV=development && electron .",
     "build": "chcp 65001 && electron-builder build"
   },
   "build": {

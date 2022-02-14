@@ -1,6 +1,5 @@
 let appStatus = {
   lastSelectedDanmu: null,
-  numberDanmu: 0,
   isCoutingNew: false,
   newDanmuCount: 0,
   live: false
@@ -62,6 +61,17 @@ document.getElementById('middleF').onclick = () => {
 document.getElementById('largeF').onclick = () => {
   document.documentElement.style.setProperty('--danmu-size', '22px')
   window.electron.set('config.fontSize', '22px')
+}
+
+let replaceIndex = 0
+document.getElementById('fullModeButton').onclick = () => {
+  let fullMode = window.electron.get('config.fullMode', false)
+  window.electron.set('config.fullMode', !fullMode)
+  document.getElementById('fullModeButton').classList.toggle('enabled')
+  if (!fullMode) {
+    // Enabled Full Mode
+    replaceIndex = 0
+  }
 }
 document.getElementById('topButton').onclick = toggleAlwaysOnTop
 document.getElementById('enterButton').onclick = toggleEnterMessage
@@ -194,6 +204,9 @@ window.electron.onReset(() => {
   indicator.style.visibility = 'hidden'
   appStatus.newDanmuCount = 0
   appStatus.isCoutingNew = false
+  // Reset Full Mode Related
+  replaceIndex = 0
+  // Make Sure All Data Reseted
   window.electron.send('reseted')
 })
 
@@ -245,16 +258,26 @@ indicator.onclick = () => {
 
 function cleanOldEntry() {
   if (appStatus.isCoutingNew) appStatus.newDanmuCount++
-  appStatus.numberDanmu++
-  if (appStatus.numberDanmu > 500) {
-    appStatus.numberDanmu--
+  if (danmuArea.children.length > 1000) {
     danmuArea.removeChild(danmuArea.children[0])
   }
 }
 
 function onReceiveNewDanmu(special, medalInfo, sender, content) {
   cleanOldEntry()
-  danmuArea.appendChild(createDanmuEntry(special, medalInfo, sender, content))
+  let $newEntry = createDanmuEntry(special, medalInfo, sender, content)
+  danmuArea.appendChild($newEntry)
+  if (window.electron.get('config.fullMode', false)) {
+    if (danmuArea.scrollHeight > danmuArea.clientHeight) {
+      replaceIndex++
+      replaceIndex = replaceIndex % (danmuArea.children.length - 1)
+      danmuArea.children[replaceIndex].replaceWith($newEntry)
+      // When Window Height Decrease Too Much
+      while (danmuArea.scrollHeight > danmuArea.clientHeight) {
+        danmuArea.firstChild.remove()
+      }
+    }
+  }
   scroll()
 }
 
@@ -271,6 +294,10 @@ function onReceiveEffect(content) {
 }
 
 function init() {
+  // Full Mode
+  if (window.electron.get('config.fullMode', false)) {
+    document.getElementById('fullModeButton').classList.toggle('enabled')
+  }
   // Always on top
   if (window.electron.get('config.alwaysOnTop', false)) {
     window.electron.send('setAlwaysOnTop', true)
