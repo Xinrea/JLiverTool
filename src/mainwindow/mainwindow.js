@@ -283,7 +283,8 @@ function onReceiveNewDanmu(special, medalInfo, sender, content) {
 
 function onReceiveInteract(medalInfo, sender) {
   cleanOldEntry()
-  danmuArea.appendChild(createEnterEntry(medalInfo, sender))
+  let $newEntry = createEnterEntry(medalInfo, sender)
+  danmuArea.appendChild($newEntry)
   if (window.electron.get('config.fullMode', false)) {
     if (danmuArea.scrollHeight > danmuArea.clientHeight) {
       replaceIndex++
@@ -300,7 +301,8 @@ function onReceiveInteract(medalInfo, sender) {
 
 function onReceiveEffect(content) {
   cleanOldEntry()
-  danmuArea.appendChild(createEffectEntry(content))
+  let $newEntry = createEffectEntry(content)
+  danmuArea.appendChild($newEntry)
   if (window.electron.get('config.fullMode', false)) {
     if (danmuArea.scrollHeight > danmuArea.clientHeight) {
       replaceIndex++
