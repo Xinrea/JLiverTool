@@ -73,6 +73,23 @@ document.getElementById('fullModeButton').onclick = () => {
     replaceIndex = 0
   }
 }
+
+function updateMedalStatus() {
+  if (window.electron.get('config.medalDisplay', false)) {
+    document.documentElement.style.setProperty(
+      '--medal-display',
+      'inline-block'
+    )
+  } else {
+    document.documentElement.style.setProperty('--medal-display', 'none')
+  }
+}
+document.getElementById('medalButton').onclick = () => {
+  let medalDisplay = window.electron.get('config.medalDisplay', false)
+  window.electron.set('config.medalDisplay', !medalDisplay)
+  document.getElementById('medalButton').classList.toggle('enabled')
+  updateMedalStatus()
+}
 document.getElementById('topButton').onclick = toggleAlwaysOnTop
 document.getElementById('enterButton').onclick = toggleEnterMessage
 document.getElementById('openGiftItem').onclick = function () {
@@ -322,6 +339,10 @@ function init() {
   if (window.electron.get('config.fullMode', false)) {
     document.getElementById('fullModeButton').classList.toggle('enabled')
   }
+  if (window.electron.get('config.medalDisplay', false)) {
+    document.getElementById('medalButton').classList.toggle('enabled')
+    updateMedalStatus()
+  }
   // Always on top
   if (window.electron.get('config.alwaysOnTop', false)) {
     window.electron.send('setAlwaysOnTop', true)
@@ -331,6 +352,7 @@ function init() {
   if (window.electron.get('config.enableEnter', false)) {
     document.getElementById('enterButton').classList.toggle('enabled')
   }
+
   document.documentElement.style.setProperty(
     '--danmu-size',
     window.electron.get('config.fontSize', '14px')

@@ -45,6 +45,7 @@
   --medal-level-8: linear-gradient(45deg, #7a0423, #e986bb);
   --medal-level-border-9: #ff6a14;
   --medal-level-9: linear-gradient(45deg, #ff6a14, #ffed7f);
+  --medal-display: none;
 }
 
 html,
@@ -91,7 +92,7 @@ textarea,
   border-style: solid;
   border-image: initial;
   border-radius: 2px;
-  display: inline-block;
+  display: var(--medal-display);
   vertical-align: middle;
 }
 
