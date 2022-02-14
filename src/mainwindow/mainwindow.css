@@ -6,7 +6,7 @@
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background-color: #0c0c0c;
+  background-color: rgba(0, 0, 0, 0.685);
   box-sizing: border-box;
   border: 2px solid #ffffff50;
 }
@@ -200,7 +200,7 @@ button:hover {
   vertical-align: middle;
   cursor: pointer;
   transition: all cubic-bezier(0.22, 0.58, 0.12, 0.98) 0.2s;
-  line-height: var(--danmu-size);
+  line-height: calc(var(--danmu-size) + 2px);
 }
 
 .danmu_entry {
@@ -212,10 +212,8 @@ button:hover {
   transform: translateZ(0);
   color: var(--dark-font-0) !important;
   line-height: calc(var(--danmu-size) + 4px);
-  height: calc(var(--danmu-size) + 6px);
   word-wrap: break-word;
   white-space: normal;
-  display: flex;
   align-items: center;
   margin: 2px 5px 2px 5px;
   border-radius: 4px;

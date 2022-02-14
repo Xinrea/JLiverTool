@@ -76,7 +76,7 @@ textarea,
 }
 
 .medal {
-  margin: 5px 5px 5px 0;
+  margin: 0px 5px 0px 0;
   word-wrap: break-word;
   box-sizing: content-box;
   height: calc(var(--danmu-size) + 2px);
@@ -91,7 +91,8 @@ textarea,
   border-style: solid;
   border-image: initial;
   border-radius: 2px;
-  display: flex;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .medal_label {

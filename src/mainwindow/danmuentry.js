@@ -1,5 +1,5 @@
 function createDanmuEntry(special, medal, sender, content) {
-  let danmuEntry = document.createElement('div')
+  let danmuEntry = document.createElement('span')
   if (special) {
     danmuEntry.className = 'danmu_entry special'
   } else {
@@ -10,13 +10,13 @@ function createDanmuEntry(special, medal, sender, content) {
       createMedal(medal.guardLevel, medal.name, medal.level)
     )
   }
-  let danmuSender = document.createElement('div')
+  let danmuSender = document.createElement('span')
   danmuSender.className = 'sender'
   if (content) sender = sender + '：'
   danmuSender.innerText = sender
   danmuEntry.appendChild(danmuSender)
   if (content) {
-    let danmuContent = document.createElement('div')
+    let danmuContent = document.createElement('span')
     danmuContent.className = 'content'
     danmuContent.innerText = content
     danmuEntry.appendChild(danmuContent)
