@@ -284,12 +284,34 @@ function onReceiveNewDanmu(special, medalInfo, sender, content) {
 function onReceiveInteract(medalInfo, sender) {
   cleanOldEntry()
   danmuArea.appendChild(createEnterEntry(medalInfo, sender))
+  if (window.electron.get('config.fullMode', false)) {
+    if (danmuArea.scrollHeight > danmuArea.clientHeight) {
+      replaceIndex++
+      replaceIndex = replaceIndex % (danmuArea.children.length - 1)
+      danmuArea.children[replaceIndex].replaceWith($newEntry)
+      // When Window Height Decrease Too Much
+      while (danmuArea.scrollHeight > danmuArea.clientHeight) {
+        danmuArea.firstChild.remove()
+      }
+    }
+  }
   scroll()
 }
 
 function onReceiveEffect(content) {
   cleanOldEntry()
   danmuArea.appendChild(createEffectEntry(content))
+  if (window.electron.get('config.fullMode', false)) {
+    if (danmuArea.scrollHeight > danmuArea.clientHeight) {
+      replaceIndex++
+      replaceIndex = replaceIndex % (danmuArea.children.length - 1)
+      danmuArea.children[replaceIndex].replaceWith($newEntry)
+      // When Window Height Decrease Too Much
+      while (danmuArea.scrollHeight > danmuArea.clientHeight) {
+        danmuArea.firstChild.remove()
+      }
+    }
+  }
   scroll()
 }
 
