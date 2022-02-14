@@ -224,6 +224,8 @@ button:hover {
   z-index: 1;
   animation: ani 0.5s;
   animation-fill-mode: forwards;
+  word-break: break-all;
+  word-wrap: break-word;
 }
 
 .danmu_entry.special {

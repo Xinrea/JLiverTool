@@ -324,9 +324,6 @@ function startBackendService() {
                   break
                 }
                 if (msg.cmd.includes('SEND_GIFT')) {
-                  if (!giftList.has(msg.data.giftId)) {
-                    break
-                  }
                   if (
                     msg.data.coin_type === 'silver' &&
                     msg.data.giftName == '辣条'
@@ -348,10 +345,17 @@ function startBackendService() {
                       () => {}
                     )
                   }
+                  let giftInfo = {
+                    animation_frame_num: 1,
+                    png: ''
+                  }
+                  if (giftList.has(msg.data.giftId)) {
+                    giftInfo = giftList.get(msg.data.giftId)
+                  }
                   giftData = {
                     gif: {
-                      frame: giftList.get(msg.data.giftId).animation_frame_num,
-                      png: giftList.get(msg.data.giftId).png
+                      frame: giftInfo.animation_frame_num,
+                      png: giftInfo.png
                     },
                     data: msg.data
                   }
@@ -508,10 +512,17 @@ function loadPreGifts() {
         for (let i = 0; i < r.length; i++) {
           let id = r[i].sid
           let msg = r[i].data
+          let giftInfo = {
+            animation_frame_num: 1,
+            png: ''
+          }
+          if (giftList.has(msg.data.giftId)) {
+            giftInfo = giftList.get(msg.data.giftId)
+          }
           let giftData = {
             gif: {
-              frame: giftList.get(msg.data.giftId).animation_frame_num,
-              png: giftList.get(msg.data.giftId).png
+              frame: giftInfo.animation_frame_num,
+              png: giftInfo.png
             },
             data: msg.data
           }
