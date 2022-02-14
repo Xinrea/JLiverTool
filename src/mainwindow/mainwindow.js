@@ -50,6 +50,20 @@ document.getElementById('menubutton').onclick = (e) => {
   showMenu(e)
   showCover()
 }
+
+let $opcaitySetting = document.getElementById('opacity-setting')
+$opcaitySetting.onchange = function () {
+  window.electron.set('config.opacity', this.value)
+  document.documentElement.style.setProperty('--global-opacity', this.value)
+  window.electron.send('updateOpacity')
+}
+
+function updateOpacity() {
+  let opacity = window.electron.get('config.opacity', 1)
+  document.documentElement.style.setProperty('--global-opacity', opacity)
+  $opcaitySetting.value = opacity
+}
+
 document.getElementById('smallF').onclick = () => {
   document.documentElement.style.setProperty('--danmu-size', '14px')
   window.electron.set('config.fontSize', '14px')
@@ -352,6 +366,7 @@ function init() {
   if (window.electron.get('config.enableEnter', false)) {
     document.getElementById('enterButton').classList.toggle('enabled')
   }
+  updateOpacity()
 
   document.documentElement.style.setProperty(
     '--danmu-size',

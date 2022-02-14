@@ -12,6 +12,7 @@ let effectListener
 let resetListener
 let onlineListener
 let superchatListener
+let opacityListener
 
 ipcRenderer.on('updateroom', (event, arg) => {
   if (updateListener) {
@@ -73,6 +74,12 @@ ipcRenderer.on('reset', (event, arg) => {
   }
 })
 
+ipcRenderer.on('updateOpacity', (event, arg) => {
+  if (opacityListener) {
+    opacityListener(arg)
+  }
+})
+
 contextBridge.exposeInMainWorld('electron', {
   get: (key, d) => {
     return store.get(key, d)
@@ -90,5 +97,6 @@ contextBridge.exposeInMainWorld('electron', {
   onSuperchat: (callback) => (superchatListener = callback),
   onInteract: (callback) => (interactListener = callback),
   onEffect: (callback) => (effectListener = callback),
-  onReset: (callback) => (resetListener = callback)
+  onReset: (callback) => (resetListener = callback),
+  onOpacity: (callback) => (opacityListener = callback)
 })

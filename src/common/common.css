@@ -22,9 +22,9 @@
   --guard-level-3: url(https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard3.png@44w_44h.webp);
   --guard-level-2: url(https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard2.png@44w_44h.webp);
   --guard-level-1: url(https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard1.png@44w_44h.webp);
-  --guard-gift-bg-3: linear-gradient(#16161a, #343a85);
-  --guard-gift-bg-2: linear-gradient(#16161a, #7e2a6b);
-  --guard-gift-bg-1: linear-gradient(#16161a, #c50000);
+  --guard-gift-bg-3: linear-gradient(#16161ab9, #343985c2);
+  --guard-gift-bg-2: linear-gradient(#16161abe, #7e2a6ad0);
+  --guard-gift-bg-1: linear-gradient(#16161abe, #c50000cc);
   --medal-level-border-0: #5c968e;
   --medal-level-0: linear-gradient(45deg, #5c968e, #5c968e);
   --medal-level-border-1: #5d7b9e;

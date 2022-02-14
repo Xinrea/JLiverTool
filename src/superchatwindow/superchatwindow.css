@@ -11,6 +11,7 @@
   --sc-f-level-3: rgb(224, 148, 67);
   --sc-f-level-4: rgb(229, 77, 77);
   --sc-f-level-5: rgb(171, 26, 50);
+  --global-opacity: 1;
 }
 
 #app {
@@ -19,7 +20,7 @@
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background-color: #0c0c0c;
+  background-color: rgba(0, 0, 0, var(--global-opacity));
   box-sizing: border-box;
   border: 2px solid #ffffff50;
 }

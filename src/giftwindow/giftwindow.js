@@ -30,6 +30,16 @@ window.electron.onReset(() => {
   giftMap = new Map()
   window.electron.send('reseted')
 })
+window.electron.onOpacity(() => {
+  document.documentElement.style.setProperty(
+    '--global-opacity',
+    window.electron.get('config.opacity', 1)
+  )
+})
+document.documentElement.style.setProperty(
+  '--global-opacity',
+  window.electron.get('config.opacity', 1)
+)
 
 let autoScroll = true
 let lastPosition = 0

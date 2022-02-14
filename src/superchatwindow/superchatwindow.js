@@ -37,6 +37,18 @@ window.electron.onReset(() => {
   window.electron.send('reseted')
 })
 
+window.electron.onOpacity(() => {
+  document.documentElement.style.setProperty(
+    '--global-opacity',
+    window.electron.get('config.opacity', 1)
+  )
+})
+
+document.documentElement.style.setProperty(
+  '--global-opacity',
+  window.electron.get('config.opacity', 1)
+)
+
 function createSuperchatEntry(id, g) {
   let level = getSuperChatLevel(g.data.price)
   let scEntry = document.createElement('div')

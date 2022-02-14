@@ -3,6 +3,7 @@
 :root {
   --danmu-size: 14px;
   --free-gift: 'flex';
+  --global-opacity: 1;
 }
 
 #app {
@@ -10,7 +11,7 @@
   height: 100%;
   flex-direction: column;
   border-radius: 10px;
-  background-color: #0c0c0c;
+  background-color: rgba(0, 0, 0, var(--global-opacity));
   box-sizing: border-box;
   border: 2px solid #ffffff50;
 }
@@ -26,14 +27,14 @@
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid #ffffff75;
+  border: 1px solid #ffffff62;
   border-radius: 10px;
   margin: 5px 10px 5px 10px;
   padding: 5px 10px 5px 10px;
   min-height: 75px;
   width: auto;
   color: white;
-  background-color: #16161a;
+  background-color: #16161a7e;
   flex-direction: column;
   transition: all 0.5s ease-in-out;
 }
@@ -43,7 +44,8 @@
 }
 
 .gift-entry:hover {
-  border: 1px solid #ffffffab;
+  border: 1px solid #ffffff;
+  background-color: #16161a;
 }
 
 .gift-entry.selected {

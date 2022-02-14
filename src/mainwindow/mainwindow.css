@@ -1,12 +1,16 @@
 @import url(../common/common.css);
 
+:root {
+  --global-opacity: 1;
+}
+
 #app {
   width: 100%;
   height: 100%;
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.685);
+  background-color: rgba(0, 0, 0, var(--global-opacity));
   box-sizing: border-box;
   border: 2px solid #ffffff50;
 }
