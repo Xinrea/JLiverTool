@@ -146,9 +146,9 @@ document.getElementById('enterRoom').onclick = function () {
 function updateLiveStatus(isLive) {
   appStatus.live = isLive
   if (isLive) {
-    document.getElementById('titlebar').style.backgroundColor = '#fc3131'
+    document.getElementById('titlebar').style.backgroundColor = '#fc3131be'
   } else {
-    document.getElementById('titlebar').style.backgroundColor = '#16161a'
+    document.getElementById('titlebar').style.backgroundColor = '#16161ac7'
     $onlineText.innerText = ''
   }
 }

@@ -119,7 +119,7 @@ button:hover {
   position: absolute;
   align-items: center;
   justify-content: space-between;
-  background-color: #16161a;
+  background-color: #16161ac7; /* #16161ac7 */
   border-radius: 0 0 10px 10px;
   box-sizing: border-box;
   border-top: 1px solid #ffffff75;

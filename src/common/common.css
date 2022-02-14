@@ -177,7 +177,7 @@ textarea,
   min-height: 25px;
   align-items: center;
   justify-content: space-between;
-  background-color: #16161a;
+  background-color: #16161ac7;
   border-radius: 10px 10px 0 0;
   -webkit-app-region: drag;
   transition: all 0.5s ease-in-out;
