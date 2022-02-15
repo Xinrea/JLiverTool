@@ -10,6 +10,12 @@ function hideWindow() {
 }
 
 document.getElementById('hideButton').onclick = hideWindow
+document.getElementById('clearButton').ondblclick = () => {
+  panel.innerHTML = ''
+  giftMap = new Map()
+  window.electron.send('clear-gifts')
+  window.electron.send('clear-guards')
+}
 
 window.electron.onGift((arg) => {
   console.log(arg)

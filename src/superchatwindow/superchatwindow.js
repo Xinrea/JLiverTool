@@ -1,6 +1,12 @@
 $hideButton = document.getElementById('hideButton')
 $panel = document.getElementById('panel')
 
+document.getElementById('clearButton').ondblclick = () => {
+  panel.innerHTML = ''
+  giftMap = new Map()
+  window.electron.send('clear-superchats')
+}
+
 $hideButton.onclick = () => {
   window.electron.send('hideSuperchatWindow')
 }

@@ -492,22 +492,36 @@ function initDB() {
 }
 
 ipcMain.on('remove', (event, info) => {
-  deleteAllRows(info.type, info.id)
+  deleteAllRows(info.type, {
+    id: info.id
+  })
 })
 
-function deleteAllRows(type, id) {
-  db.deleteRow(
-    type,
-    {
-      sid: id
-    },
-    (success, msg) => {
-      if (success) {
-        deleteAllRows(type, id)
-      }
+function deleteAllRows(type, condition) {
+  db.deleteRow(type, condition, (success, msg) => {
+    if (success) {
+      deleteAllRows(type, condition)
     }
-  )
+  })
 }
+
+ipcMain.on('clear-gifts', () => {
+  deleteAllRows('gifts', {
+    room: room
+  })
+})
+
+ipcMain.on('clear-guards', () => {
+  deleteAllRows('guards', {
+    room: room
+  })
+})
+
+ipcMain.on('clear-superchats', () => {
+  deleteAllRows('superchats', {
+    room: room
+  })
+})
 
 function loadPreGifts() {
   return new Promise((resolve, reject) => {
