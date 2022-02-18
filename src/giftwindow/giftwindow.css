@@ -20,7 +20,7 @@
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 5px 0px 10px 0px;
+  padding: 5px 0 10px;
 }
 
 .gift-entry {
@@ -29,8 +29,8 @@
   cursor: pointer;
   border: 1px solid #ffffff62;
   border-radius: 10px;
-  margin: 5px 10px 5px 10px;
-  padding: 5px 10px 5px 10px;
+  margin: 5px 10px;
+  padding: 5px 10px;
   min-height: 75px;
   width: auto;
   color: white;
@@ -94,7 +94,7 @@
 
 @keyframes play {
   from {
-    background-position-x: 0px;
+    background-position-x: 0;
   }
   to {
     background-position-x: calc(-40px * var(--frame-number));
