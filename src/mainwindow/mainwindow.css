@@ -155,7 +155,6 @@ button:hover {
   align-items: center;
   justify-content: flex-end;
   margin-right: 10px;
-  font-family: 'Roboto';
   font-size: 14px;
   line-height: 16px;
   border-radius: 3px;
@@ -227,7 +226,6 @@ button:hover {
   animation: ani 0.5s;
   animation-fill-mode: forwards;
   word-break: break-all;
-  word-wrap: break-word;
 }
 
 .danmu_entry.special {
