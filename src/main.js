@@ -76,6 +76,10 @@ function createMainWindow() {
       room = parseInt(arg)
       store.set('config.room', room)
       stopBackendService()
+      // Reset All Windows For New Room
+      mainWindow?.webContents.send('reset')
+      giftWindow?.webContents.send('reset')
+      superchatWindow?.webContents.send('reset')
     }
   })
   ipcMain.on('openBrowser', () => {
@@ -455,9 +459,6 @@ function stopBackendService() {
     service.stopConn()
     service.conn = null
   }
-  mainWindow?.webContents.send('reset')
-  giftWindow?.webContents.send('reset')
-  superchatWindow?.webContents.send('reset')
 }
 
 let resetCount = 0
