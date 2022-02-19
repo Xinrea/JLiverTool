@@ -1,11 +1,11 @@
 {
   "name": "jlivertool",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Simple Bilibili Danmaku Tool",
   "main": "src/main.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development electron .",
-    "build": "electron-builder build"
+    "build": "electron-builder build -mw"
   },
   "build": {
     "win": {
@@ -13,6 +13,17 @@
       "target": [
         {
           "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "mac": {
+      "icon": "src/icons/icon.png",
+      "target": [
+        {
+          "target": "dmg",
           "arch": [
             "x64"
           ]
@@ -33,6 +44,7 @@
     "electron-store": "^8.0.1",
     "filereader": "^0.10.3",
     "node-fetch": "^3.2.0",
+    "openurl": "^1.1.1",
     "pako": "^2.0.4",
     "reconnecting-websocket": "^4.4.0",
     "uuid": "^8.3.2",

@@ -83,7 +83,7 @@ function createMainWindow() {
     }
   })
   ipcMain.on('openBrowser', () => {
-    require('child_process').exec('start https://live.bilibili.com/' + room)
+    require('openurl').open('https://live.bilibili.com/' + room)
   })
   ipcMain.on('quit', () => {
     stopBackendService()
