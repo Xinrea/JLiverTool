@@ -17,12 +17,12 @@ document.getElementById('clearButton').ondblclick = () => {
   window.electron.send('clear-guards')
 }
 
-window.electron.onGift((arg) => {
+window.electron.register('gift', (arg) => {
   console.log(arg)
   handleGift(arg.id, arg.msg)
 })
 
-window.electron.onGuard((arg) => {
+window.electron.register('guard', (arg) => {
   let entry = createGuardEntry(arg.id, arg.msg)
   panel.appendChild(entry)
   if (autoScroll) {
@@ -31,12 +31,12 @@ window.electron.onGuard((arg) => {
 })
 
 let panel = document.getElementById('giftpanel')
-window.electron.onReset(() => {
+window.electron.register('reset', () => {
   panel.innerHTML = ''
   giftMap = new Map()
   window.electron.send('reseted')
 })
-window.electron.onOpacity(() => {
+window.electron.register('updateOpacity', () => {
   document.documentElement.style.setProperty(
     '--global-opacity',
     window.electron.get('config.opacity', 1)

@@ -30,7 +30,7 @@ $panel.addEventListener('scroll', () => {
   }
 })
 
-window.electron.onSuperchat((g) => {
+window.electron.register('superchat', (g) => {
   let scEntry = createSuperchatEntry(g.id, g.msg)
   $panel.appendChild(scEntry)
   if (autoScroll) {
@@ -38,12 +38,12 @@ window.electron.onSuperchat((g) => {
   }
 })
 
-window.electron.onReset(() => {
+window.electron.register('reset', () => {
   $panel.innerHTML = ''
   window.electron.send('reseted')
 })
 
-window.electron.onOpacity(() => {
+window.electron.register('updateOpacity', () => {
   document.documentElement.style.setProperty(
     '--global-opacity',
     window.electron.get('config.opacity', 1)

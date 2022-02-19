@@ -155,7 +155,7 @@ function updateLiveStatus(isLive) {
 
 console.log('mainwindow.js loaded')
 heatValue = document.getElementById('heatValue')
-window.electron.onUpdate((arg) => {
+window.electron.register('updateroom', (arg) => {
   if (!arg) {
     return
   }
@@ -170,7 +170,7 @@ window.electron.onUpdate((arg) => {
   }
 })
 
-window.electron.onDanmu((arg) => {
+window.electron.register('danmu', (arg) => {
   // 过滤礼物弹幕
   if (arg.info[0][9] > 0) {
     return
@@ -189,7 +189,7 @@ window.electron.onDanmu((arg) => {
   onReceiveNewDanmu(special, medalInfo, arg.info[2][1], arg.info[1])
 })
 
-window.electron.onInteract((arg) => {
+window.electron.register('interact', (arg) => {
   if (!window.electron.get('config.enableEnter', false)) return
   let medalInfo = null
   if (arg.data.fans_medal.level > 0) {
@@ -202,12 +202,12 @@ window.electron.onInteract((arg) => {
   onReceiveInteract(medalInfo, arg.data.uname)
 })
 
-window.electron.onHeat((arg) => {
+window.electron.register('updateheat', (arg) => {
   heatValue.innerText = arg
 })
 
 let $onlineText = document.getElementById('online')
-window.electron.onOnline((arg) => {
+window.electron.register('updateonline', (arg) => {
   if (appStatus.live) {
     if (arg >= 9999) {
       $onlineText.innerText = '> 10000'
@@ -217,7 +217,7 @@ window.electron.onOnline((arg) => {
   }
 })
 
-window.electron.onEffect((arg) => {
+window.electron.register('entry_effect', (arg) => {
   if (!window.electron.get('config.enableEnter', false)) return
   onReceiveEffect(arg)
 })
@@ -228,7 +228,7 @@ let indicount = document.getElementById('danmuCount')
 let autoScroll = true
 let lastPosition = 0
 
-window.electron.onReset(() => {
+window.electron.register('reset', () => {
   $onlineText.innerText = ''
   danmuArea.innerHTML = ''
   autoScroll = true
