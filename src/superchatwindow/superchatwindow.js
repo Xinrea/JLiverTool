@@ -1,10 +1,14 @@
 $hideButton = document.getElementById('hideButton')
 $panel = document.getElementById('panel')
 
-document.getElementById('clearButton').ondblclick = () => {
-  panel.innerHTML = ''
-  giftMap = new Map()
-  window.electron.send('clear-superchats')
+document.getElementById('clearButton').onclick = () => {
+  document.body.appendChild(
+    createConfirmBox('确定清空所有醒目留言记录？', () => {
+      panel.innerHTML = ''
+      giftMap = new Map()
+      window.electron.send('clear-superchats')
+    })
+  )
 }
 
 $hideButton.onclick = () => {

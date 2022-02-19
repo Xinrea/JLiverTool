@@ -214,6 +214,56 @@ textarea,
   fill: white;
 }
 
+.confirm-box {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 200px;
+  left: calc(50% - 150px);
+  width: 300px;
+  min-height: 100px;
+  background-color: rgba(0, 0, 0, 0.89);
+  border: 1px solid #ffffff75;
+  border-radius: 6px;
+  box-shadow: 10px;
+  z-index: 9999;
+}
+
+.confirm-box-content {
+  color: white;
+}
+
+.confirm-box-btn {
+  justify-content: center;
+  width: 100%;
+  padding-top: 10px;
+}
+
+.confirm-box-btn-cancel {
+  color: white;
+  background-color: #242424c9;
+  border: 1px solid rgba(128, 128, 128, 0.514);
+  border-radius: 3px;
+  margin-right: 10px;
+  transition: all 0.5s ease-in-out;
+}
+
+.confirm-box-btn-cancel:hover {
+  background-color: #5a5959cb;
+}
+
+.confirm-box-btn-confirm {
+  color: white;
+  background-color: #ff0000cc;
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  border-radius: 3px;
+}
+
+.confirm-box-btn-confirm:hover {
+  background-color: #ff0000e3;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 6px;

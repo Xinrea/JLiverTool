@@ -10,11 +10,15 @@ function hideWindow() {
 }
 
 document.getElementById('hideButton').onclick = hideWindow
-document.getElementById('clearButton').ondblclick = () => {
-  panel.innerHTML = ''
-  giftMap = new Map()
-  window.electron.send('clear-gifts')
-  window.electron.send('clear-guards')
+document.getElementById('clearButton').onclick = () => {
+  document.body.appendChild(
+    createConfirmBox('确定清空所有礼物和上舰记录？', () => {
+      panel.innerHTML = ''
+      giftMap = new Map()
+      window.electron.send('clear-gifts')
+      window.electron.send('clear-guards')
+    })
+  )
 }
 
 window.electron.register('gift', (arg) => {
