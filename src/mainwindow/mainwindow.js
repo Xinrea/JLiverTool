@@ -186,7 +186,12 @@ window.electron.register('danmu', (arg) => {
       level: arg.info[3][0]
     }
   }
-  onReceiveNewDanmu(special, medalInfo, arg.info[2][1], arg.info[1])
+  if (arg.info[0][12] > 0) {
+    // Emoji Danmu
+    onReceiveNewDanmu(special, medalInfo, arg.info[2][1], arg.info[0][13])
+  } else {
+    onReceiveNewDanmu(special, medalInfo, arg.info[2][1], arg.info[1])
+  }
 })
 
 window.electron.register('interact', (arg) => {

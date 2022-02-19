@@ -232,6 +232,13 @@ button:hover {
   background-color: var(--danmu-special-bg);
 }
 
+.emoji {
+  display: inline-block;
+  background-size: contain;
+  background-repeat: no-repeat;
+  height: calc(var(--danmu-size) + 6px);
+}
+
 @keyframes ani {
   from {
     opacity: 0;
