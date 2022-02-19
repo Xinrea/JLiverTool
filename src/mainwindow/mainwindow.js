@@ -25,7 +25,7 @@ function showCover() {
   document.getElementById('cover').style.visibility = 'visible'
 }
 
-function showInput(e) {
+function showInput() {
   document.getElementById('roomInputPanel').style.visibility = 'visible'
 }
 
@@ -124,7 +124,7 @@ document.getElementById('openBrowser').onclick = () => {
   hideCover()
   hideMenu()
 }
-document.getElementById('openSetting').onclick = (e) => {
+document.getElementById('openSetting').onclick = () => {
   showCover()
   showInput()
   hideMenu()

@@ -21,7 +21,7 @@ function createDanmuEntry(special, medal, sender, content) {
     danmuContent.innerText = content
     danmuEntry.appendChild(danmuContent)
   }
-  danmuEntry.onclick = function (e) {
+  danmuEntry.onclick = function () {
     danmuEntry.classList.toggle('selected')
     if (danmuEntry.classList.contains('selected')) {
       if (appStatus.lastSelectedDanmu) {
