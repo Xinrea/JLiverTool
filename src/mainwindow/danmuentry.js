@@ -60,7 +60,6 @@ function createEffectEntry(content) {
 let giftCache = new Map()
 
 function createGiftEntry(id, g) {
-  console.log(g)
   let medalInfo = {
     guardLevel: g.data.medal_info.guard_level,
     name: g.data.medal_info.medal_name,

@@ -250,9 +250,9 @@ window.electron.register('guard', (arg) => {
   }
 })
 
-window.electron.register('superchat', (g) => {
+window.electron.register('superchat', (arg) => {
   if (!windowStatus.superchat) {
-    onReceiveSuperchat(g)
+    onReceiveSuperchat(arg.id, arg.msg)
   }
 })
 
@@ -431,8 +431,22 @@ function onReceiveGuard(id, msg) {
   scroll()
 }
 
-function onReceiveSuperchat(msg) {
-  console.log(msg)
+function onReceiveSuperchat(id, msg) {
+  cleanOldEntry()
+  let $newEntry = createSuperchatEntry(id, msg, false)
+  danmuArea.appendChild($newEntry)
+  if (window.electron.get('config.fullMode', false)) {
+    if (danmuArea.scrollHeight > danmuArea.clientHeight) {
+      replaceIndex++
+      replaceIndex = replaceIndex % (danmuArea.children.length - 1)
+      danmuArea.children[replaceIndex].replaceWith($newEntry)
+      // When Window Height Decrease Too Much
+      while (danmuArea.scrollHeight > danmuArea.clientHeight) {
+        danmuArea.firstChild.remove()
+      }
+    }
+  }
+  scroll()
 }
 
 function init() {
