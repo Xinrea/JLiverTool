@@ -23,6 +23,7 @@ registerListener('interact')
 registerListener('entry_effect')
 registerListener('reset')
 registerListener('updateOpacity')
+registerListener('updateWindowStatus')
 
 contextBridge.exposeInMainWorld('electron', {
   get: (key, d) => {
@@ -30,6 +31,9 @@ contextBridge.exposeInMainWorld('electron', {
   },
   set: (key, value) => {
     store.set(key, value)
+  },
+  invoke: (channel, ...args) => {
+    return ipcRenderer.invoke(channel, ...args)
   },
   send: ipcRenderer.send,
   register: (name, callback) => {

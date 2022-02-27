@@ -27,6 +27,14 @@ let mainWindow
 let giftWindow
 let superchatWindow
 let windowCount = 0
+let windowStatus = {
+  gift: false,
+  superchat: false
+}
+
+function notifyWindowChange() {
+  mainWindow?.webContents.send('updateWindowStatus', windowStatus)
+}
 
 function createMainWindow() {
   // Create the browser window.
@@ -120,8 +128,12 @@ function createGiftWindow() {
   if (dev) giftWindow.webContents.openDevTools()
   ipcMain.on('hideGiftWindow', () => {
     giftWindow.hide()
+    windowStatus.gift = false
+    notifyWindowChange()
   })
   ipcMain.on('showGiftWindow', () => {
+    windowStatus.gift = true
+    notifyWindowChange()
     if (!giftPosInit) {
       giftWindow.show()
       return
@@ -192,8 +204,12 @@ function createSuperchatWindow() {
   if (dev) superchatWindow.webContents.openDevTools()
   ipcMain.on('hideSuperchatWindow', () => {
     superchatWindow.hide()
+    windowStatus.superchat = false
+    notifyWindowChange()
   })
   ipcMain.on('showSuperchatWindow', () => {
+    windowStatus.superchat = true
+    notifyWindowChange()
     if (!superchatPosInit) {
       superchatWindow.show()
       return
@@ -316,7 +332,8 @@ function startBackendService() {
       res.list.forEach((e) => {
         giftList.set(e.id, {
           animation_frame_num: e.animation_frame_num,
-          png: e.frame_animation
+          png: e.frame_animation,
+          gif: e.gif
         })
       })
       Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
@@ -356,7 +373,8 @@ function startBackendService() {
                   }
                   let giftInfo = {
                     animation_frame_num: 1,
-                    png: ''
+                    png: '',
+                    gif: ''
                   }
                   if (giftList.has(msg.data.giftId)) {
                     giftInfo = giftList.get(msg.data.giftId)
@@ -364,11 +382,16 @@ function startBackendService() {
                   giftData = {
                     gif: {
                       frame: giftInfo.animation_frame_num,
-                      png: giftInfo.png
+                      png: giftInfo.png,
+                      gif: giftInfo.gif
                     },
                     data: msg.data
                   }
                   giftWindow?.webContents.send('gift', {
+                    id: id,
+                    msg: giftData
+                  })
+                  mainWindow?.webContents.send('gift', {
                     id: id,
                     msg: giftData
                   })
@@ -400,7 +423,11 @@ function startBackendService() {
                       timestamp: msg.data.start_time
                     }
                     giftWindow?.webContents.send('guard', {
-                      sid: id,
+                      id: id,
+                      msg: guardBuy
+                    })
+                    mainWindow?.webContents.send('guard', {
+                      id: id,
                       msg: guardBuy
                     })
                   })
@@ -418,6 +445,10 @@ function startBackendService() {
                     (s, m) => {}
                   )
                   superchatWindow?.webContents.send('superchat', {
+                    id: id,
+                    msg: msg
+                  })
+                  mainWindow?.webContents.send('superchat', {
                     id: id,
                     msg: msg
                   })

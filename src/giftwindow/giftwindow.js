@@ -22,7 +22,6 @@ document.getElementById('clearButton').onclick = () => {
 }
 
 window.electron.register('gift', (arg) => {
-  console.log(arg)
   handleGift(arg.id, arg.msg)
 })
 

@@ -5,6 +5,16 @@ let appStatus = {
   live: false
 }
 
+let windowStatus = {
+  gift: false,
+  superchat: false
+}
+
+window.electron.register('updateWindowStatus', (arg) => {
+  windowStatus = arg
+  console.log(windowStatus)
+})
+
 function showMenu(e) {
   if (document.getElementById('dropdown-content').style.display == 'block') {
     return
@@ -227,6 +237,25 @@ window.electron.register('entry_effect', (arg) => {
   onReceiveEffect(arg)
 })
 
+window.electron.register('gift', (arg) => {
+  if (!windowStatus.gift) {
+    onReceiveGift(arg.id, arg.msg)
+  }
+})
+
+window.electron.register('guard', (arg) => {
+  if (!windowStatus.gift) {
+    console.log(arg)
+    onReceiveGuard(arg.id, arg.msg)
+  }
+})
+
+window.electron.register('superchat', (g) => {
+  if (!windowStatus.superchat) {
+    onReceiveSuperchat(g)
+  }
+})
+
 let danmuArea = document.getElementById('danmu')
 let indicator = document.getElementById('bottomIndicator')
 let indicount = document.getElementById('danmuCount')
@@ -351,6 +380,59 @@ function onReceiveEffect(content) {
     }
   }
   scroll()
+}
+
+function onReceiveGift(id, msg) {
+  if (window.electron.get('config.passFreeGift', true)) {
+    if (msg.data.coin_type !== 'gold') {
+      return
+    }
+  }
+  if (giftCache.has(id)) {
+    let old = giftCache.get(id)
+    let oldNum = parseInt(old.getAttribute('gift-num'))
+    let newNum = oldNum + parseInt(msg.data.num)
+    old.querySelector('.gift-num').innerText = `共${newNum}个`
+    old.setAttribute('gift-num', newNum)
+    return
+  }
+  cleanOldEntry()
+  let $newEntry = createGiftEntry(id, msg)
+  danmuArea.appendChild($newEntry)
+  if (window.electron.get('config.fullMode', false)) {
+    if (danmuArea.scrollHeight > danmuArea.clientHeight) {
+      replaceIndex++
+      replaceIndex = replaceIndex % (danmuArea.children.length - 1)
+      danmuArea.children[replaceIndex].replaceWith($newEntry)
+      // When Window Height Decrease Too Much
+      while (danmuArea.scrollHeight > danmuArea.clientHeight) {
+        danmuArea.firstChild.remove()
+      }
+    }
+  }
+  scroll()
+}
+
+function onReceiveGuard(id, msg) {
+  cleanOldEntry()
+  let $newEntry = createGuardEntry(msg)
+  danmuArea.appendChild($newEntry)
+  if (window.electron.get('config.fullMode', false)) {
+    if (danmuArea.scrollHeight > danmuArea.clientHeight) {
+      replaceIndex++
+      replaceIndex = replaceIndex % (danmuArea.children.length - 1)
+      danmuArea.children[replaceIndex].replaceWith($newEntry)
+      // When Window Height Decrease Too Much
+      while (danmuArea.scrollHeight > danmuArea.clientHeight) {
+        danmuArea.firstChild.remove()
+      }
+    }
+  }
+  scroll()
+}
+
+function onReceiveSuperchat(msg) {
+  console.log(msg)
 }
 
 function init() {

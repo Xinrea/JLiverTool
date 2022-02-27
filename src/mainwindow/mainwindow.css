@@ -232,6 +232,10 @@ button:hover {
   background-color: var(--danmu-special-bg);
 }
 
+.danmu_entry.gift {
+  border: 1px solid #f7b500;
+}
+
 .emoji {
   display: inline-block;
   background-size: contain;
@@ -278,4 +282,31 @@ button:hover {
   color: white;
   background-color: #00afeb;
   z-index: 2;
+}
+
+.action {
+  color: #666;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.gift-name {
+  color: #f7b500;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.gift-num {
+  color: #f7b500;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+
+.gift-icon {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin-left: 5px;
+  background-size: contain;
+  vertical-align: middle;
 }
