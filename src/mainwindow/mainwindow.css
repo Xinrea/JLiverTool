@@ -240,7 +240,6 @@ button:hover {
   display: inline-block;
   background-size: contain;
   background-repeat: no-repeat;
-  height: calc(var(--danmu-size) + 6px);
 }
 
 @keyframes ani {

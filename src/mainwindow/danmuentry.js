@@ -17,15 +17,18 @@ function createDanmuEntry(special, medal, sender, content) {
   danmuEntry.appendChild(danmuSender)
   if (content) {
     if (content.url) {
+      let emojiSize = 30
+      if (content.emoticon_unique.includes('official')) emojiSize = 6
       let danmuContent = document.createElement('span')
       danmuContent.className = 'content emoji'
       danmuContent.style.backgroundImage = `url(${content.url})`
       h =
         parseInt(
           document.documentElement.style.getPropertyValue('--danmu-size')
-        ) + 6
+        ) + emojiSize
       w = (h / content.height) * content.width
       danmuContent.style.width = w + 'px'
+      danmuContent.style.height = h + 'px'
       danmuEntry.appendChild(danmuContent)
     } else {
       let danmuContent = document.createElement('span')
