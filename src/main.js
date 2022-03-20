@@ -1,9 +1,11 @@
 // Modules to control application life and create native browser window
-const { app, ipcMain, screen, BrowserWindow } = require('electron')
+const { app, ipcMain, screen, BrowserWindow, dialog } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
 const { v4: uuidv4 } = require('uuid')
+const ExcelJS = require('exceljs')
+const moment = require('moment')
 
 let dev
 if (process.env.NODE_ENV) {
@@ -30,6 +32,83 @@ let windowCount = 0
 let windowStatus = {
   gift: false,
   superchat: false
+}
+
+function exportGift() {
+  const workbook = new ExcelJS.Workbook()
+  const giftsheet = workbook.addWorksheet('礼物')
+  const guardsheet = workbook.addWorksheet('舰长')
+  const superchatsheet = workbook.addWorksheet('醒目留言')
+  let sheetComplete = 0
+  let completeExcel = () => {
+    console.log('complete')
+    if (sheetComplete === 3) {
+      console.log('export to file')
+      dialog.showSaveDialog({
+        title: '导出礼物数据',
+        defaultPath: 'jlivertool_export.xlsx'
+      }).then(result => {
+        if (!result.canceled) {
+          let filename = result.filePath
+          console.log('export to', filename)
+          workbook.xlsx.writeFile(filename).then(() => {
+            console.log('导出成功')
+          })
+        }
+      })
+    }
+  }
+  giftsheet.columns = [
+    { header: 'UID', key: 'id', width: 10, numFmt: '0' },
+    { header: '用户名', key: 'uname', width: 20 },
+    { header: '礼物名', key: 'gift_name', width: 10},
+    { header: '数量', key: 'gift_num', width: 10},
+    { header: '总价值（电池）', key: 'gift_price', width: 18},
+    { header: '时间', key: 'date', width: 20}
+  ];
+  guardsheet.columns = [
+    { header: 'UID', key: 'id', width: 10, numFmt: '0' },
+    { header: '用户名', key: 'uname', width: 20 },
+    { header: '舰队类型', key: 'gift_name', width: 10},
+    { header: '时间', key: 'date', width: 20}
+  ];
+  superchatsheet.columns = [
+    { header: 'UID', key: 'id', width: 10, numFmt: '0' },
+    { header: '用户名', key: 'uname', width: 20 },
+    { header: '内容', key: 'message', width: 48},
+    { header: '价值（RMB）', key: 'price', width: 18},
+    { header: '时间', key: 'date', width: 20}
+  ];
+  db.getRows('gifts', {room: room}, (success,r)=>{
+    if (success) {
+      r.forEach((gift)=>{
+        let row = [gift.data.data.uid, gift.data.data.uname, gift.data.data.giftName, gift.data.data.num, gift.data.data.num*gift.data.data.price/100, moment(gift.data.data.timestamp*1000).format('YYYY-MM-DD HH:mm:ss')]
+        giftsheet.addRow(row)
+      })
+    }
+    sheetComplete++
+    completeExcel()
+  })
+  db.getRows('guards', {room: room}, (success,r)=>{
+    if (success) {
+      r.forEach((guard)=>{
+        let row = [guard.data.data.uid, guard.data.data.username, guard.data.data.gift_name, moment(guard.data.data.start_time*1000).format('YYYY-MM-DD HH:mm:ss')]
+        guardsheet.addRow(row)
+      })
+    }
+    sheetComplete++
+    completeExcel()
+  })
+  db.getRows('superchats', {room: room}, (success,r)=>{
+    if (success) {
+      r.forEach((superchat)=>{
+        let row = [superchat.data.data.uid, superchat.data.data.user_info.uname, superchat.data.data.message, superchat.data.data.price, moment(superchat.data.data.start_time*1000).format('YYYY-MM-DD HH:mm:ss')]
+        superchatsheet.addRow(row)
+      })
+    }
+    sheetComplete++
+    completeExcel()
+  })
 }
 
 function notifyWindowChange() {
@@ -92,6 +171,9 @@ function createMainWindow() {
   })
   ipcMain.on('openBrowser', () => {
     require('openurl').open('https://live.bilibili.com/' + room)
+  })
+  ipcMain.on('exportGift', ()=>{
+    exportGift()
   })
   ipcMain.on('quit', () => {
     stopBackendService()
