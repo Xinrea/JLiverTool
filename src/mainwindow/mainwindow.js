@@ -86,6 +86,11 @@ document.getElementById('largeF').onclick = () => {
   document.documentElement.style.setProperty('--danmu-size', '22px')
   window.electron.set('config.fontSize', '22px')
 }
+document.getElementById('exportGift').onclick = () => {
+  window.electron.send('exportGift')
+  hideCover()
+  hideMenu()
+}
 
 let replaceIndex = 0
 document.getElementById('fullModeButton').onclick = () => {
