@@ -19,4 +19,3 @@ jobs:
     - uses: ncipollo/release-action@v1
       with:
         artifacts: "dist/*.dmg,dist/*.exe,dist/*.blockmap"
-        token: ${{ secrets.GITHUB_TOKEN }}
