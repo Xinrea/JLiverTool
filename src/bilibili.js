@@ -1,7 +1,7 @@
 const WS = require('ws')
 const ReconnectingWebSocket = require('reconnecting-websocket')
 const pako = require('pako')
-const http = require('http')
+const http = require('https')
 
 const textEncoder = new TextEncoder('utf-8')
 const textDecoder = new TextDecoder('utf-8')
@@ -123,7 +123,7 @@ function checkLiveStatus(room) {
   return new Promise(function (resolve, reject) {
     http
       .get(
-        `http://api.live.bilibili.com/room/v1/Room/room_init?id=${room}`,
+        `https://api.live.bilibili.com/room/v1/Room/room_init?id=${room}`,
         (res) => {
           let data = ''
           res.on('data', (chunk) => {
@@ -165,7 +165,7 @@ function getRoomInfo(room) {
   return new Promise(function (resolve, reject) {
     http
       .get(
-        `http://api.live.bilibili.com/room/v1/Room/get_info?id=${room}`,
+        `https://api.live.bilibili.com/room/v1/Room/get_info?id=${room}`,
         (res) => {
           let data = ''
           res.on('data', (chunk) => {
@@ -189,7 +189,7 @@ function getGiftList(room) {
   return new Promise(function (resolve, reject) {
     http
       .get(
-        `http://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${room}`,
+        `https://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${room}`,
         (res) => {
           let data = ''
           res.on('data', (chunk) => {
@@ -213,7 +213,7 @@ function getOnlineNum(uid, room) {
   return new Promise(function (resolve, reject) {
     http
       .get(
-        `http://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${uid}&roomId=${room}&page=1&pageSize=1`,
+        `https://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${uid}&roomId=${room}&page=1&pageSize=1`,
         (res) => {
           let data = ''
           res.on('data', (chunk) => {
@@ -237,7 +237,7 @@ function getUserInfo(uid) {
   return new Promise(function (resolve, reject) {
     http
       .get(
-        `http://api.bilibili.com/x/space/acc/info?mid=${uid}&jsonp=jsonp`,
+        `https://api.bilibili.com/x/space/acc/info?mid=${uid}&jsonp=jsonp`,
         (res) => {
           let data = ''
           res.on('data', (chunk) => {
