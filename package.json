@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development electron .",
-    "build": "electron-builder build -mw"
+    "build": "electron-builder build -mw --publish=never"
   },
   "build": {
     "win": {
