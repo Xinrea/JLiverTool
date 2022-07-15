@@ -10,9 +10,9 @@
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, var(--global-opacity));
+  background-color: rgba(var(--main-bg-rgb),var(--global-opacity));
   box-sizing: border-box;
-  border: 2px solid #ffffff50;
+  border: 2px solid var(--border);
 }
 
 #roomInputPanel {
@@ -28,7 +28,7 @@
   flex-direction: row;
   padding: 10px;
   border-radius: 4px;
-  background-color: #16161ac5;
+  background-color: var(--main-color);
   backdrop-filter: blur(10px);
   box-sizing: border-box;
   box-shadow: 0 0 10px black;
@@ -38,7 +38,7 @@
 
 input {
   color: #999999;
-  background-color: #25252c;
+  background-color: var(--main-bg);
   width: 180px;
   padding: 6px;
   border: none;
@@ -64,12 +64,12 @@ button {
   font-size: 16px;
   text-align: center;
   background-color: #00000000;
-  color: #ffffff;
+  color: var(--font-color);
   cursor: pointer;
 }
 
 button:hover {
-  background-color: #25252cc2;
+  background-color: var(--main-bg);
 }
 
 #enterRoom {
@@ -86,7 +86,8 @@ button:hover {
   right: 24px;
   flex-direction: column;
   position: absolute;
-  background-color: #16161ace;
+  color: var(--font-color);
+  background-color: var(--main-color);
   backdrop-filter: blur(10px);
   min-width: 160px;
   border-radius: 10px 0 10px 10px;
@@ -99,7 +100,7 @@ button:hover {
 }
 
 :any-link {
-  color: white;
+  color: var(--font-color);
   padding: 12px 16px;
   text-decoration: none;
   align-items: center;
@@ -108,7 +109,7 @@ button:hover {
 }
 
 #dropdown-content a:hover {
-  background-color: rgba(255, 255, 255, 0.329);
+  background-color: rgba(var(--main-bg-rgb), 0.329);
 }
 
 #statusbar {
@@ -119,7 +120,7 @@ button:hover {
   position: absolute;
   align-items: center;
   justify-content: space-between;
-  background-color: #16161ac7; /* #16161ac7 */
+  background-color: var(--main-color);
   border-radius: 0 0 10px 10px;
   box-sizing: border-box;
   border-top: 1px solid #ffffff75;
@@ -146,7 +147,7 @@ button:hover {
   font-family: 'Roboto';
   font-size: 14px;
   line-height: 16px;
-  color: white;
+  color: var(--font-color);
   margin-left: 14px;
 }
 
@@ -158,7 +159,7 @@ button:hover {
   font-size: 14px;
   line-height: 16px;
   border-radius: 3px;
-  color: rgb(255, 255, 255);
+  color: var(--font-color);
   transition: all 0.5s ease-in-out;
 }
 
@@ -189,7 +190,7 @@ button:hover {
   white-space: nowrap;
   vertical-align: middle;
   cursor: pointer;
-  color: #999;
+  color:var(--font-secolor);
   line-height: 20px;
 }
 
@@ -197,7 +198,7 @@ button:hover {
   font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
     'Microsoft SanSerf', 微软雅黑 !important;
   font-size: var(--danmu-size);
-  color: var(--dark-font-0) !important;
+  color: var(--font-color) !important;
   word-wrap: break-word;
   white-space: normal;
   vertical-align: middle;
@@ -213,7 +214,7 @@ button:hover {
   font-size: var(--danmu-size);
   padding: 1px 1px 1px 10px;
   transform: translateZ(0);
-  color: var(--dark-font-0) !important;
+  color: var(--font-color) !important;
   line-height: calc(var(--danmu-size) + 4px);
   word-wrap: break-word;
   white-space: normal;
@@ -252,11 +253,11 @@ button:hover {
 }
 
 .danmu_entry:hover {
-  box-shadow: rgba(255, 255, 255, 0.445) 0 0 0 1px;
+  box-shadow: var(--font-secolor) 0 0 0 1px;
 }
 
 .danmu_entry.selected {
-  box-shadow: rgb(255, 255, 255) 0 0 0 1px;
+  box-shadow: var(--font-secolor) 0 0 0 1px;
 }
 
 #danmu {
@@ -284,7 +285,7 @@ button:hover {
 }
 
 .action {
-  color: #666;
+  color: var(--font-secolor);
   margin-left: 5px;
   vertical-align: middle;
 }

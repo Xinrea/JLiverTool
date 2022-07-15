@@ -61,6 +61,10 @@ document.getElementById('menubutton').onclick = (e) => {
   showCover()
 }
 
+document.getElementById('switchTheme').onclick = ()=>{
+  window.electron.send('theme:switch')
+}
+
 let $opcaitySetting = document.getElementById('opacity-setting')
 $opcaitySetting.onchange = function () {
   window.electron.set('config.opacity', this.value)
@@ -163,7 +167,7 @@ function updateLiveStatus(isLive) {
   if (isLive) {
     document.getElementById('titlebar').style.backgroundColor = '#fc3131be'
   } else {
-    document.getElementById('titlebar').style.backgroundColor = '#16161ac7'
+    document.getElementById('titlebar').style.backgroundColor = 'var(--titlebar-color)'
     $onlineText.innerText = ''
   }
 }

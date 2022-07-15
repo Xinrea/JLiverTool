@@ -11,7 +11,7 @@
   height: 100%;
   flex-direction: column;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, var(--global-opacity));
+  background-color: rgba(var(--main-bg-rgb), var(--global-opacity));
   box-sizing: border-box;
   border: 2px solid #ffffff50;
 }

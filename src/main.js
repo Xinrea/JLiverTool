@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, ipcMain, screen, BrowserWindow, dialog } = require('electron')
+const { app, ipcMain, screen, BrowserWindow, dialog, nativeTheme } = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
@@ -183,6 +183,21 @@ function createMainWindow() {
     windowCount++
     if (windowCount === 3) {
       startBackendService()
+    }
+  })
+  if (store.has('cache.theme')) {
+    nativeTheme.themeSource = store.get('cache.theme')
+  } else {
+    nativeTheme.themeSource = 'light'
+    store.set('cache.theme', 'light')
+  }
+  ipcMain.on('theme:switch', ()=>{
+    if (store.get('cache.theme', 'light') === 'light') {
+      nativeTheme.themeSource = 'dark'
+      store.set('cache.theme', 'dark')
+    } else {
+      nativeTheme.themeSource = 'light'
+      store.set('cache.theme', 'light')
     }
   })
 }
