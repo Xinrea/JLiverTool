@@ -509,11 +509,11 @@ function startBackendService() {
                     },
                     () => {}
                   )
-                  // getUserInfo(msg.data.uid).then((userinfo) => {
+                  getUserInfo(msg.data.uid).then((userinfo) => {
                     guardBuy = {
-                      medal: null,
-                      face: null,
-                      name: msg.data.username,
+                      medal: userinfo.fans_medal.medal,
+                      face: userinfo.face,
+                      name: userinfo.name,
                       gift_name: msg.data.gift_name,
                       guard_level: msg.data.guard_level,
                       price: msg.data.price,
@@ -527,7 +527,7 @@ function startBackendService() {
                       id: id,
                       msg: guardBuy
                     })
-                  // })
+                  })
                   break
                 }
                 if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
@@ -573,23 +573,23 @@ function startBackendService() {
             }
           }
           service.stopConn = connecting(realroom, msgHandler)
-          let mock = {
-            cmd: 'GUARD_BUY',
-            data: {
-              uid: 475210,
-              username: 'Xinrea',
-              guard_level: 3,
-              num: 1,
-              price: 198000,
-              gift_id: 10003,
-              gift_name: '舰长',
-              start_time: 1663609063,
-              end_time: 1663609063
-            }
-          }
-          setInterval(() => {
-            msgHandler(5,mock)
-          }, 5000);
+          // let mock = {
+          //   cmd: 'GUARD_BUY',
+          //   data: {
+          //     uid: 475210,
+          //     username: 'Xinrea',
+          //     guard_level: 3,
+          //     num: 1,
+          //     price: 198000,
+          //     gift_id: 10003,
+          //     gift_name: '舰长',
+          //     start_time: 1663609063,
+          //     end_time: 1663609063
+          //   }
+          // }
+          // setInterval(() => {
+          //   msgHandler(5,mock)
+          // }, 5000);
         }
       )
     })
@@ -711,11 +711,11 @@ function loadPreGuards() {
         for (let i = 0; i < r.length; i++) {
           let id = r[i].sid
           let msg = r[i].data
-          // getUserInfo(msg.data.uid).then((userinfo) => {
+          getUserInfo(msg.data.uid).then((userinfo) => {
             guardBuy = {
-              medal: null,
-              face: null,
-              name: msg.data.username,
+              medal: userinfo.fans_medal.medal,
+              face: userinfo.face,
+              name: userinfo.name,
               gift_name: msg.data.gift_name,
               guard_level: msg.data.guard_level,
               price: msg.data.price,
@@ -725,7 +725,7 @@ function loadPreGuards() {
               id: id,
               msg: guardBuy
             })
-          // })
+          })
         }
       }
       resolve()
