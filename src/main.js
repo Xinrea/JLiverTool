@@ -499,21 +499,23 @@ function startBackendService() {
                   break
                 }
                 if (msg.cmd.includes('GUARD_BUY')) {
-                  let id = uuidv4()
-                  db.insertTableContent(
-                    'guards',
-                    {
-                      room: room,
-                      sid: id,
-                      data: msg
-                    },
-                    () => {}
-                  )
                   getUserInfo(msg.data.uid).then((userinfo) => {
+                    let id = uuidv4()
+                    msg.data.medal = userinfo.fans_medal.medal
+                    msg.data.face = userinfo.face,
+                    db.insertTableContent(
+                      'guards',
+                      {
+                        room: room,
+                        sid: id,
+                        data: msg
+                      },
+                      () => {}
+                    )
                     guardBuy = {
-                      medal: userinfo.fans_medal.medal,
-                      face: userinfo.face,
-                      name: userinfo.name,
+                      medal:msg.data.medal,
+                      face: msg.data.face,
+                      name: msg.data.username,
                       gift_name: msg.data.gift_name,
                       guard_level: msg.data.guard_level,
                       price: msg.data.price,
@@ -711,20 +713,18 @@ function loadPreGuards() {
         for (let i = 0; i < r.length; i++) {
           let id = r[i].sid
           let msg = r[i].data
-          getUserInfo(msg.data.uid).then((userinfo) => {
-            guardBuy = {
-              medal: userinfo.fans_medal.medal,
-              face: userinfo.face,
-              name: userinfo.name,
-              gift_name: msg.data.gift_name,
-              guard_level: msg.data.guard_level,
-              price: msg.data.price,
-              timestamp: msg.data.start_time
-            }
-            giftWindow?.webContents.send('guard', {
-              id: id,
-              msg: guardBuy
-            })
+          guardBuy = {
+            medal: msg.data.medal,
+            face: msg.data.face,
+            name: msg.data.username,
+            gift_name: msg.data.gift_name,
+            guard_level: msg.data.guard_level,
+            price: msg.data.price,
+            timestamp: msg.data.start_time
+          }
+          giftWindow?.webContents.send('guard', {
+            id: id,
+            msg: guardBuy
           })
         }
       }
