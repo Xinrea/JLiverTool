@@ -498,7 +498,7 @@ function startBackendService() {
                   mainWindow?.webContents.send('interact', msg)
                   break
                 }
-                if (msg.cmd === 'GUARD_BUY') {
+                if (msg.cmd.includes('GUARD_BUY')) {
                   let id = uuidv4()
                   db.insertTableContent(
                     'guards',
@@ -530,7 +530,7 @@ function startBackendService() {
                   })
                   break
                 }
-                if (msg.cmd === 'SUPER_CHAT_MESSAGE') {
+                if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
                   let id = uuidv4()
                   db.insertTableContent(
                     'superchats',
