@@ -198,9 +198,11 @@ function createGuardEntry(id, g) {
   giftSender.classList.add('gift-sender')
   let senderAvator = document.createElement('div')
   senderAvator.classList.add('sender-avator')
-  let senderAvatorImg = document.createElement('img')
-  senderAvatorImg.src = g.face
-  senderAvator.appendChild(senderAvatorImg)
+  if (g.face) {
+    let senderAvatorImg = document.createElement('img')
+    senderAvatorImg.src = g.face
+    senderAvator.appendChild(senderAvatorImg)
+  }
   let senderName = document.createElement('div')
   senderName.classList.add('sender-name')
   senderName.innerText = g.name
@@ -244,10 +246,6 @@ function createGuardEntry(id, g) {
   giftContent.appendChild(giftInfo)
   let giftPrice = document.createElement('div')
   giftPrice.classList.add('gift-price')
-  let giftPriceValue = document.createElement('div')
-  giftPriceValue.classList.add('gift-price-value')
-  giftPriceValue.innerText = '￥' + g.price / 1000
-  giftPrice.appendChild(giftPriceValue)
   giftContent.appendChild(giftPrice)
   giftEntry.appendChild(giftContent)
   giftEntry.style.background = `var(--guard-gift-bg-${g.guard_level})`
