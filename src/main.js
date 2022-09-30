@@ -6,6 +6,7 @@ const db = require('electron-db')
 const { v4: uuidv4 } = require('uuid')
 const ExcelJS = require('exceljs')
 const moment = require('moment')
+const https = require('https')
 
 let dev
 if (process.env.NODE_ENV) {
@@ -200,6 +201,7 @@ function createMainWindow() {
       store.set('cache.theme', 'light')
     }
   })
+  checkUpdateFromGithubAPI()
 }
 
 let giftPosInit = true
@@ -754,3 +756,44 @@ function loadPreSuperchats() {
 process.on('uncaughtException', function (err) {
   console.log(err)
 })
+
+function checkUpdateFromGithubAPI() {
+  const options = {
+    hostname: 'api.github.com',
+    port: 443,
+    path: '/repos/xinrea/JLiverTool/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'request'
+    }
+  }
+  const req = https.request(options, (res) => {
+    let data = ''
+    res.on('data', (d) => {
+      data += d
+    })
+    res.on('end', () => {
+      let json = JSON.parse(data)
+      let version = json.tag_name
+      console.log('latest version:', version)
+      if (version !== 'v'+app.getVersion()) {
+        console.log('Update available')
+        dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: '更新',
+          message: '发现新版本 '+version+'，是否前往下载？\n'+json.body,
+          buttons: ['是', '否']
+        }).then((result) => {
+          if (result.response === 0) {
+            console.log("Update now")
+            require('openurl').open(json.html_url)
+          }
+        })
+      }
+    })
+  })
+  req.on('error', (e) => {
+    console.error(e)
+  })
+  req.end()
+}
