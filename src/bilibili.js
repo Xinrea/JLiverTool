@@ -233,44 +233,10 @@ function getOnlineNum(uid, room) {
   })
 }
 
-function getUserInfo(uid) {
-  return new Promise(function (resolve, reject) {
-    http.request()
-    http
-      .get(
-        {
-          hostname: 'api.bilibili.com',
-          path: `/x/space/acc/info?mid=${uid}&token=&platform=web&jsonp=jsonp`,
-          method: 'GET',
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'
-          }
-        },
-        (res) => {
-          let data = ''
-          res.on('data', (chunk) => {
-            data += chunk
-          })
-          res.on('end', () => {
-            const result = JSON.parse(data)
-            if (result.code === 0) {
-              resolve(result.data)
-            }
-          })
-        }
-      )
-      .on('error', (e) => {
-        console.error(e)
-      })
-  })
-}
-
 module.exports = {
   connecting,
   checkLiveStatus,
   getRoomInfo,
   getOnlineNum,
-  getGiftList,
-  getUserInfo
+  getGiftList
 }

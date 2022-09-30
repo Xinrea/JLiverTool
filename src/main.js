@@ -394,8 +394,7 @@ const {
   checkLiveStatus,
   getRoomInfo,
   getOnlineNum,
-  getGiftList,
-  getUserInfo
+  getGiftList
 } = require('./bilibili')
 
 let service = {
@@ -499,37 +498,37 @@ function startBackendService() {
                   break
                 }
                 if (msg.cmd.includes('GUARD_BUY')) {
-                  getUserInfo(msg.data.uid).then((userinfo) => {
-                    let id = uuidv4()
-                    msg.data.medal = userinfo.fans_medal.medal
-                    msg.data.face = userinfo.face,
-                    db.insertTableContent(
-                      'guards',
-                      {
-                        room: room,
-                        sid: id,
-                        data: msg
-                      },
-                      () => {}
-                    )
-                    guardBuy = {
-                      medal:msg.data.medal,
-                      face: msg.data.face,
-                      name: msg.data.username,
-                      gift_name: msg.data.gift_name,
-                      guard_level: msg.data.guard_level,
-                      price: msg.data.price,
-                      timestamp: msg.data.start_time
-                    }
-                    giftWindow?.webContents.send('guard', {
-                      id: id,
-                      msg: guardBuy
-                    })
-                    mainWindow?.webContents.send('guard', {
-                      id: id,
-                      msg: guardBuy
-                    })
+                  // getUserInfo(msg.data.uid).then((userinfo) => {
+                  let id = uuidv4()
+                  msg.data.medal = userinfo.fans_medal.medal
+                  msg.data.face = userinfo.face,
+                  db.insertTableContent(
+                    'guards',
+                    {
+                      room: room,
+                      sid: id,
+                      data: msg
+                    },
+                    () => {}
+                  )
+                  guardBuy = {
+                    medal:msg.data.medal,
+                    face: msg.data.face,
+                    name: msg.data.username,
+                    gift_name: msg.data.gift_name,
+                    guard_level: msg.data.guard_level,
+                    price: msg.data.price,
+                    timestamp: msg.data.start_time
+                  }
+                  giftWindow?.webContents.send('guard', {
+                    id: id,
+                    msg: guardBuy
                   })
+                  mainWindow?.webContents.send('guard', {
+                    id: id,
+                    msg: guardBuy
+                  })
+                  // })
                   break
                 }
                 if (msg.cmd == 'SUPER_CHAT_MESSAGE') {
@@ -641,8 +640,9 @@ function initDB() {
 }
 
 ipcMain.on('remove', (event, info) => {
+  console.log('remove', info)
   deleteAllRows(info.type, {
-    id: info.id
+    sid: info.id
   })
 })
 
