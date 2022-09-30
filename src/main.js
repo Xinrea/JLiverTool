@@ -532,7 +532,7 @@ function startBackendService() {
                   })
                   break
                 }
-                if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
+                if (msg.cmd == 'SUPER_CHAT_MESSAGE') {
                   let id = uuidv4()
                   db.insertTableContent(
                     'superchats',
