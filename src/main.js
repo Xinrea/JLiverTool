@@ -500,8 +500,6 @@ function startBackendService() {
                 if (msg.cmd.includes('GUARD_BUY')) {
                   // getUserInfo(msg.data.uid).then((userinfo) => {
                   let id = uuidv4()
-                  msg.data.medal = userinfo.fans_medal.medal
-                  msg.data.face = userinfo.face,
                   db.insertTableContent(
                     'guards',
                     {
