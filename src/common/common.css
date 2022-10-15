@@ -382,3 +382,8 @@ textarea,
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
   -webkit-box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
 }
+
+.bv-link:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}

@@ -47,7 +47,7 @@ function createSuperchatEntry(id, g, removable) {
   scEntryContent.style.backgroundColor = `var(--sc-f-level-${level})`
   let scEntryContentText = document.createElement('div')
   scEntryContentText.classList.add('sc-entry-content-text')
-  scEntryContentText.innerText = g.data.message
+  scEntryContentText.appendChild(renderContent(g.data.message))
   scEntryContent.appendChild(scEntryContentText)
   scEntry.appendChild(scEntryContent)
   if (removable) {

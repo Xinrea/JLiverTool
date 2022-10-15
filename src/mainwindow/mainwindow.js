@@ -1,6 +1,6 @@
 let appStatus = {
   lastSelectedDanmu: null,
-  isCoutingNew: false,
+  isCountingNew: false,
   newDanmuCount: 0,
   live: false
 }
@@ -16,7 +16,7 @@ window.electron.register('updateWindowStatus', (arg) => {
 })
 
 function showMenu(e) {
-  if (document.getElementById('dropdown-content').style.display == 'block') {
+  if (document.getElementById('dropdown-content').style.display === 'block') {
     return
   }
   document.getElementById('dropdown-content').style.display = 'block'
@@ -178,13 +178,13 @@ window.electron.register('updateroom', (arg) => {
   if (!arg) {
     return
   }
-  if (arg.live_status == 1) {
+  if (arg.live_status === 1) {
     updateLiveStatus(true)
   } else {
     updateLiveStatus(false)
   }
   document.getElementById('livetitle').innerText = arg.title
-  if (heatValue.innerText == '') {
+  if (heatValue.innerText === '') {
     heatValue.innerText = arg.online
   }
 })
@@ -277,7 +277,7 @@ window.electron.register('reset', () => {
   autoScroll = true
   indicator.style.visibility = 'hidden'
   appStatus.newDanmuCount = 0
-  appStatus.isCoutingNew = false
+  appStatus.isCountingNew = false
   // Reset Full Mode Related
   replaceIndex = 0
   // Make Sure All Data Reseted
@@ -298,7 +298,7 @@ danmuArea.addEventListener('scroll', () => {
     autoScroll = true
     indicator.style.visibility = 'hidden'
     appStatus.newDanmuCount = 0
-    appStatus.isCoutingNew = false
+    appStatus.isCountingNew = false
   } else {
     autoScroll = false
   }
@@ -310,7 +310,7 @@ function scroll() {
       danmuArea.scrollHeight - danmuArea.clientHeight
   }
   if (!autoScroll) {
-    appStatus.isCoutingNew = true
+    appStatus.isCountingNew = true
     if (appStatus.newDanmuCount > 0) {
       indicator.style.visibility = 'visible'
       indicount.innerText = appStatus.newDanmuCount
@@ -318,7 +318,7 @@ function scroll() {
   } else {
     indicator.style.visibility = 'hidden'
     appStatus.newDanmuCount = 0
-    appStatus.isCoutingNew = false
+    appStatus.isCountingNew = false
   }
 }
 
@@ -327,11 +327,11 @@ indicator.onclick = () => {
     danmuArea.scrollHeight - danmuArea.clientHeight
   indicator.style.visibility = 'hidden'
   appStatus.newDanmuCount = 0
-  appStatus.isCoutingNew = false
+  appStatus.isCountingNew = false
 }
 
 function cleanOldEntry() {
-  if (appStatus.isCoutingNew) appStatus.newDanmuCount++
+  if (appStatus.isCountingNew) appStatus.newDanmuCount++
   if (danmuArea.children.length > 1000) {
     danmuArea.removeChild(danmuArea.children[0])
   }
