@@ -31,10 +31,7 @@ function createDanmuEntry(special, medal, sender, content) {
       danmuContent.style.height = h + 'px'
       danmuEntry.appendChild(danmuContent)
     } else {
-      let danmuContent = document.createElement('span')
-      danmuContent.className = 'content'
-      danmuContent.innerText = content
-      danmuEntry.appendChild(danmuContent)
+      danmuEntry.appendChild(renderContent(content))
     }
   }
   danmuEntry.onclick = function () {

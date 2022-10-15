@@ -173,6 +173,9 @@ function createMainWindow() {
   ipcMain.on('openBrowser', () => {
     require('openurl').open('https://live.bilibili.com/' + room)
   })
+  ipcMain.on('openURL', (event, arg) => {
+    require('openurl').open(arg)
+  })
   ipcMain.on('exportGift', ()=>{
     exportGift()
   })
@@ -574,23 +577,75 @@ function startBackendService() {
             }
           }
           service.stopConn = connecting(realroom, msgHandler)
-          // let mock = {
-          //   cmd: 'GUARD_BUY',
-          //   data: {
-          //     uid: 475210,
-          //     username: 'Xinrea',
-          //     guard_level: 3,
-          //     num: 1,
-          //     price: 198000,
-          //     gift_id: 10003,
-          //     gift_name: '舰长',
-          //     start_time: 1663609063,
-          //     end_time: 1663609063
-          //   }
-          // }
-          // setInterval(() => {
-          //   msgHandler(5,mock)
-          // }, 5000);
+          const mock = {
+            cmd: 'SUPER_CHAT_MESSAGE',
+            data: {
+              background_bottom_color: '#2A60B2',
+              background_color: '#EDF5FF',
+              background_color_end: '#405D85',
+              background_color_start: '#3171D2',
+              background_icon: '',
+              background_image:
+                  'https://i0.hdslb.com/bfs/live/a712efa5c6ebc67bafbe8352d3e74b820a00c13e.png',
+              background_price_color: '#7497CD',
+              color_point: 0.7,
+              dmscore: 120,
+              end_time: 1645973356,
+              gift: {
+                gift_id: 12000,
+                gift_name: '醒目留言',
+                num: 1
+              },
+              id: 3420457,
+              is_ranked: 0,
+              is_send_audit: 0,
+              medal_info: {
+                anchor_roomid: 21919321,
+                anchor_uname: 'HiiroVTuber',
+                guard_level: 3,
+                icon_id: 0,
+                is_lighted: 1,
+                medal_color: '#1a544b',
+                medal_color_border: 6809855,
+                medal_color_end: 5414290,
+                medal_color_start: 1725515,
+                medal_level: 21,
+                medal_name: '王牛奶',
+                special: '',
+                target_id: 508963009
+              },
+              message: '这里是一个BV号BV114514测试',
+              message_font_color: '#A3F6FF',
+              message_trans: '',
+              price: 30,
+              rate: 1000,
+              start_time: 1645973296,
+              time: 60,
+              token: 'F6EA31D4',
+              trans_mark: 0,
+              ts: 1645973296,
+              uid: 21131097,
+              user_info: {
+                face: 'http://i0.hdslb.com/bfs/face/dd69fba7016323edf120ef5ef8171d723d76673b.jpg',
+                face_frame:
+                    'https://i0.hdslb.com/bfs/live/80f732943cc3367029df65e267960d56736a82ee.png',
+                guard_level: 3,
+                is_main_vip: 0,
+                is_svip: 0,
+                is_vip: 0,
+                level_color: '#61c05a',
+                manager: 0,
+                name_color: '#00D1F1',
+                title: 'title-111-1',
+                uname: '慕臣来喝口王牛奶吧',
+                user_level: 12
+              }
+            },
+            roomid: 21919321
+          }
+          setInterval(() => {
+            msgHandler(5,mock)
+          }, 5000);
         }
       )
     })
