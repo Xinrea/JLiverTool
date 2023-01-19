@@ -1,4 +1,7 @@
-function createDanmuEntry(special, medal, sender, content) {
+import { renderContent } from '../common/content-render'
+import { createMedal } from '../common/medal'
+
+export function createDanmuEntry(special, medal, sender, content) {
   let danmuEntry = document.createElement('span')
   if (special) {
     danmuEntry.className = 'danmu_entry special'
@@ -22,48 +25,31 @@ function createDanmuEntry(special, medal, sender, content) {
       let danmuContent = document.createElement('span')
       danmuContent.className = 'content emoji'
       danmuContent.style.backgroundImage = `url(${content.url})`
-      h =
-        parseInt(
-          document.documentElement.style.getPropertyValue('--danmu-size')
-        ) + emojiSize
-      w = (h / content.height) * content.width
-      danmuContent.style.width = w + 'px'
-      danmuContent.style.height = h + 'px'
+      danmuContent.style.width = content.width / 2 + 'px'
+      danmuContent.style.height = content.height / 2 + 'px'
       danmuEntry.appendChild(danmuContent)
     } else {
       danmuEntry.appendChild(renderContent(content))
     }
   }
-  danmuEntry.onclick = function () {
-    danmuEntry.classList.toggle('selected')
-    if (danmuEntry.classList.contains('selected')) {
-      if (appStatus.lastSelectedDanmu) {
-        appStatus.lastSelectedDanmu.classList.remove('selected')
-      }
-      appStatus.lastSelectedDanmu = danmuEntry
-    } else {
-      appStatus.lastSelectedDanmu = null
-    }
-    appStatus.autoScroll = appStatus.lastSelectedDanmu == null
-  }
   return danmuEntry
 }
 
-function createEnterEntry(medal, sender) {
-  return createDanmuEntry(false, medal, sender + ' 进入直播间')
+export function createEnterEntry(medal, sender) {
+  return createDanmuEntry(false, medal, sender + ' 进入直播间', null)
 }
 
-function createEffectEntry(content) {
-  return createDanmuEntry(false, null, content)
+export function createEffectEntry(content) {
+  return createDanmuEntry(false, null, content, null)
 }
 
-let giftCache = new Map()
+export let giftCache = new Map()
 
-function createGiftEntry(id, g) {
+export function createGiftEntry(id, g) {
   let medalInfo = {
     guardLevel: g.data.medal_info.guard_level,
     name: g.data.medal_info.medal_name,
-    level: g.data.medal_info.medal_level
+    level: g.data.medal_info.medal_level,
   }
   if (medalInfo.level == 0) {
     medalInfo = null
@@ -73,13 +59,13 @@ function createGiftEntry(id, g) {
   return entry
 }
 
-function createGuardEntry(g) {
+export function createGuardEntry(g) {
   let medalInfo = null
   if (g.medal) {
     medalInfo = {
       guardLevel: g.medal.guard_level,
       name: g.medal.medal_name,
-      level: g.medal.level
+      level: g.medal.level,
     }
   }
   return doCreateGiftEntry(medalInfo, g.name, {
@@ -87,8 +73,8 @@ function createGuardEntry(g) {
       action: '开通',
       giftName: g.gift_name,
       isGuard: true,
-      guardLevel: g.guard_level
-    }
+      guardLevel: g.guard_level,
+    },
   })
 }
 
@@ -125,23 +111,23 @@ function doCreateGiftEntry(medal, sender, g) {
   if (gift.num) {
     let giftNum = document.createElement('span')
     giftNum.className = 'gift-num'
-    giftNum.innerText = `共${gift.num}个`
+    giftNum.innerText = `共${gift.num}个 | ￥${(gift.price * gift.num) / 1000}`
     danmuEntry.appendChild(giftNum)
     danmuEntry.setAttribute('gift-num', gift.num)
   }
   // Event
-  danmuEntry.onclick = function () {
-    danmuEntry.classList.toggle('selected')
-    if (danmuEntry.classList.contains('selected')) {
-      if (appStatus.lastSelectedDanmu) {
-        appStatus.lastSelectedDanmu.classList.remove('selected')
-      }
-      appStatus.lastSelectedDanmu = danmuEntry
-    } else {
-      appStatus.lastSelectedDanmu = null
-    }
-    appStatus.autoScroll = appStatus.lastSelectedDanmu == null
-  }
+  // danmuEntry.onclick = function () {
+  //   danmuEntry.classList.toggle('selected')
+  //   if (danmuEntry.classList.contains('selected')) {
+  //     if (appStatus.lastSelectedDanmu) {
+  //       appStatus.lastSelectedDanmu.classList.remove('selected')
+  //     }
+  //     appStatus.lastSelectedDanmu = danmuEntry
+  //   } else {
+  //     appStatus.lastSelectedDanmu = null
+  //   }
+  //   appStatus.autoScroll = appStatus.lastSelectedDanmu == null
+  // }
   return danmuEntry
 }
 
@@ -164,13 +150,13 @@ const MockGuard = {
       is_lighted: 1,
       light_status: 1,
       wearing_status: 1,
-      score: 199
+      score: 199,
     },
     face: 'http://i2.hdslb.com/bfs/face/bbda0583aa73f50006945a5662a3bf3f0a902b85.jpg',
     name: '-密密酱-',
     gift_name: '舰长',
     guard_level: 3,
     price: 198000,
-    timestamp: 1645970886
-  }
+    timestamp: 1645970886,
+  },
 }

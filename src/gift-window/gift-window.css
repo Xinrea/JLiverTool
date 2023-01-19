@@ -2,8 +2,7 @@
 
 :root {
   --danmu-size: 14px;
-  --free-gift: 'flex';
-  --global-opacity: 1;
+  --medal-display: 'flex';
 }
 
 #app {
@@ -16,7 +15,7 @@
   border: 2px solid #ffffff50;
 }
 
-#giftpanel {
+#gift-panel {
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
@@ -115,7 +114,7 @@
   font-family: 'Roboto';
 }
 
-.sender-avator {
+.sender-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;

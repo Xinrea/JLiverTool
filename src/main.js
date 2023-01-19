@@ -1,5 +1,12 @@
 // Modules to control application life and create native browser window
-const { app, ipcMain, screen, BrowserWindow, dialog, nativeTheme } = require('electron')
+const {
+  app,
+  ipcMain,
+  screen,
+  BrowserWindow,
+  dialog,
+  nativeTheme,
+} = require('electron')
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
@@ -22,7 +29,7 @@ let uid = 0
 
 if (dev) {
   require('electron-reload')(__dirname, {
-    electron: path.join('node_modules', '.bin', 'electron')
+    electron: path.join('node_modules', '.bin', 'electron'),
   })
 }
 
@@ -32,7 +39,7 @@ let superchatWindow
 let windowCount = 0
 let windowStatus = {
   gift: false,
-  superchat: false
+  superchat: false,
 }
 
 function exportGift() {
@@ -45,65 +52,89 @@ function exportGift() {
     console.log('complete')
     if (sheetComplete === 3) {
       console.log('export to file')
-      dialog.showSaveDialog({
-        title: '导出礼物数据',
-        defaultPath: 'jlivertool_export.xlsx'
-      }).then(result => {
-        if (!result.canceled) {
-          let filename = result.filePath
-          console.log('export to', filename)
-          workbook.xlsx.writeFile(filename).then(() => {
-            console.log('导出成功')
-          })
-        }
-      })
+      dialog
+        .showSaveDialog({
+          title: '导出礼物数据',
+          defaultPath: 'jlivertool_export.xlsx',
+        })
+        .then((result) => {
+          if (!result.canceled) {
+            let filename = result.filePath
+            console.log('export to', filename)
+            workbook.xlsx.writeFile(filename).then(() => {
+              console.log('导出成功')
+            })
+          }
+        })
     }
   }
   giftsheet.columns = [
     { header: 'UID', key: 'id', width: 10, numFmt: '0' },
     { header: '用户名', key: 'uname', width: 20 },
-    { header: '礼物名', key: 'gift_name', width: 10},
-    { header: '数量', key: 'gift_num', width: 10},
-    { header: '总价值（电池）', key: 'gift_price', width: 18},
-    { header: '时间', key: 'date', width: 20}
-  ];
+    { header: '礼物名', key: 'gift_name', width: 10 },
+    { header: '数量', key: 'gift_num', width: 10 },
+    { header: '总价值（电池）', key: 'gift_price', width: 18 },
+    { header: '时间', key: 'date', width: 20 },
+  ]
   guardsheet.columns = [
     { header: 'UID', key: 'id', width: 10, numFmt: '0' },
     { header: '用户名', key: 'uname', width: 20 },
-    { header: '舰队类型', key: 'gift_name', width: 10},
-    { header: '时间', key: 'date', width: 20}
-  ];
+    { header: '舰队类型', key: 'gift_name', width: 10 },
+    { header: '时间', key: 'date', width: 20 },
+  ]
   superchatsheet.columns = [
     { header: 'UID', key: 'id', width: 10, numFmt: '0' },
     { header: '用户名', key: 'uname', width: 20 },
-    { header: '内容', key: 'message', width: 48},
-    { header: '价值（RMB）', key: 'price', width: 18},
-    { header: '时间', key: 'date', width: 20}
-  ];
-  db.getRows('gifts', {room: room}, (success,r)=>{
+    { header: '内容', key: 'message', width: 48 },
+    { header: '价值（RMB）', key: 'price', width: 18 },
+    { header: '时间', key: 'date', width: 20 },
+  ]
+  db.getRows('gifts', { room: room }, (success, r) => {
     if (success) {
-      r.forEach((gift)=>{
-        let row = [gift.data.data.uid, gift.data.data.uname, gift.data.data.giftName, gift.data.data.num, gift.data.data.num*gift.data.data.price/100, moment(gift.data.data.timestamp*1000).format('YYYY-MM-DD HH:mm:ss')]
+      r.forEach((gift) => {
+        let row = [
+          gift.data.data.uid,
+          gift.data.data.uname,
+          gift.data.data.giftName,
+          gift.data.data.num,
+          (gift.data.data.num * gift.data.data.price) / 100,
+          moment(gift.data.data.timestamp * 1000).format('YYYY-MM-DD HH:mm:ss'),
+        ]
         giftsheet.addRow(row)
       })
     }
     sheetComplete++
     completeExcel()
   })
-  db.getRows('guards', {room: room}, (success,r)=>{
+  db.getRows('guards', { room: room }, (success, r) => {
     if (success) {
-      r.forEach((guard)=>{
-        let row = [guard.data.data.uid, guard.data.data.username, guard.data.data.gift_name, moment(guard.data.data.start_time*1000).format('YYYY-MM-DD HH:mm:ss')]
+      r.forEach((guard) => {
+        let row = [
+          guard.data.data.uid,
+          guard.data.data.username,
+          guard.data.data.gift_name,
+          moment(guard.data.data.start_time * 1000).format(
+            'YYYY-MM-DD HH:mm:ss'
+          ),
+        ]
         guardsheet.addRow(row)
       })
     }
     sheetComplete++
     completeExcel()
   })
-  db.getRows('superchats', {room: room}, (success,r)=>{
+  db.getRows('superchats', { room: room }, (success, r) => {
     if (success) {
-      r.forEach((superchat)=>{
-        let row = [superchat.data.data.uid, superchat.data.data.user_info.uname, superchat.data.data.message, superchat.data.data.price, moment(superchat.data.data.start_time*1000).format('YYYY-MM-DD HH:mm:ss')]
+      r.forEach((superchat) => {
+        let row = [
+          superchat.data.data.uid,
+          superchat.data.data.user_info.uname,
+          superchat.data.data.message,
+          superchat.data.data.price,
+          moment(superchat.data.data.start_time * 1000).format(
+            'YYYY-MM-DD HH:mm:ss'
+          ),
+        ]
         superchatsheet.addRow(row)
       })
     }
@@ -130,8 +161,8 @@ function createMainWindow() {
     title: '弹幕',
     icon: path.join(__dirname, 'icons/main.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
+      preload: path.join(__dirname, 'preload.js'),
+    },
   })
   if (store.has('cache.mainPos')) {
     mainWindow.setPosition(
@@ -141,7 +172,7 @@ function createMainWindow() {
   }
   mainWindow.show()
   // and load the index.html of the app.
-  mainWindow.loadFile('src/mainwindow/index.html')
+  mainWindow.loadFile('src/main-window/index.html')
   // Open the DevTools.
   if (dev) mainWindow.webContents.openDevTools()
   mainWindow.on('close', () => {
@@ -162,6 +193,7 @@ function createMainWindow() {
   ipcMain.on('setRoom', (event, arg) => {
     if (arg) {
       room = parseInt(arg)
+      console.log('Set room: ', room)
       store.set('config.room', room)
       stopBackendService()
       // Reset All Windows For New Room
@@ -176,12 +208,17 @@ function createMainWindow() {
   ipcMain.on('openURL', (event, arg) => {
     require('openurl').open(arg)
   })
-  ipcMain.on('exportGift', ()=>{
+  ipcMain.on('exportGift', () => {
     exportGift()
   })
   ipcMain.on('quit', () => {
     stopBackendService()
     app.quit()
+  })
+  ipcMain.on('store-watch', (event, key, newValue) => {
+    mainWindow?.webContents.send('store-watch', key, newValue)
+    giftWindow?.webContents.send('store-watch', key, newValue)
+    superchatWindow?.webContents.send('store-watch', key, newValue)
   })
   mainWindow.webContents.on('did-finish-load', () => {
     windowCount++
@@ -195,7 +232,7 @@ function createMainWindow() {
     nativeTheme.themeSource = 'light'
     store.set('cache.theme', 'light')
   }
-  ipcMain.on('theme:switch', ()=>{
+  ipcMain.on('theme:switch', () => {
     if (store.get('cache.theme', 'light') === 'light') {
       nativeTheme.themeSource = 'dark'
       store.set('cache.theme', 'dark')
@@ -208,6 +245,7 @@ function createMainWindow() {
 }
 
 let giftPosInit = true
+
 function createGiftWindow() {
   let giftSize = store.get('cache.giftSize', [400, 400])
   giftWindow = new BrowserWindow({
@@ -222,10 +260,10 @@ function createGiftWindow() {
     skipTaskbar: true,
     icon: path.join(__dirname, 'icons/gift.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
+      preload: path.join(__dirname, 'preload.js'),
+    },
   })
-  giftWindow.loadFile('src/giftwindow/index.html')
+  giftWindow.loadFile('src/gift-window/index.html')
   giftWindow.setAlwaysOnTop(true, 'screen-saver')
   if (dev) giftWindow.webContents.openDevTools()
   ipcMain.on('hideGiftWindow', () => {
@@ -247,11 +285,11 @@ function createGiftWindow() {
     let mainWinPos = mainWindow.getPosition()
     let currentDisplay = screen.getDisplayNearestPoint({
       x: mainWinPos[0],
-      y: mainWinPos[1]
+      y: mainWinPos[1],
     })
     let relativeMainCenter = [
       mainWinPos[0] - currentDisplay.bounds.x + mainWindow.getSize()[0] / 2,
-      mainWinPos[1] - currentDisplay.bounds.y + mainWindow.getSize()[1] / 2
+      mainWinPos[1] - currentDisplay.bounds.y + mainWindow.getSize()[1] / 2,
     ]
     if (relativeMainCenter[0] > currentDisplay.size.width / 2) {
       // Prevent HDPI Window Size Issue
@@ -284,6 +322,7 @@ function createGiftWindow() {
 }
 
 let superchatPosInit = true
+
 function createSuperchatWindow() {
   let superchatSize = store.get('cache.superchatSize', [400, 400])
   superchatWindow = new BrowserWindow({
@@ -298,10 +337,10 @@ function createSuperchatWindow() {
     skipTaskbar: true,
     icon: path.join(__dirname, 'icons/main.png'),
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
-    }
+      preload: path.join(__dirname, 'preload.js'),
+    },
   })
-  superchatWindow.loadFile('src/superchatwindow/index.html')
+  superchatWindow.loadFile('src/superchat-window/index.html')
   superchatWindow.setAlwaysOnTop(true, 'screen-saver')
   if (dev) superchatWindow.webContents.openDevTools()
   ipcMain.on('hideSuperchatWindow', () => {
@@ -323,11 +362,11 @@ function createSuperchatWindow() {
     let mainWinPos = mainWindow.getPosition()
     let currentDisplay = screen.getDisplayNearestPoint({
       x: mainWinPos[0],
-      y: mainWinPos[1]
+      y: mainWinPos[1],
     })
     let relativeMainCenter = [
       mainWinPos[0] - currentDisplay.bounds.x + mainWindow.getSize()[0] / 2,
-      mainWinPos[1] - currentDisplay.bounds.y + mainWindow.getSize()[1] / 2
+      mainWinPos[1] - currentDisplay.bounds.y + mainWindow.getSize()[1] / 2,
     ]
     if (relativeMainCenter[0] > currentDisplay.size.width / 2) {
       // Prevent HDPI Window Size Issue
@@ -369,26 +408,15 @@ app.whenReady().then(() => {
   createMainWindow()
   createGiftWindow()
   createSuperchatWindow()
-  app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
+  app.on('activate', function () {})
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') {
-    stopBackendService()
-    app.quit()
-  }
-})
-
-ipcMain.on('updateOpacity', (event, arg) => {
-  giftWindow?.webContents.send('updateOpacity')
-  superchatWindow?.webContents.send('updateOpacity')
+  stopBackendService()
+  app.quit()
 })
 
 // In this file you can include the rest of your app's specific main process
@@ -399,12 +427,12 @@ const {
   checkLiveStatus,
   getRoomInfo,
   getOnlineNum,
-  getGiftList
+  getGiftList,
 } = require('./bilibili')
 
 let service = {
   stopConn: null,
-  updateTask: null
+  updateTask: null,
 }
 let giftList
 
@@ -415,17 +443,17 @@ function startBackendService() {
     realroom = res.room
     uid = res.uid
     getRoomInfo(realroom).then((res) => {
-      mainWindow?.webContents.send('updateroom', res)
+      mainWindow?.webContents.send('update-room', res)
     })
     getOnlineNum(uid, realroom).then((res) => {
-      mainWindow?.webContents.send('updateonline', res)
+      mainWindow?.webContents.send('update-online', res)
     })
     service.updateTask = setInterval(() => {
       getRoomInfo(realroom).then((res) => {
-        mainWindow?.webContents.send('updateroom', res)
+        mainWindow?.webContents.send('update-room', res)
       })
       getOnlineNum(uid, realroom).then((res) => {
-        mainWindow?.webContents.send('updateonline', res)
+        mainWindow?.webContents.send('update-online', res)
       })
     }, 10 * 1000)
     getGiftList(realroom).then((res) => {
@@ -434,7 +462,7 @@ function startBackendService() {
         giftList.set(e.id, {
           animation_frame_num: e.animation_frame_num,
           png: e.frame_animation,
-          gif: e.gif
+          gif: e.gif,
         })
       })
       Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
@@ -443,7 +471,7 @@ function startBackendService() {
           let msgHandler = function (type, msg) {
             switch (type) {
               case 3:
-                mainWindow?.webContents.send('updateheat', msg)
+                mainWindow?.webContents.send('update-heat', msg)
                 break
               case 5: {
                 if (msg.cmd.includes('DANMU_MSG')) {
@@ -467,7 +495,7 @@ function startBackendService() {
                       {
                         room: room,
                         sid: id,
-                        data: msg
+                        data: msg,
                       },
                       () => {}
                     )
@@ -475,7 +503,7 @@ function startBackendService() {
                   let giftInfo = {
                     animation_frame_num: 1,
                     png: '',
-                    gif: ''
+                    gif: '',
                   }
                   if (giftList.has(msg.data.giftId)) {
                     giftInfo = giftList.get(msg.data.giftId)
@@ -484,17 +512,17 @@ function startBackendService() {
                     gif: {
                       frame: giftInfo.animation_frame_num,
                       png: giftInfo.png,
-                      gif: giftInfo.gif
+                      gif: giftInfo.gif,
                     },
-                    data: msg.data
+                    data: msg.data,
                   }
                   giftWindow?.webContents.send('gift', {
                     id: id,
-                    msg: giftData
+                    msg: giftData,
                   })
                   mainWindow?.webContents.send('gift', {
                     id: id,
-                    msg: giftData
+                    msg: giftData,
                   })
                   break
                 }
@@ -510,26 +538,26 @@ function startBackendService() {
                     {
                       room: room,
                       sid: id,
-                      data: msg
+                      data: msg,
                     },
                     () => {}
                   )
                   guardBuy = {
-                    medal:msg.data.medal,
+                    medal: msg.data.medal,
                     face: msg.data.face,
                     name: msg.data.username,
                     gift_name: msg.data.gift_name,
                     guard_level: msg.data.guard_level,
                     price: msg.data.price,
-                    timestamp: msg.data.start_time
+                    timestamp: msg.data.start_time,
                   }
                   giftWindow?.webContents.send('guard', {
                     id: id,
-                    msg: guardBuy
+                    msg: guardBuy,
                   })
                   mainWindow?.webContents.send('guard', {
                     id: id,
-                    msg: guardBuy
+                    msg: guardBuy,
                   })
                   // })
                   break
@@ -541,17 +569,17 @@ function startBackendService() {
                     {
                       room: room,
                       sid: id,
-                      data: msg
+                      data: msg,
                     },
                     (s, m) => {}
                   )
                   superchatWindow?.webContents.send('superchat', {
                     id: id,
-                    msg: msg
+                    msg: msg,
                   })
                   mainWindow?.webContents.send('superchat', {
                     id: id,
-                    msg: msg
+                    msg: msg,
                   })
                   break
                 }
@@ -568,7 +596,7 @@ function startBackendService() {
                 // ENTRY_EFFECT 舰长入场
                 if (msg.cmd.includes('ENTRY_EFFECT')) {
                   mainWindow?.webContents.send(
-                    'entry_effect',
+                    'entry-effect',
                     msg.data.copy_writing.replace(/(<%)|(%>)/g, '')
                   )
                   break
@@ -577,75 +605,6 @@ function startBackendService() {
             }
           }
           service.stopConn = connecting(realroom, msgHandler)
-          const mock = {
-            cmd: 'SUPER_CHAT_MESSAGE',
-            data: {
-              background_bottom_color: '#2A60B2',
-              background_color: '#EDF5FF',
-              background_color_end: '#405D85',
-              background_color_start: '#3171D2',
-              background_icon: '',
-              background_image:
-                  'https://i0.hdslb.com/bfs/live/a712efa5c6ebc67bafbe8352d3e74b820a00c13e.png',
-              background_price_color: '#7497CD',
-              color_point: 0.7,
-              dmscore: 120,
-              end_time: 1645973356,
-              gift: {
-                gift_id: 12000,
-                gift_name: '醒目留言',
-                num: 1
-              },
-              id: 3420457,
-              is_ranked: 0,
-              is_send_audit: 0,
-              medal_info: {
-                anchor_roomid: 21919321,
-                anchor_uname: 'HiiroVTuber',
-                guard_level: 3,
-                icon_id: 0,
-                is_lighted: 1,
-                medal_color: '#1a544b',
-                medal_color_border: 6809855,
-                medal_color_end: 5414290,
-                medal_color_start: 1725515,
-                medal_level: 21,
-                medal_name: '王牛奶',
-                special: '',
-                target_id: 508963009
-              },
-              message: '这里是一个BV号BV114514测试',
-              message_font_color: '#A3F6FF',
-              message_trans: '',
-              price: 30,
-              rate: 1000,
-              start_time: 1645973296,
-              time: 60,
-              token: 'F6EA31D4',
-              trans_mark: 0,
-              ts: 1645973296,
-              uid: 21131097,
-              user_info: {
-                face: 'http://i0.hdslb.com/bfs/face/dd69fba7016323edf120ef5ef8171d723d76673b.jpg',
-                face_frame:
-                    'https://i0.hdslb.com/bfs/live/80f732943cc3367029df65e267960d56736a82ee.png',
-                guard_level: 3,
-                is_main_vip: 0,
-                is_svip: 0,
-                is_vip: 0,
-                level_color: '#61c05a',
-                manager: 0,
-                name_color: '#00D1F1',
-                title: 'title-111-1',
-                uname: '慕臣来喝口王牛奶吧',
-                user_level: 12
-              }
-            },
-            roomid: 21919321
-          }
-          setInterval(() => {
-            msgHandler(5,mock)
-          }, 5000);
         }
       )
     })
@@ -664,7 +623,7 @@ function stopBackendService() {
 }
 
 let resetCount = 0
-ipcMain.on('reseted', () => {
+ipcMain.on('reset', () => {
   resetCount++
   if (resetCount === 3) {
     resetCount = 0
@@ -674,6 +633,7 @@ ipcMain.on('reseted', () => {
 
 // DB related
 initDB()
+
 function initDB() {
   // {
   //   room: 21484828,
@@ -697,7 +657,7 @@ function initDB() {
 ipcMain.on('remove', (event, info) => {
   console.log('remove', info)
   deleteAllRows(info.type, {
-    sid: info.id
+    sid: info.id,
   })
 })
 
@@ -711,19 +671,19 @@ function deleteAllRows(type, condition) {
 
 ipcMain.on('clear-gifts', () => {
   deleteAllRows('gifts', {
-    room: room
+    room: room,
   })
 })
 
 ipcMain.on('clear-guards', () => {
   deleteAllRows('guards', {
-    room: room
+    room: room,
   })
 })
 
 ipcMain.on('clear-superchats', () => {
   deleteAllRows('superchats', {
-    room: room
+    room: room,
   })
 })
 
@@ -737,7 +697,7 @@ function loadPreGifts() {
           let msg = r[i].data
           let giftInfo = {
             animation_frame_num: 1,
-            png: ''
+            png: '',
           }
           if (giftList.has(msg.data.giftId)) {
             giftInfo = giftList.get(msg.data.giftId)
@@ -745,13 +705,13 @@ function loadPreGifts() {
           let giftData = {
             gif: {
               frame: giftInfo.animation_frame_num,
-              png: giftInfo.png
+              png: giftInfo.png,
             },
-            data: msg.data
+            data: msg.data,
           }
           giftWindow?.webContents.send('gift', {
             id: id,
-            msg: giftData
+            msg: giftData,
           })
         }
       }
@@ -775,11 +735,11 @@ function loadPreGuards() {
             gift_name: msg.data.gift_name,
             guard_level: msg.data.guard_level,
             price: msg.data.price,
-            timestamp: msg.data.start_time
+            timestamp: msg.data.start_time,
           }
           giftWindow?.webContents.send('guard', {
             id: id,
-            msg: guardBuy
+            msg: guardBuy,
           })
         }
       }
@@ -798,7 +758,7 @@ function loadPreSuperchats() {
           let msg = r[i].data
           superchatWindow?.webContents.send('superchat', {
             id: id,
-            msg: msg
+            msg: msg,
           })
         }
       }
@@ -819,8 +779,8 @@ function checkUpdateFromGithubAPI() {
     path: '/repos/xinrea/JLiverTool/releases/latest',
     method: 'GET',
     headers: {
-      'User-Agent': 'request'
-    }
+      'User-Agent': 'request',
+    },
   }
   const req = https.request(options, (res) => {
     let data = ''
@@ -831,19 +791,21 @@ function checkUpdateFromGithubAPI() {
       let json = JSON.parse(data)
       let version = json.tag_name
       console.log('latest version:', version)
-      if (version !== 'v'+app.getVersion()) {
+      if (version !== 'v' + app.getVersion()) {
         console.log('Update available')
-        dialog.showMessageBox(mainWindow, {
-          type: 'info',
-          title: '更新',
-          message: '发现新版本 '+version+'，是否前往下载？\n'+json.body,
-          buttons: ['是', '否']
-        }).then((result) => {
-          if (result.response === 0) {
-            console.log("Update now")
-            require('openurl').open(json.html_url)
-          }
-        })
+        dialog
+          .showMessageBox(mainWindow, {
+            type: 'info',
+            title: '更新',
+            message: '发现新版本 ' + version + '，是否前往下载？\n' + json.body,
+            buttons: ['是', '否'],
+          })
+          .then((result) => {
+            if (result.response === 0) {
+              console.log('Update now')
+              require('openurl').open(json.html_url)
+            }
+          })
       }
     })
   })

@@ -1,11 +1,5 @@
-/* <div class="confirm-box">
-  <div class="confirm-box-content">是否清空列表？</div>
-  <div class="confirm-box-btn">
-    <button class="confirm-box-btn-cancel">取消</button>
-    <button class="confirm-box-btn-confirm">清空</button>
-  </div>
-</div> */
-function createConfirmBox(message, confirmCallback) {
+// Create a confirm-box with message and callback
+export function createConfirmBox(message: string, confirmCallback: () => void): HTMLDivElement {
   let confirmBox = document.createElement('div')
   confirmBox.className = 'confirm-box'
   let confirmBoxContent = document.createElement('div')

@@ -1,11 +1,4 @@
-// <div class="medal">
-//   <div class="medal_label">
-//     <div class="medal_name">杏仁儿</div>
-//   </div>
-//   <div class="medal_level">17</div>
-// </div>
-
-function createMedal(guardLevel, medalName, medalLevel) {
+export function createMedal(guardLevel: number, medalName: string, medalLevel: number): HTMLElement {
   let medal = document.createElement('div')
   medal.className = 'medal'
   let medalLabel = document.createElement('div')
@@ -29,7 +22,7 @@ function createMedal(guardLevel, medalName, medalLevel) {
   medalNameDiv.innerText = medalName
   let medalLevelDiv = document.createElement('div')
   medalLevelDiv.className = 'medal_level'
-  medalLevelDiv.innerText = medalLevel
+  medalLevelDiv.innerText = String(medalLevel)
   medalLevelDiv.style.color = `var(--medal-level-border-${Math.floor(
     (medalLevel - 1) / 4
   )})`
