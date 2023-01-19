@@ -52,7 +52,7 @@
           <div
             class="gift-entry"
             :class="base.lastSelected == gift.id && 'selected'"
-            x-show="!base.filterFree || gift.msg.data.coin_type=='gold'"
+            x-show="!base.filterFree || !gift.msg.data || gift.msg.data.coin_type=='gold'"
             @click="base.lastSelected = gift.id"
             @dblclick="giftRemove(gift.id)"
           >

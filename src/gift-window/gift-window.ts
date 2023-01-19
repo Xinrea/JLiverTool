@@ -24,7 +24,6 @@ Alpine.data('appStatus', () => ({
       }
       this.giftsCheck.set(arg.id, true)
       this.gifts.push(arg)
-      console.log(arg)
       // Wait for view render
       setTimeout(() => {
         if (this.base.autoScroll) {
@@ -41,7 +40,6 @@ Alpine.data('appStatus', () => ({
       window.electron.send('reset')
     })
     window.electron.register('guard', (arg) => {
-      console.log(arg)
       this.gifts.push(arg)
       setTimeout(() => {
         if (this.base.autoScroll) {
@@ -92,7 +90,6 @@ Alpine.data('appStatus', () => ({
   giftClean() {
     document.body.appendChild(
       createConfirmBox('确定清空所有礼物和上舰记录？', () => {
-        this.$panel.innerHTML = ''
         this.gifts = new Map()
         window.electron.send('clear-gifts')
         window.electron.send('clear-guards')
