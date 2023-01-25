@@ -195,7 +195,7 @@ let appStatus = {
     doClean() {
       if (!this.autoScroll) this.newDanmuCount++
       // Only display max 1000 entries
-      if ($danmuArea.children.length > 1000) {
+      if ($danmuArea.children.length > 200) {
         $danmuArea.removeChild($danmuArea.children[0])
       }
     },

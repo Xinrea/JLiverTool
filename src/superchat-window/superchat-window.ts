@@ -1,5 +1,5 @@
-import {createConfirmBox} from '../common/confirmbox'
-import {createSuperchatEntry} from '../common/superchat'
+import { createConfirmBox } from '../common/confirmbox'
+import { createSuperchatEntry } from '../common/superchat'
 
 let $hideButton = document.getElementById('hide-button')
 let $panel = document.getElementById('panel')
@@ -28,8 +28,8 @@ $panel.addEventListener('scroll', () => {
     return
   }
   // User scroll
-  autoScroll = Math.ceil($panel.scrollTop) ==
-    $panel.scrollHeight - $panel.clientHeight;
+  autoScroll =
+    Math.ceil($panel.scrollTop) == $panel.scrollHeight - $panel.clientHeight
 })
 
 window.electron.register('superchat', (g) => {
