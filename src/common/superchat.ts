@@ -1,7 +1,9 @@
 import {createMedal} from './medal'
 import {renderContent} from './content-render'
+import {SuperChat} from './superchatInterface'
+import * as moment from 'moment/moment'
 
-export function createSuperchatEntry(id: string, g, removable: boolean): HTMLElement {
+export function createSuperchatEntry(id: string, g: SuperChat, removable: boolean): HTMLElement {
   let level = getSuperChatLevel(g.data.price)
   let scEntry = document.createElement('div')
   scEntry.classList.add('sc-entry')
@@ -52,6 +54,10 @@ export function createSuperchatEntry(id: string, g, removable: boolean): HTMLEle
   scEntryContentText.classList.add('sc-entry-content-text')
   scEntryContentText.appendChild(renderContent(g.data.message))
   scEntryContent.appendChild(scEntryContentText)
+  let scEntryContentTime = document.createElement('div')
+  scEntryContentTime.classList.add('sc-entry-content-time')
+  scEntryContentTime.innerText = moment(g.data.start_time * 1000).format('YYYY/MM/DD HH:mm:ss')
+  scEntryContent.appendChild(scEntryContentTime)
   scEntry.appendChild(scEntryContent)
   if (removable) {
     scEntry.ondblclick = () => {

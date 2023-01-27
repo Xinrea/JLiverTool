@@ -10,7 +10,7 @@ const {
 const path = require('path')
 const Store = require('electron-store')
 const db = require('electron-db')
-const { v4: uuidv4 } = require('uuid')
+const {v4: uuidv4} = require('uuid')
 const ExcelJS = require('exceljs')
 const moment = require('moment')
 const https = require('https')
@@ -69,27 +69,27 @@ function exportGift() {
     }
   }
   giftsheet.columns = [
-    { header: 'UID', key: 'id', width: 10, numFmt: '0' },
-    { header: '用户名', key: 'uname', width: 20 },
-    { header: '礼物名', key: 'gift_name', width: 10 },
-    { header: '数量', key: 'gift_num', width: 10 },
-    { header: '总价值（电池）', key: 'gift_price', width: 18 },
-    { header: '时间', key: 'date', width: 20 },
+    {header: 'UID', key: 'id', width: 10, numFmt: '0'},
+    {header: '用户名', key: 'uname', width: 20},
+    {header: '礼物名', key: 'gift_name', width: 10},
+    {header: '数量', key: 'gift_num', width: 10},
+    {header: '总价值（电池）', key: 'gift_price', width: 18},
+    {header: '时间', key: 'date', width: 20},
   ]
   guardsheet.columns = [
-    { header: 'UID', key: 'id', width: 10, numFmt: '0' },
-    { header: '用户名', key: 'uname', width: 20 },
-    { header: '舰队类型', key: 'gift_name', width: 10 },
-    { header: '时间', key: 'date', width: 20 },
+    {header: 'UID', key: 'id', width: 10, numFmt: '0'},
+    {header: '用户名', key: 'uname', width: 20},
+    {header: '舰队类型', key: 'gift_name', width: 10},
+    {header: '时间', key: 'date', width: 20},
   ]
   superchatsheet.columns = [
-    { header: 'UID', key: 'id', width: 10, numFmt: '0' },
-    { header: '用户名', key: 'uname', width: 20 },
-    { header: '内容', key: 'message', width: 48 },
-    { header: '价值（RMB）', key: 'price', width: 18 },
-    { header: '时间', key: 'date', width: 20 },
+    {header: 'UID', key: 'id', width: 10, numFmt: '0'},
+    {header: '用户名', key: 'uname', width: 20},
+    {header: '内容', key: 'message', width: 48},
+    {header: '价值（RMB）', key: 'price', width: 18},
+    {header: '时间', key: 'date', width: 20},
   ]
-  db.getRows('gifts', { room: room }, (success, r) => {
+  db.getRows('gifts', {room: room}, (success, r) => {
     if (success) {
       r.forEach((gift) => {
         let row = [
@@ -106,7 +106,7 @@ function exportGift() {
     sheetComplete++
     completeExcel()
   })
-  db.getRows('guards', { room: room }, (success, r) => {
+  db.getRows('guards', {room: room}, (success, r) => {
     if (success) {
       r.forEach((guard) => {
         let row = [
@@ -123,7 +123,7 @@ function exportGift() {
     sheetComplete++
     completeExcel()
   })
-  db.getRows('superchats', { room: room }, (success, r) => {
+  db.getRows('superchats', {room: room}, (success, r) => {
     if (success) {
       r.forEach((superchat) => {
         let row = [
@@ -154,7 +154,7 @@ function createMainWindow() {
     width: mainSize[0],
     height: mainSize[1],
     minHeight: 200,
-    minWidth: 300,
+    minWidth: 320,
     transparent: true,
     frame: false,
     show: false,
@@ -252,7 +252,7 @@ function createGiftWindow() {
     width: giftSize[0],
     height: giftSize[1],
     minHeight: 400,
-    minWidth: 300,
+    minWidth: 320,
     transparent: true,
     show: false,
     title: '礼物',
@@ -329,7 +329,7 @@ function createSuperchatWindow() {
     width: superchatSize[0],
     height: superchatSize[1],
     minHeight: 400,
-    minWidth: 300,
+    minWidth: 320,
     transparent: true,
     show: false,
     title: '醒目留言',
@@ -408,7 +408,8 @@ app.whenReady().then(() => {
   createMainWindow()
   createGiftWindow()
   createSuperchatWindow()
-  app.on('activate', function () {})
+  app.on('activate', function () {
+  })
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -497,7 +498,8 @@ function startBackendService() {
                         sid: id,
                         data: msg,
                       },
-                      () => {}
+                      () => {
+                      }
                     )
                   }
                   let giftInfo = {
@@ -540,7 +542,8 @@ function startBackendService() {
                       sid: id,
                       data: msg,
                     },
-                    () => {}
+                    () => {
+                    }
                   )
                   guardBuy = {
                     medal: msg.data.medal,
@@ -571,7 +574,8 @@ function startBackendService() {
                       sid: id,
                       data: msg,
                     },
-                    (s, m) => {}
+                    (s, m) => {
+                    }
                   )
                   superchatWindow?.webContents.send('superchat', {
                     id: id,
@@ -689,7 +693,7 @@ ipcMain.on('clear-superchats', () => {
 
 function loadPreGifts() {
   return new Promise((resolve, reject) => {
-    db.getRows('gifts', { room: room }, (s, r) => {
+    db.getRows('gifts', {room: room}, (s, r) => {
       console.log('load pre gifts:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
@@ -722,7 +726,7 @@ function loadPreGifts() {
 
 function loadPreGuards() {
   return new Promise((resolve, reject) => {
-    db.getRows('guards', { room: room }, (s, r) => {
+    db.getRows('guards', {room: room}, (s, r) => {
       console.log('load pre guards:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
@@ -750,7 +754,7 @@ function loadPreGuards() {
 
 function loadPreSuperchats() {
   return new Promise((resolve, reject) => {
-    db.getRows('superchats', { room: room }, (s, r) => {
+    db.getRows('superchats', {room: room}, (s, r) => {
       console.log('load pre superchats:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {

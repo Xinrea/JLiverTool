@@ -1,5 +1,5 @@
-import { renderContent } from '../common/content-render'
-import { createMedal } from '../common/medal'
+import {renderContent} from '../common/content-render'
+import {createMedal} from '../common/medal'
 
 export function createDanmuEntry(special, medal, sender, content) {
   let danmuEntry = document.createElement('span')
@@ -20,13 +20,11 @@ export function createDanmuEntry(special, medal, sender, content) {
   danmuEntry.appendChild(danmuSender)
   if (content) {
     if (content.url) {
-      let emojiSize = 30
-      if (content.emoticon_unique.includes('official')) emojiSize = 6
       let danmuContent = document.createElement('span')
       danmuContent.className = 'content emoji'
       danmuContent.style.backgroundImage = `url(${content.url})`
-      danmuContent.style.width = content.width / 2 + 'px'
-      danmuContent.style.height = content.height / 2 + 'px'
+      danmuContent.style.width = content.width * 5 / 12 + 'px'
+      danmuContent.style.height = content.height * 5 / 12 + 'px'
       danmuEntry.appendChild(danmuContent)
     } else {
       danmuEntry.appendChild(renderContent(content))
@@ -115,19 +113,6 @@ function doCreateGiftEntry(medal, sender, g) {
     danmuEntry.appendChild(giftNum)
     danmuEntry.setAttribute('gift-num', gift.num)
   }
-  // Event
-  // danmuEntry.onclick = function () {
-  //   danmuEntry.classList.toggle('selected')
-  //   if (danmuEntry.classList.contains('selected')) {
-  //     if (appStatus.lastSelectedDanmu) {
-  //       appStatus.lastSelectedDanmu.classList.remove('selected')
-  //     }
-  //     appStatus.lastSelectedDanmu = danmuEntry
-  //   } else {
-  //     appStatus.lastSelectedDanmu = null
-  //   }
-  //   appStatus.autoScroll = appStatus.lastSelectedDanmu == null
-  // }
   return danmuEntry
 }
 
