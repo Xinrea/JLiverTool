@@ -33,7 +33,8 @@ $panel.addEventListener('scroll', () => {
 })
 
 window.electron.register('superchat', (g) => {
-  let scEntry = createSuperchatEntry(g.id, g.msg, true)
+  console.log(g)
+  let scEntry = createSuperchatEntry({ id: g.id, g: g.msg, removable: true })
   $panel.appendChild(scEntry)
   if (autoScroll) {
     $panel.scrollTop = lastPosition = $panel.scrollHeight - $panel.clientHeight

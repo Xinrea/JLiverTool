@@ -1,9 +1,10 @@
-import {createMedal} from './medal'
-import {renderContent} from './content-render'
-import {SuperChat} from './superchatInterface'
-import * as moment from 'moment/moment'
+import * as moment from 'moment/moment';
+import { renderContent } from './content-render';
+import { createMedal } from './medal';
+import { SuperChat } from './superchatInterface';
 
-export function createSuperchatEntry(id: string, g: SuperChat, removable: boolean): HTMLElement {
+// Create Superchat HTML entry for display
+export function createSuperchatEntry({ id, g, removable }: { id: string; g: SuperChat; removable: boolean }): HTMLElement {
   let level = getSuperChatLevel(g.data.price)
   let scEntry = document.createElement('div')
   scEntry.classList.add('sc-entry')
@@ -71,7 +72,8 @@ export function createSuperchatEntry(id: string, g: SuperChat, removable: boolea
   return scEntry
 }
 
-function getSuperChatLevel(price) {
+// Different Superchat amount with different style
+function getSuperChatLevel(price: number): number {
   if (price >= 2000) {
     return 5
   } else if (price >= 1000) {

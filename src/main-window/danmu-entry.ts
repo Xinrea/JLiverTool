@@ -1,5 +1,5 @@
-import {renderContent} from '../common/content-render'
-import {createMedal} from '../common/medal'
+import { renderContent } from '../common/content-render'
+import { createMedal } from '../common/medal'
 
 export function createDanmuEntry(special, medal, sender, content) {
   let danmuEntry = document.createElement('span')
@@ -114,34 +114,4 @@ function doCreateGiftEntry(medal, sender, g) {
     danmuEntry.setAttribute('gift-num', gift.num)
   }
   return danmuEntry
-}
-
-const MockGuard = {
-  sid: '1191b581-dde0-48dd-95a5-aaccb530981f',
-  msg: {
-    medal: {
-      uid: 2237615,
-      target_id: 4390795,
-      medal_id: 38622,
-      level: 1,
-      medal_name: '赤樱',
-      medal_color: 6067854,
-      intimacy: 199,
-      next_intimacy: 201,
-      day_limit: 1500,
-      medal_color_start: 6067854,
-      medal_color_end: 6067854,
-      medal_color_border: 6067854,
-      is_lighted: 1,
-      light_status: 1,
-      wearing_status: 1,
-      score: 199,
-    },
-    face: 'http://i2.hdslb.com/bfs/face/bbda0583aa73f50006945a5662a3bf3f0a902b85.jpg',
-    name: '-密密酱-',
-    gift_name: '舰长',
-    guard_level: 3,
-    price: 198000,
-    timestamp: 1645970886,
-  },
 }

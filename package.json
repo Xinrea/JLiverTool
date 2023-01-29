@@ -4,7 +4,7 @@
   "description": "Simple Bilibili Danmaku Tool",
   "main": "src/main.js",
   "scripts": {
-    "start": "concurrently --kill-others \"npx webpack watch\" \"cross-env NODE_ENV=development electron .\"",
+    "start": "npx webpack && cross-env NODE_ENV=development electron .",
     "build": "npx webpack && electron-builder build -mw --publish=never"
   },
   "build": {
@@ -39,6 +39,7 @@
     "electron": "^15.0.0",
     "electron-builder": "^22.14.13",
     "electron-reload": "^2.0.0-alpha.1",
+    "node-loader": "^2.0.0",
     "ts-loader": "^9.4.1",
     "typescript": "^4.8.4",
     "webpack": "^5.74.0",

@@ -1,0 +1,93 @@
+export const GuardMockMessage = {
+  msg: {
+    medal: {
+      uid: 2237615,
+      target_id: 4390795,
+      medal_id: 38622,
+      level: 1,
+      medal_name: '赤樱',
+      medal_color: 6067854,
+      intimacy: 199,
+      next_intimacy: 201,
+      day_limit: 1500,
+      medal_color_start: 6067854,
+      medal_color_end: 6067854,
+      medal_color_border: 6067854,
+      is_lighted: 1,
+      light_status: 1,
+      wearing_status: 1,
+      score: 199,
+    },
+    face: 'http://i2.hdslb.com/bfs/face/bbda0583aa73f50006945a5662a3bf3f0a902b85.jpg',
+    name: '-密密酱-',
+    gift_name: '舰长',
+    guard_level: 3,
+    price: 198000,
+    timestamp: 1645970886,
+  }
+}
+
+export const SuperChatMockMessage = JSON.parse(`{
+        "cmd": "SUPER_CHAT_MESSAGE",
+        "data": {
+            "background_bottom_color": "#2A60B2",
+            "background_color": "#EDF5FF",
+            "background_color_end": "#405D85",
+            "background_color_start": "#3171D2",
+            "background_icon": "",
+            "background_image": "https://i0.hdslb.com/bfs/live/a712efa5c6ebc67bafbe8352d3e74b820a00c13e.png",
+            "background_price_color": "#7497CD",
+            "color_point": 0.7,
+            "dmscore": 112,
+            "end_time": 1674809056,
+            "gift": {
+                "gift_id": 12000,
+                "gift_name": "醒目留言",
+                "num": 1
+            },
+            "id": 6246865,
+            "is_ranked": 1,
+            "is_send_audit": 0,
+            "medal_info": {
+                "anchor_roomid": 23197314,
+                "anchor_uname": "飞天狙想要努力变胖",
+                "guard_level": 0,
+                "icon_id": 0,
+                "is_lighted": 1,
+                "medal_color": "#c79d24",
+                "medal_color_border": 13081892,
+                "medal_color_end": 13081892,
+                "medal_color_start": 13081892,
+                "medal_level": 17,
+                "medal_name": "FTJ",
+                "special": "",
+                "target_id": 51628309
+            },
+            "message": "狙神我错了，放我出来吧 狙神我错了，放我出来吧 狙神我错了，放我出来吧 狙神我错",
+            "message_font_color": "#A3F6FF",
+            "message_trans": "",
+            "price": 30,
+            "rate": 1000,
+            "start_time": 1674808996,
+            "time": 60,
+            "token": "2E90DCB8",
+            "trans_mark": 0,
+            "ts": 1674808996,
+            "uid": 3462058,
+            "user_info": {
+                "face": "https://i1.hdslb.com/bfs/face/629c05c752022f738c39c8766519c07a73b4e0f7.jpg",
+                "face_frame": "",
+                "guard_level": 0,
+                "is_main_vip": 0,
+                "is_svip": 0,
+                "is_vip": 0,
+                "level_color": "#5896de",
+                "manager": 0,
+                "name_color": "#666666",
+                "title": "0",
+                "uname": "是him_",
+                "user_level": 21
+            }
+        },
+        "roomid": 23197314
+    }`)

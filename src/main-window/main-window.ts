@@ -281,7 +281,7 @@ let appStatus = {
   onReceiveSuperchat(id, msg) {
     this.danmuPanel.doClean()
     // Superchat entry should not be able to remove in chat window
-    let $newEntry = createSuperchatEntry(id, msg, false)
+    let $newEntry = createSuperchatEntry({ id, g: msg, removable: false })
     this.danmuPanel.handleNewEntry($newEntry)
   },
 }
