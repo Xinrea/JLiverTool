@@ -1,6 +1,5 @@
 import * as moment from 'moment'
 import 'moment/locale/zh-cn'
-import { createMedal } from '../common/medal'
 import { createConfirmBox } from '../common/confirmbox'
 import Alpine from 'alpinejs'
 
@@ -13,6 +12,7 @@ Alpine.data('appStatus', () => ({
     })
     this.base.opacity = window.electron.get('config.opacity', 1)
     window.electron.register('gift', (arg) => {
+      console.log(arg)
       if (this.giftsCheck.has(arg.id)) {
         for (let i = 0; i < this.gifts.length; i++) {
           if (this.gifts[i].id === arg.id) {

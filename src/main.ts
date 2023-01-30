@@ -1,6 +1,6 @@
 // Modules to control application life and create native browser window
 import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen } from 'electron'
-import { SuperChatMockMessage } from './common/mock'
+import { DanmuMockMessage, GiftMockMessage, GuardMockMessage, SuperChatMockMessage } from './common/mock'
 import path = require('path')
 import Store = require('electron-store')
 import db = require('electron-db')
@@ -453,7 +453,7 @@ function startBackendService() {
       Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
         () => {
           // All Preload Data Loaded
-          let msgHandler = function(type, msg) {
+          let msgHandler = function(type: number, msg: any) {
             switch (type) {
               case 3:
                 mainWindow?.webContents.send('update-heat', msg)
@@ -596,7 +596,26 @@ function startBackendService() {
           // For debugging
           if (dev) {
             setInterval(() => {
-              msgHandler(5, SuperChatMockMessage)
+              switch (Math.floor(Math.random() * 4)) {
+                case 0: {
+                  msgHandler(5, SuperChatMockMessage)
+                  break
+                }
+                case 1: {
+                  msgHandler(5, GuardMockMessage)
+                  break
+                }
+                case 2: {
+                  msgHandler(5, DanmuMockMessage)
+                  break
+                }
+                case 3: {
+                  msgHandler(5, GiftMockMessage)
+                  break
+                }
+                default:
+                  break
+              }
             }, 10 * 1000)
           }
         }
@@ -648,7 +667,7 @@ function initDB() {
   })
 }
 
-ipcMain.on('remove', (event, info) => {
+ipcMain.on('remove', (_, info) => {
   console.log('remove', info)
   deleteAllRows(info.type, {
     sid: info.id,
