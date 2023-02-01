@@ -320,6 +320,7 @@ textarea,
 }
 
 .sc-entry-content-time {
+    font-size: var(--danmu-size);
     padding-top: 10px;
     color: rgba(255, 255, 255, 0.507);
     display: flex;

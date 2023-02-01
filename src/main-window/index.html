@@ -1,205 +1,98 @@
 <!DOCTYPE html>
 <html lang="zh">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="stylesheet" href="../common/common.css" />
-    <link rel="stylesheet" href="main-window.css" />
-    <title>弹幕</title>
-  </head>
 
-  <body x-data="appStatus">
-    <div id="room-input-panel" x-show="roomInput.open">
-      <input
-        type="number"
-        id="room-input"
-        placeholder="房间号"
-        x-model="roomInput.roomID"
-      />
-      <button id="enter-room" @click="roomInput.enter()">进入</button>
-    </div>
-    <div
-      id="cover"
-      x-show="menuOpen || roomInput.open"
-      @click="menuOpen = false; roomInput.open = false"
-      x-transition
-    ></div>
-    <div id="app" :style="`--global-opacity: ${base.opacity}`">
-      <div
-        id="title-bar"
-        :style="{backgroundColor: base.live?'#fc3131be':'var(--title-bar-color)'}"
-      >
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="../common/common.css" />
+  <link rel="stylesheet" href="main-window.css" />
+  <title>弹幕</title>
+</head>
+
+<body x-data="appStatus">
+  <div id="room-input-panel" x-show="roomInput.open">
+    <input type="number" id="room-input" placeholder="房间号" x-model="roomInput.roomID" />
+    <button id="enter-room" @click="roomInput.enter()">进入</button>
+  </div>
+  <div id="cover" x-show="menuOpen || roomInput.open" @click="menuOpen = false; roomInput.open = false" x-transition>
+  </div>
+  <div id="app" :style="`--global-opacity: ${base.opacity}`">
+    <div id="title-bar" :style="{backgroundColor: base.live?'#fc3131be':'var(--title-bar-color)'}">
+      <div>
+        <div id="live-text">LIVE</div>
         <div>
-          <div id="live-text">LIVE</div>
-          <div>
-            <div style="height: 24px; width: 24px; margin-left: 14px">
-              <svg viewBox="0 0 24 24">
-                <path
-                  fill="white"
-                  d="M12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79086 12 8 10.2091 8 8C8 5.79086 9.79086 4 12 4ZM12 14C16.4183 14 20 15.7909 20 18L20 20L4 20L4 18C4 15.7909 7.58172 14 12 14Z"
-                ></path>
-              </svg>
-            </div>
-            <div id="online" x-text="base.live?base.online:''"></div>
-          </div>
-        </div>
-        <div>
-          <div
-            id="medal-button"
-            class="title-button"
-            :class="medalDisplay && 'enabled'"
-            @click="medalDisplay = !medalDisplay"
-          >
+          <div style="height: 24px; width: 24px; margin-left: 14px">
             <svg viewBox="0 0 24 24">
-              <path
-                d="M20,2H4V4L9.81,8.36C6.14,9.57 4.14,13.53 5.35,17.2C6.56,20.87 10.5,22.87 14.19,21.66C17.86,20.45 19.86,16.5 18.65,12.82C17.95,10.71 16.3,9.05 14.19,8.36L20,4V2M14.94,19.5L12,17.78L9.06,19.5L9.84,16.17L7.25,13.93L10.66,13.64L12,10.5L13.34,13.64L16.75,13.93L14.16,16.17L14.94,19.5Z"
-              />
+              <path fill="white"
+                d="M12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79086 12 8 10.2091 8 8C8 5.79086 9.79086 4 12 4ZM12 14C16.4183 14 20 15.7909 20 18L20 20L4 20L4 18C4 15.7909 7.58172 14 12 14Z">
+              </path>
             </svg>
           </div>
-          <div
-            id="enter-button"
-            class="title-button"
-            :class="enterMessage && 'enabled'"
-            @click="enterMessage = !enterMessage"
-          >
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M14 12L10 8V11H2V13H10V16M22 12A10 10 0 0 1 2.46 15H4.59A8 8 0 1 0 4.59 9H2.46A10 10 0 0 1 22 12Z"
-              />
-            </svg>
-          </div>
-          <div
-            id="full-mode-button"
-            class="title-button"
-            :class="danmuPanel.fullMode && 'enabled'"
-            @click="danmuPanel.fullMode = !danmuPanel.fullMode"
-          >
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"
-              />
-            </svg>
-          </div>
-          <div
-            id="top-button"
-            class="title-button"
-            :class="onTop && 'enabled'"
-            @click="onTop = !onTop"
-          >
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z"
-              />
-            </svg>
-          </div>
-          <div id="dropdown">
-            <div id="menu-button" class="title-button" @click="menuOpen = true">
-              <svg viewBox="0 0 24 24">
-                <path
-                  fill="white"
-                  d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"
-                />
-              </svg>
-            </div>
-            <div id="dropdown-content" x-show="menuOpen" x-transition>
-              <div style="align-items: center; justify-content: center">
-                <input
-                  type="range"
-                  id="opacity-setting"
-                  min="0"
-                  max="1"
-                  step="0.01"
-                  x-model="base.opacity"
-                  style="width: 120px"
-                />
-              </div>
-              <div style="width: 160px">
-                <a
-                  id="smallF"
-                  href="#"
-                  style="width: 50px; justify-content: center"
-                  @click="base.fontSize = '14px'"
-                  >S</a
-                >
-                <a
-                  id="middleF"
-                  href="#"
-                  style="width: 50px; justify-content: center"
-                  @click="base.fontSize = '18px'"
-                  >M</a
-                >
-                <a
-                  id="largeF"
-                  href="#"
-                  style="width: 50px; justify-content: center"
-                  @click="base.fontSize = '22px'"
-                  >L</a
-                >
-              </div>
-              <a
-                id="switch-theme"
-                href="#"
-                @click="switchTheme();menuOpen = false"
-                >切换主题</a
-              >
-              <a
-                id="open-gift-window"
-                href="#"
-                @click="electronSend('showGiftWindow');menuOpen = false"
-                >礼物窗口</a
-              >
-              <a
-                id="open-sc-window"
-                href="#"
-                @click="electronSend('showSuperchatWindow');menuOpen = false"
-                >醒目留言窗口</a
-              >
-              <a
-                id="export-gift"
-                href="#"
-                @click="electronSend('exportGift');menuOpen = false"
-                >导出礼物记录</a
-              >
-              <a
-                id="open-room-url"
-                href="#"
-                @click="electronSend('openBrowser');menuOpen = false"
-                >打开直播间网页</a
-              >
-              <a
-                id="open-setting"
-                href="#"
-                @click="roomInput.open = true;menuOpen = false"
-                >设置直播间</a
-              >
-              <a id="quit" href="#" @click="electronSend('quit')">退出</a>
-            </div>
-          </div>
+          <div id="online" x-text="base.live?base.online:''"></div>
         </div>
       </div>
-      <div
-        id="danmu"
-        @scroll="danmuPanel.scrollHandler()"
-        :style="`--danmu-size: ${base.fontSize}`"
-      ></div>
-      <div
-        id="bottom-indicator"
-        @click="danmuPanel.enableAutoScroll()"
-        x-show="!danmuPanel.autoScroll && danmuPanel.newDanmuCount>0"
-      >
-        <span id="danmu-count" x-text="danmuPanel.newDanmuCount">0</span>
-        条新弹幕
-      </div>
-      <div id="statusbar">
-        <marquee id="live-title" scrollamount="0" x-text="base.title"></marquee>
-        <div id="live-heat" x-show="base.live">
-          🔥<span
-            id="heat-value"
-            style="margin-left: 10px"
-            x-text="base.heat"
-          ></span>
+      <div>
+        <div id="medal-button" class="title-button" :class="medalDisplay && 'enabled'"
+          @click="medalDisplay = !medalDisplay">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M20,2H4V4L9.81,8.36C6.14,9.57 4.14,13.53 5.35,17.2C6.56,20.87 10.5,22.87 14.19,21.66C17.86,20.45 19.86,16.5 18.65,12.82C17.95,10.71 16.3,9.05 14.19,8.36L20,4V2M14.94,19.5L12,17.78L9.06,19.5L9.84,16.17L7.25,13.93L10.66,13.64L12,10.5L13.34,13.64L16.75,13.93L14.16,16.17L14.94,19.5Z" />
+          </svg>
+        </div>
+        <div id="enter-button" class="title-button" :class="enterMessage && 'enabled'"
+          @click="enterMessage = !enterMessage">
+          <svg viewBox="0 0 24 24">
+            <path
+              d="M14 12L10 8V11H2V13H10V16M22 12A10 10 0 0 1 2.46 15H4.59A8 8 0 1 0 4.59 9H2.46A10 10 0 0 1 22 12Z" />
+          </svg>
+        </div>
+        <div id="top-button" class="title-button" :class="onTop && 'enabled'" @click="onTop = !onTop">
+          <svg viewBox="0 0 24 24">
+            <path d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z" />
+          </svg>
+        </div>
+        <div id="dropdown">
+          <div id="menu-button" class="title-button" @click="menuOpen = true">
+            <svg viewBox="0 0 24 24">
+              <path fill="white"
+                d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+            </svg>
+          </div>
+          <div id="dropdown-content" x-show="menuOpen" x-transition>
+            <div style="align-items: center; justify-content: center">
+              <input type="range" id="opacity-setting" min="0" max="1" step="0.01" x-model="base.opacity"
+                style="width: 120px" />
+            </div>
+            <div style="width: 160px">
+              <a id="smallF" href="#" style="width: 50px; justify-content: center" @click="base.fontSize = '14px'">S</a>
+              <a id="middleF" href="#" style="width: 50px; justify-content: center"
+                @click="base.fontSize = '18px'">M</a>
+              <a id="largeF" href="#" style="width: 50px; justify-content: center" @click="base.fontSize = '22px'">L</a>
+            </div>
+            <a id="switch-theme" href="#" @click="switchTheme();menuOpen = false">切换主题</a>
+            <a id="open-gift-window" href="#" @click="electronSend('showGiftWindow');menuOpen = false">礼物窗口</a>
+            <a id="open-sc-window" href="#" @click="electronSend('showSuperchatWindow');menuOpen = false">醒目留言窗口</a>
+            <a id="export-gift" href="#" @click="electronSend('exportGift');menuOpen = false">导出礼物记录</a>
+            <a id="open-room-url" href="#" @click="electronSend('openBrowser');menuOpen = false">打开直播间网页</a>
+            <a id="open-setting" href="#" @click="roomInput.open = true;menuOpen = false">设置直播间</a>
+            <a id="quit" href="#" @click="electronSend('quit')">退出</a>
+          </div>
         </div>
       </div>
     </div>
-  </body>
-  <script src="main-window.min.js"></script>
+    <div id="danmu" @scroll="danmuPanel.scrollHandler()" :style="`--danmu-size: ${base.fontSize}`"></div>
+    <div id="bottom-indicator" @click="danmuPanel.enableAutoScroll()"
+      x-show="!danmuPanel.autoScroll && danmuPanel.newDanmuCount>0">
+      <span id="danmu-count" x-text="danmuPanel.newDanmuCount">0</span>
+      条新弹幕
+    </div>
+    <div id="statusbar">
+      <marquee id="live-title" scrollamount="0" x-text="base.title"></marquee>
+      <div id="live-heat" x-show="base.live">
+        🔥<span id="heat-value" style="margin-left: 10px" x-text="base.heat"></span>
+      </div>
+    </div>
+  </div>
+</body>
+<script src="main-window.min.js"></script>
+
 </html>

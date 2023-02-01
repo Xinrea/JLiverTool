@@ -156,18 +156,6 @@ let appStatus = {
     },
     handleNewEntry(entry: HTMLElement) {
       $danmuArea.appendChild(entry)
-      if (this.fullMode) {
-        if ($danmuArea.scrollHeight > $danmuArea.clientHeight) {
-          this.replaceIndex++
-          this.replaceIndex =
-            this.replaceIndex % ($danmuArea.children.length - 1)
-          $danmuArea.children[this.replaceIndex].replaceWith(entry)
-          // When Window Height Decrease Too Much
-          while ($danmuArea.scrollHeight > $danmuArea.clientHeight) {
-            $danmuArea.firstChild.remove()
-          }
-        }
-      }
       if (this.autoScroll) {
         $danmuArea.scrollTop = this.lastPosition =
           $danmuArea.scrollHeight - $danmuArea.clientHeight
@@ -197,16 +185,6 @@ let appStatus = {
       // Only display max 1000 entries
       if ($danmuArea.children.length > 200) {
         $danmuArea.removeChild($danmuArea.children[0])
-      }
-    },
-    get fullMode(): boolean {
-      return window.electron.get('config.fullMode', false)
-    },
-    set fullMode(value: boolean) {
-      window.electron.set('config.fullMode', value)
-      if (value) {
-        // Enabled Full Mode
-        this.replaceIndex = 0
       }
     },
   },
