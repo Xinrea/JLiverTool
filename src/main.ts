@@ -192,7 +192,7 @@ function createMainWindow() {
     }
   })
   ipcMain.on('openBrowser', () => {
-    require('openurl').open('https://live.bilibili.com/' + room)
+    require('openurl').open('https://link.bilibili.com/p/center/index/my-room/start-live#/my-room/start-live')
   })
   ipcMain.on('openURL', (_, arg) => {
     require('openurl').open(arg)

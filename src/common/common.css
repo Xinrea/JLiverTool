@@ -397,3 +397,36 @@ textarea,
     cursor: pointer;
     text-decoration: underline;
 }
+
+/* Tooltip 容器 */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+ 
+/* Tooltip 文本 */
+.tooltip .tooltiptext {
+    font-size: smaller;
+    visibility: hidden;
+    width: 80px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 6px;
+ 
+    /* 定位 */
+    position: absolute;
+    z-index: 9999;
+    top: 5px;
+    right: 110%; 
+
+    border: 1px dotted white;
+
+    pointer-events: none;
+}
+ 
+/* 鼠标移动上去后显示提示框 */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}

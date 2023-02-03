@@ -45,10 +45,11 @@
         <div>
           <div
             id="medal-button"
-            class="title-button"
+            class="title-button tooltip"
             :class="medalDisplay && 'enabled'"
             @click="medalDisplay = !medalDisplay"
           >
+            <span class="tooltiptext">粉丝牌</span>
             <svg viewBox="0 0 24 24">
               <path
                 d="M20,2H4V4L9.81,8.36C6.14,9.57 4.14,13.53 5.35,17.2C6.56,20.87 10.5,22.87 14.19,21.66C17.86,20.45 19.86,16.5 18.65,12.82C17.95,10.71 16.3,9.05 14.19,8.36L20,4V2M14.94,19.5L12,17.78L9.06,19.5L9.84,16.17L7.25,13.93L10.66,13.64L12,10.5L13.34,13.64L16.75,13.93L14.16,16.17L14.94,19.5Z"
@@ -57,10 +58,11 @@
           </div>
           <div
             id="enter-button"
-            class="title-button"
+            class="title-button tooltip"
             :class="enterMessage && 'enabled'"
             @click="enterMessage = !enterMessage"
           >
+            <span class="tooltiptext">进房信息</span>
             <svg viewBox="0 0 24 24">
               <path
                 d="M14 12L10 8V11H2V13H10V16M22 12A10 10 0 0 1 2.46 15H4.59A8 8 0 1 0 4.59 9H2.46A10 10 0 0 1 22 12Z"
@@ -69,10 +71,11 @@
           </div>
           <div
             id="top-button"
-            class="title-button"
+            class="title-button tooltip"
             :class="onTop && 'enabled'"
             @click="onTop = !onTop"
           >
+            <span class="tooltiptext">置顶</span>
             <svg viewBox="0 0 24 24">
               <path
                 d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z"
@@ -180,9 +183,11 @@
       <div id="statusbar">
         <marquee id="live-title" scrollamount="0" x-text="base.title"></marquee>
         <div
+          class="tooltip"
           style="height: 24px; width: 24px; cursor: pointer; margin-right: 14px"
           @click="electronSend('openBrowser');menuOpen = false"
         >
+          <span class="tooltiptext" style="top: -5px">开播设置</span>
           <svg
             fill="var(--font-color)"
             viewBox="0 0 64 64"
