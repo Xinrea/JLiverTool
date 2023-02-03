@@ -110,6 +110,16 @@ let appStatus = {
       // Make Sure All Data Reset
       window.electron.send('reset')
     })
+    // AutoScroll thread, 16 ms for 60 fps
+    setInterval(() => {
+      if (this.danmuPanel.autoScroll && this.danmuPanel.scrollRemain > 0) {
+        let v = Math.ceil(this.danmuPanel.scrollRemain / 60)
+        $danmuArea.scrollTop += v
+        this.danmuPanel.scrollRemain -= v
+      } else {
+        this.danmuPanel.scrollRemain = 0
+      }
+    }, 16)
   },
   base: {
     title: 'Loading',
@@ -144,45 +154,37 @@ let appStatus = {
   danmuPanel: {
     replaceIndex: 0,
     lastSelectedDanmu: null,
-    isCountingNew: false,
     newDanmuCount: 0,
     autoScroll: true,
-    lastPosition: 0,
+    scrollRemain: 0,
     enableAutoScroll() {
-      $danmuArea.scrollTop = this.lastPosition =
-        $danmuArea.scrollHeight - $danmuArea.clientHeight
+      $danmuArea.scrollTop = $danmuArea.scrollHeight - $danmuArea.clientHeight
+      this.scrollRemain = 0
       this.newDanmuCount = 0
-      this.isCountingNew = false
+      this.autoScroll = true
     },
     handleNewEntry(entry: HTMLElement) {
       $danmuArea.appendChild(entry)
       if (this.autoScroll) {
-        $danmuArea.scrollTop = this.lastPosition =
-          $danmuArea.scrollHeight - $danmuArea.clientHeight
-        this.newDanmuCount = 0
+        this.scrollRemain = Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop) + 10
       }
     },
     scrollHandler() {
-      if (Math.ceil($danmuArea.scrollTop) == this.lastPosition) {
-        // Auto scroll
-        this.autoScroll = true
-        return
-      }
       // User scroll
       if (
-        Math.ceil($danmuArea.scrollTop) ==
-        $danmuArea.scrollHeight - $danmuArea.clientHeight
+        Math.ceil($danmuArea.scrollTop) >=
+        $danmuArea.scrollHeight - $danmuArea.clientHeight - 10
       ) {
         this.autoScroll = true
         this.newDanmuCount = 0
-        this.isCountingNew = false
+        this.scrollRemain = Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop) + 10
       } else {
         this.autoScroll = false
       }
     },
     doClean() {
       if (!this.autoScroll) this.newDanmuCount++
-      // Only display max 1000 entries
+      // Only display max 200 entries
       if ($danmuArea.children.length > 200) {
         $danmuArea.removeChild($danmuArea.children[0])
       }

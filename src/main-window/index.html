@@ -79,7 +79,7 @@
         </div>
       </div>
     </div>
-    <div id="danmu" @scroll="danmuPanel.scrollHandler()" :style="`--danmu-size: ${base.fontSize}`"></div>
+    <div id="danmu" @wheel="danmuPanel.scrollHandler()" :style="`--danmu-size: ${base.fontSize}`"></div>
     <div id="bottom-indicator" @click="danmuPanel.enableAutoScroll()"
       x-show="!danmuPanel.autoScroll && danmuPanel.newDanmuCount>0">
       <span id="danmu-count" x-text="danmuPanel.newDanmuCount">0</span>
