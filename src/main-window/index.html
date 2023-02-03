@@ -153,6 +153,12 @@
                 @click="roomInput.open = true;menuOpen = false"
                 >设置直播间</a
               >
+              <a
+                id="open-setting"
+                href="#"
+                @click="electronSend('setting');menuOpen = false"
+                >设置</a
+              >
               <a id="quit" href="#" @click="electronSend('quit')">退出</a>
             </div>
           </div>

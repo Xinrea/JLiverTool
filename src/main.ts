@@ -24,6 +24,7 @@ let uid = 0
 let mainWindow
 let giftWindow
 let superchatWindow
+let settingWindow
 let windowCount = 0
 let windowStatus = {
   gift: false,
@@ -202,6 +203,16 @@ function createMainWindow() {
   ipcMain.on('quit', () => {
     stopBackendService()
     app.quit()
+  })
+  ipcMain.on('setting', () => {
+    if (settingWindow) {
+      settingWindow.focus()
+    } else {
+      settingWindow = createSettingWindow()
+      settingWindow.on('closed', () => {
+        settingWindow = null
+      })
+    }
   })
   ipcMain.on('store-watch', (_, key, newValue) => {
     mainWindow?.webContents.send('store-watch', key, newValue)
@@ -388,6 +399,21 @@ function createSuperchatWindow() {
     superchatWindow.setPosition(0, 0)
     store.set('cache.superchatSize', superchatWindow.getSize())
   })
+}
+
+function createSettingWindow() {
+  let settingWindow = new BrowserWindow({
+    width: 600,
+    height: 400,
+    resizable: false,
+    title: '设置',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+    },
+  })
+  settingWindow.loadFile('src/setting-window/index.html')
+  settingWindow.setAlwaysOnTop(true, 'screen-saver')
+  return settingWindow
 }
 
 // This method will be called when Electron has finished
