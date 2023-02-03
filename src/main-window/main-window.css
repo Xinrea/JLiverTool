@@ -196,7 +196,6 @@ button:hover {
   font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
     'Microsoft SanSerf', 微软雅黑, system-ui !important;
   font-size: var(--danmu-size);
-  color: var(--font-color) !important;
   word-wrap: break-word;
   white-space: normal;
   vertical-align: middle;

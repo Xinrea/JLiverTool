@@ -21,11 +21,6 @@ let appStatus = {
       }
       this.base.live = arg.live_status === 1
       this.base.title = arg.title
-      if (this.base.live) {
-        this.base.heat = arg.online
-      } else {
-        this.base.heat = 0
-      }
     })
     window.electron.register('update-online', (arg) => {
       if (this.base.live) {
@@ -123,7 +118,6 @@ let appStatus = {
   },
   base: {
     title: 'Loading',
-    heat: 0,
     online: '',
     live: false,
     get fontSize() {
