@@ -409,11 +409,12 @@ textarea,
     font-size: smaller;
     visibility: hidden;
     width: 80px;
-    background-color: black;
+    background-color: #00afeb;
     color: #fff;
     text-align: center;
     padding: 5px 0;
     border-radius: 6px;
+    opacity: 0.9;
  
     /* 定位 */
     position: absolute;
@@ -421,7 +422,7 @@ textarea,
     top: 5px;
     right: 110%; 
 
-    border: 1px dotted white;
+    border: 1px solid white;
 
     pointer-events: none;
 }

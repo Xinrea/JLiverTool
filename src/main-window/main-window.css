@@ -231,7 +231,7 @@ button:hover {
 }
 
 .danmu_entry.gift {
-  border: 1px solid #f7b500;
+  border: 2px solid #f7b500;
 }
 
 .emoji {
@@ -251,11 +251,11 @@ button:hover {
 }
 
 .danmu_entry:hover {
-  box-shadow: var(--font-secolor) 0 0 0 1px;
+  box-shadow: var(--font-secolor) 0 0 0 2px;
 }
 
 .danmu_entry.selected {
-  box-shadow: var(--font-secolor) 0 0 0 1px;
+  box-shadow: var(--font-secolor) 0 0 0 2px;
 }
 
 #danmu {
