@@ -6,7 +6,8 @@ const frontendConfig = {
   entry: {
     './src/gift-window/gift-window.min': './src/gift-window/gift-window.ts',
     './src/superchat-window/superchat-window.min': './src/superchat-window/superchat-window.ts',
-    './src/main-window/main-window.min': './src/main-window/main-window.ts'
+    './src/main-window/main-window.min': './src/main-window/main-window.ts',
+    './src/setting-window/setting-window.min': './src/setting-window/setting-window.ts'
   },
   module: {
     rules: [

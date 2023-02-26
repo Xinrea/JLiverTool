@@ -5,14 +5,10 @@
     <link rel="stylesheet" href="../common/common.css" />
   </head>
   <body>
-    <div class="panel">
+    <div class="panel" x-data="setting">
       <label for="font_size">弹幕字体大小:</label>
-      <input id="font_size" type="font_size" value="14" min="14" max="22" />
+      <input id="font_size" type="font_size" :value="font_size" min="14" max="22" />
     </div>
   </body>
-  <script>
-    setInterval(() => {
-      location.reload();
-    }, 1000);
-  </script>
+  <script src="setting-window.min.js"></script>
 </html>
