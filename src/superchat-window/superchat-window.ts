@@ -5,6 +5,13 @@ let $hideButton = document.getElementById('hide-button')
 let $panel = document.getElementById('panel')
 let giftMap = new Map()
 
+window.electron.onDidChange('config.opacity', (newValue) => {
+  document.documentElement.style.setProperty(
+    '--global-opacity',
+    newValue
+  )
+})
+
 document.getElementById('clear-button').onclick = () => {
   document.body.appendChild(
     createConfirmBox('确定清空所有醒目留言记录？', () => {
@@ -45,15 +52,3 @@ window.electron.register('reset', () => {
   $panel.innerHTML = ''
   window.electron.send('reset')
 })
-
-window.electron.register('updateOpacity', () => {
-  document.documentElement.style.setProperty(
-    '--global-opacity',
-    window.electron.get('config.opacity', 1)
-  )
-})
-
-document.documentElement.style.setProperty(
-  '--global-opacity',
-  window.electron.get('config.opacity', 1)
-)
