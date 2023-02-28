@@ -163,8 +163,6 @@ function createMainWindow() {
   // and load the index.html of the app.
   mainWindow.loadFile('src/main-window/index.html')
   if (store.get('config.alwaysOnTop', false)) mainWindow.setAlwaysOnTop(true, 'screen-saver')
-  // Open the DevTools.
-  if (dev) mainWindow.webContents.openDevTools()
   mainWindow.on('close', () => {
     store.set('cache.mainPos', mainWindow.getPosition())
     mainWindow.hide()
@@ -259,7 +257,6 @@ function createGiftWindow() {
   })
   giftWindow.loadFile('src/gift-window/index.html')
   giftWindow.setAlwaysOnTop(true, 'screen-saver')
-  if (dev) giftWindow.webContents.openDevTools()
   ipcMain.on('hideGiftWindow', () => {
     giftWindow.hide()
     windowStatus.gift = false
@@ -336,7 +333,6 @@ function createSuperchatWindow() {
   })
   superchatWindow.loadFile('src/superchat-window/index.html')
   superchatWindow.setAlwaysOnTop(true, 'screen-saver')
-  if (dev) superchatWindow.webContents.openDevTools()
   ipcMain.on('hideSuperchatWindow', () => {
     superchatWindow.hide()
     windowStatus.superchat = false

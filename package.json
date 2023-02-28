@@ -5,11 +5,11 @@
   "main": "src/main.js",
   "scripts": {
     "start": "npx webpack && cross-env NODE_ENV=development electron .",
-    "build": "npx webpack && electron-builder build -mw --publish=never"
+    "build": "npx webpack && cross-env NODE_ENV=production electron-builder build -mw --publish=never"
   },
   "build": {
     "win": {
-      "icon": "src/icons/icon.png",
+      "icon": "src/assets/icons/icon.png",
       "target": [
         {
           "target": "nsis",
@@ -20,7 +20,7 @@
       ]
     },
     "mac": {
-      "icon": "src/icons/icon.png",
+      "icon": "src/assets/icons/icon.png",
       "target": [
         {
           "target": "dmg",
