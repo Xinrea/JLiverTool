@@ -12,6 +12,14 @@ import Alpine from 'alpinejs'
 let appStatus = {
   init() {
     configLoad()
+    this.base.fontSize = parseInt(window.electron.get('config.fontSize', 18))
+    this.base.opacity = window.electron.get('config.opacity', 1)
+    window.electron.onDidChange('config.opacity', (newValue) => {
+      this.base.opacity = newValue
+    })
+    window.electron.onDidChange('config.fontSize', (newValue) => {
+      this.base.fontSize = newValue
+    })
     window.electron.register('update-heat', (arg) => {
       this.base.heat = arg
     })
@@ -62,6 +70,12 @@ let appStatus = {
     // Update window status for determine whether to superchat or gift in main window
     window.electron.register('updateWindowStatus', (arg) => {
       this.windowStatus = arg
+    })
+    window.electron.register('blur', (arg) => {
+      console.log(
+        'close menu'
+      )
+      this.menuOpen = false
     })
     // Register all kinds of message to handle
     window.electron.register('gift', (arg) => {
@@ -120,30 +134,12 @@ let appStatus = {
     title: 'Loading',
     online: '',
     live: false,
-    get fontSize() {
-      return window.electron.get('config.fontSize', '14px')
-    },
-    set fontSize(v: string) {
-      window.electron.set('config.fontSize', v)
-    },
-    get opacity() {
-      return window.electron.get('config.opacity', '1')
-    },
-    set opacity(v: string) {
-      window.electron.set('config.opacity', v)
-    },
+    fontSize: 18,
+    opacity: 1,
   },
   windowStatus: {
     gift: false,
     superchat: false,
-  },
-  roomInput: {
-    open: false,
-    roomID: '',
-    enter() {
-      window.electron.send('setRoom', this.roomID)
-      this.open = false
-    },
   },
   danmuPanel: {
     replaceIndex: 0,
@@ -211,8 +207,8 @@ let appStatus = {
   electronSend: (channel, ...args) => {
     window.electron.send(channel, ...args)
   },
-  switchTheme() {
-    window.electron.send('theme:switch')
+  minimize() {
+    window.electron.send('minimize')
   },
   onReceiveNewDanmu(special, medalInfo, sender, content) {
     this.danmuPanel.doClean()

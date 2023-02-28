@@ -12,6 +12,7 @@ function registerListener(name) {
   })
 }
 
+registerListener('blur')
 registerListener('update-room')
 registerListener('update-heat')
 registerListener('update-online')

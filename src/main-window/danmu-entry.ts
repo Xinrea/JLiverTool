@@ -21,10 +21,11 @@ export function createDanmuEntry(special, medal, sender, content) {
   if (content) {
     if (content.url) {
       let danmuContent = document.createElement('span')
+      let ratio = content.width / content.height
       danmuContent.className = 'content emoji'
       danmuContent.style.backgroundImage = `url(${content.url})`
-      danmuContent.style.width = content.width * 5 / 12 + 'px'
-      danmuContent.style.height = content.height * 5 / 12 + 'px'
+      danmuContent.style.width = `calc((var(--danmu-size) + 32px) * ${ratio})`
+      danmuContent.style.height = 'calc(var(--danmu-size) + 32px)'
       danmuEntry.appendChild(danmuContent)
     } else {
       danmuEntry.appendChild(renderContent(content))

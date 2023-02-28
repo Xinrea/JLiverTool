@@ -1,61 +1,42 @@
 <!DOCTYPE html>
 <html lang="zh">
+
   <head>
     <meta charset="UTF-8" />
     <title>礼物</title>
     <link rel="stylesheet" href="gift-window.css" />
   </head>
+
   <body x-data="appStatus">
     <div id="app" :style="`--global-opacity: ${base.opacity}`">
       <div id="title-bar">
         <div>
           <div id="title">GIFT</div>
-          <div
-            id="clear-button"
-            class="title-button"
-            style="margin-left: 8px"
-            @click="giftClean"
-          >
+          <div id="clear-button" class="title-button" style="margin-left: 8px" @click="giftClean">
             <svg viewBox="0 0 24 24">
-              <path
-                fill="red"
-                d="M20.37,8.91L19.37,10.64L7.24,3.64L8.24,1.91L11.28,3.66L12.64,3.29L16.97,5.79L17.34,7.16L20.37,8.91M6,19V7H11.07L18,11V19A2,2 0 0,1 16,21H8A2,2 0 0,1 6,19Z"
-              />
+              <path fill="red"
+                d="M20.37,8.91L19.37,10.64L7.24,3.64L8.24,1.91L11.28,3.66L12.64,3.29L16.97,5.79L17.34,7.16L20.37,8.91M6,19V7H11.07L18,11V19A2,2 0 0,1 16,21H8A2,2 0 0,1 6,19Z" />
             </svg>
           </div>
         </div>
         <div>
-          <div
-            id="free-button"
-            class="title-button"
-            :class="base.filterFree && 'enabled'"
-            @click="base.filterFree= !base.filterFree"
-          >
+          <div id="free-button" class="title-button" :class="base.filterFree && 'enabled'"
+            @click="base.filterFree= !base.filterFree">
             ￥
           </div>
-          <div
-            id="hide-button"
-            class="title-button"
-            @click="window.electron.send('hideGiftWindow')"
-          >
+          <div id="hide-button" class="title-button" @click="window.electron.send('hideGiftWindow')">
             <svg viewBox="0 0 24 24">
-              <path
-                fill="white"
-                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
-              />
+              <path fill="white"
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
             </svg>
           </div>
         </div>
       </div>
       <div id="gift-panel" @scroll="base.scroll()">
         <template x-for="gift in gifts">
-          <div
-            class="gift-entry"
-            :class="base.lastSelected == gift.id && 'selected'"
+          <div class="gift-entry" :class="base.lastSelected == gift.id && 'selected'"
             x-show="!base.filterFree || !gift.msg.data || gift.msg.data.coin_type=='gold'"
-            @click="base.lastSelected = gift.id"
-            @dblclick="giftRemove(gift.id)"
-          >
+            @click="base.lastSelected = gift.id" @dblclick="giftRemove(gift.id)">
             <div class="gift-title">
               <div class="gift-sender">
                 <template x-if="gift.msg.data && gift.msg.data.face">
@@ -64,82 +45,51 @@
                   </div>
                 </template>
                 <template
-                  x-if="gift.msg.data && gift.msg.data.medal_info && gift.msg.data.medal_info.medal_level > 0 && gift.msg.data.medal_info.is_lighted == 1"
-                >
-                  <div
-                    class="medal"
-                    :style="`border-color: ${intToColor(gift.msg.data.medal_info.medal_color)}`"
-                  >
-                    <div
-                      class="medal_label"
-                      :style="`background-image: linear-gradient(45deg,${intToColor(gift.msg.data.medal_info.medal_color_start)}, ${intToColor(gift.msg.data.medal_info.medal_color_end)})`"
-                    >
+                  x-if="gift.msg.data && gift.msg.data.medal_info && gift.msg.data.medal_info.medal_level > 0 && gift.msg.data.medal_info.is_lighted == 1">
+                  <div class="medal" :style="`border-color: ${intToColor(gift.msg.data.medal_info.medal_color)}`">
+                    <div class="medal_label"
+                      :style="`background-image: linear-gradient(45deg,${intToColor(gift.msg.data.medal_info.medal_color_start)}, ${intToColor(gift.msg.data.medal_info.medal_color_end)})`">
                       <template x-if="gift.msg.data.medal_info.guard_level > 0">
-                        <div
-                          class="medal_guard"
-                          :style="`background-image: var(--guard-level-${gift.msg.data.medal_info.guard_level})`"
-                        ></div>
+                        <div class="medal_guard"
+                          :style="`background-image: var(--guard-level-${gift.msg.data.medal_info.guard_level})`"></div>
                       </template>
-                      <div
-                        class="medal_name"
-                        x-text="gift.msg.data.medal_info.medal_name"
-                      ></div>
+                      <div class="medal_name" x-text="gift.msg.data.medal_info.medal_name"></div>
                     </div>
-                    <div
-                      class="medal_level"
-                      :style="`color: ${intToColor(gift.msg.data.medal_info.medal_color)}`"
-                      x-text="gift.msg.data.medal_info.medal_level"
-                    ></div>
+                    <div class="medal_level" :style="`color: ${intToColor(gift.msg.data.medal_info.medal_color)}`"
+                      x-text="gift.msg.data.medal_info.medal_level"></div>
                   </div>
                 </template>
-                <div
-                  class="sender-name"
-                  x-text="gift.msg.name || gift.msg.data.uname"
-                ></div>
+                <div class="sender-name" x-text="gift.msg.name || gift.msg.data.uname"></div>
               </div>
-              <div
-                class="gift-time"
-                x-text="timeFormat(gift.msg.timestamp || gift.msg.data.timestamp)"
-              ></div>
+              <div class="gift-time" x-text="timeFormat(gift.msg.timestamp || gift.msg.data.timestamp)"></div>
             </div>
             <div class="gift-content">
               <div class="gift-info">
                 <template x-if="gift.msg.gif">
-                  <div
-                    class="gift-icon"
-                    :style="`--frame-number: ${gift.msg.gif.frame || 0}; background-image: url(${gift.msg.gif.png || gift.msg.gif.gif || ''})`"
-                  ></div>
+                  <div class="gift-icon"
+                    :style="`--frame-number: ${gift.msg.gif.frame || 0}; background-image: url(${gift.msg.gif.png || gift.msg.gif.gif || ''})`">
+                  </div>
                 </template>
                 <template x-if="gift.msg.guard_level">
-                  <div
-                    class="gift-icon"
-                    :style="`--frame-number: 0; background-image: var(--guard-level-${gift.msg.guard_level})`"
-                  ></div>
+                  <div class="gift-icon"
+                    :style="`--frame-number: 0; background-image: var(--guard-level-${gift.msg.guard_level})`"></div>
                 </template>
-                <div
-                  class="gift-name"
-                  x-text="(gift.msg.data && gift.msg.data.giftName) || gift.msg.gift_name"
-                ></div>
+                <div class="gift-name" x-text="(gift.msg.data && gift.msg.data.giftName) || gift.msg.gift_name"></div>
                 <template x-if="gift.msg.data">
-                <div
-                  class="gift-count"
-                  x-text="'x'+gift.msg.data.num || 0"
-                ></div>
+                  <div class="gift-count" x-text="'x'+gift.msg.data.num || 0"></div>
                 </template>
                 <template x-if="gift.msg.data">
-                <div class="gift-price">
-                  <div
-                    class="gift-price-value"
-                    x-text="'￥'+(gift.msg.data.price * gift.msg.data.num) / 1000"
-                  ></div>
+                  <div class="gift-price">
+                    <div class="gift-price-value" x-text="'￥'+(gift.msg.data.price * gift.msg.data.num) / 1000"></div>
                 </template>
-                </div>
               </div>
             </div>
           </div>
-        </template>
       </div>
+      </template>
+    </div>
     </div>
   </body>
   <script src="gift-window.min.js"></script>
+
 </html>

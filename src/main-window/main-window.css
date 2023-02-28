@@ -239,13 +239,13 @@ button:hover {
   display: inline-block;
   background-size: contain;
   background-repeat: no-repeat;
-  height: calc(var(--danmu-size) + 16px);
 }
 
 @keyframes ani {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -302,8 +302,8 @@ button:hover {
 
 .gift-icon {
   display: inline-block;
-  width: 24px;
-  height: 24px;
+  width: calc(var(--danmu-size) + 4px);
+  height: calc(var(--danmu-size) + 4px);
   margin-left: 5px;
   background-size: contain;
   vertical-align: middle;

@@ -1,14 +1,235 @@
 <!DOCTYPE html>
 <html>
   <title>设置</title>
+
   <head>
     <link rel="stylesheet" href="../common/common.css" />
   </head>
+
   <body>
-    <div class="panel" x-data="setting">
-      <label for="font_size">弹幕字体大小:</label>
-      <input id="font_size" type="font_size" :value="font_size" min="14" max="22" />
+    <div class="panel">
+      <div x-data="tab" class="tab">
+        <div class="tab-header">
+          <template x-for="item in items">
+            <div x-text="item.text" class="tab-item" :class="{'active': item.id == active}" @click="active = item.id">
+            </div>
+          </template>
+        </div>
+        <div class="content">
+          <template x-if="active == 0">
+            <div style="align-items: center;">
+              <label for=" room">房间号：</label>
+              <input id="room" type="text" x-model="roomID" />
+              <button @click="confirmRoom">确认</button>
+            </div>
+          </template>
+          <template x-if="active == 1">
+            <div style="display: flex; flex-direction: column;">
+              <div>
+                <label>深色模式：</label><input class="mui-switch mui-switch-animbg" type="checkbox" x-model="darkTheme">
+              </div>
+              <div style="margin-bottom: 8px;">
+                <label for="font_size">字体大小：</label>
+                <input id="font_size" type="number" x-model="fontSize" min="14" max="40" />
+              </div>
+              <div>
+                <label for="opacity">透明度：</label>
+                <input id="opacity" type="number" x-model="opacity" min="0" max="1" step="0.01" />
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
     </div>
   </body>
   <script src="setting-window.min.js"></script>
+  <style>
+    body {
+      color: white;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: black;
+    }
+
+    input[type=number],
+    input[type=text] {
+      width: auto;
+      height: 14px;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    input[type=number]:hover,
+    input[type=text]:hover,
+    input[type=number]:focus,
+    input[type=text]:focus {
+      outline: none;
+      border-color: #66afe9;
+      box-shadow: 0 0 8px 0 rgba(102, 175, 233, 0.6);
+    }
+
+    button {
+      display: inline-block;
+      margin-left: 4px;
+      height: 28px;
+      padding: 0.5em 1em;
+      border: none;
+      border-radius: 0.25em;
+      text-align: center;
+      text-decoration: none;
+      align-items: center;
+      background-color: #00afeb;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.2s ease-in-out;
+    }
+
+    button:hover {
+      background-color: #1976D2;
+    }
+
+    button:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #fff, 0 0 0 4px #2196F3;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+
+    label {
+      width: 80px;
+      display: inline-block;
+      text-align: right;
+      margin-right: 8px;
+    }
+
+    .panel,
+    .tab {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100%;
+    }
+
+    .tab-header {
+      width: 20%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      margin-right: 2px;
+    }
+
+    .tab-item {
+      width: 100%;
+      margin: 2px 0;
+      padding: 10px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .tab-item:hover {
+      background: linear-gradient(90deg, #00b0eb7e 0%, rgba(0, 198, 247, 0.322) 60%, rgba(0, 212, 255, 0) 100%);
+    }
+
+    .tab-item.active {
+      background: linear-gradient(90deg, #00afeb 0%, rgba(0, 198, 247, 0.698091736694678) 60%, rgba(0, 212, 255, 0) 100%);
+    }
+
+    .tab .content {
+      display: flex;
+      flex-direction: column;
+      width: 80%;
+      height: 100%;
+      background-color: rgb(53, 53, 53);
+      padding: 20px;
+    }
+
+    .mui-switch {
+      width: 52px;
+      height: 31px;
+      position: relative;
+      border: 1px solid #dfdfdf;
+      background-color: #fdfdfd;
+      box-shadow: #dfdfdf 0 0 0 0 inset;
+      border-radius: 20px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      background-clip: content-box;
+      display: inline-block;
+      -webkit-appearance: none;
+      user-select: none;
+      outline: none;
+      transform: translateY(-6px);
+    }
+
+    .mui-switch:before {
+      content: '';
+      width: 29px;
+      height: 29px;
+      position: absolute;
+      top: 0px;
+      left: 0;
+      border-radius: 20px;
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      border-bottom-left-radius: 20px;
+      border-bottom-right-radius: 20px;
+      background-color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    .mui-switch:checked {
+      border-color: #64bd63;
+      box-shadow: #64bd63 0 0 0 16px inset;
+      background-color: #64bd63;
+    }
+
+    .mui-switch:checked:before {
+      left: 21px;
+    }
+
+    .mui-switch.mui-switch-animbg {
+      transition: background-color ease 0.4s;
+    }
+
+    .mui-switch.mui-switch-animbg:before {
+      transition: left 0.3s;
+    }
+
+    .mui-switch.mui-switch-animbg:checked {
+      box-shadow: #dfdfdf 0 0 0 0 inset;
+      background-color: #64bd63;
+      transition: border-color 0.4s, background-color ease 0.4s;
+    }
+
+    .mui-switch.mui-switch-animbg:checked:before {
+      transition: left 0.3s;
+    }
+
+    .mui-switch.mui-switch-anim {
+      transition: border cubic-bezier(0, 0, 0, 1) 0.4s, box-shadow cubic-bezier(0, 0, 0, 1) 0.4s;
+    }
+
+    .mui-switch.mui-switch-anim:before {
+      transition: left 0.3s;
+    }
+
+    .mui-switch.mui-switch-anim:checked {
+      box-shadow: #64bd63 0 0 0 16px inset;
+      background-color: #64bd63;
+      transition: border ease 0.4s, box-shadow ease 0.4s, background-color ease 1.2s;
+    }
+
+    .mui-switch.mui-switch-anim:checked:before {
+      transition: left 0.3s;
+    }
+  </style>
+
 </html>

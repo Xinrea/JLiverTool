@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, Tray, Menu } from 'electron'
 import { DanmuMockMessage, GiftMockMessage, GuardMockMessage, SuperChatMockMessage } from './common/mock'
 import path = require('path')
 import Store = require('electron-store')
@@ -162,6 +162,7 @@ function createMainWindow() {
   mainWindow.show()
   // and load the index.html of the app.
   mainWindow.loadFile('src/main-window/index.html')
+  if (store.get('config.alwaysOnTop', false)) mainWindow.setAlwaysOnTop(true, 'screen-saver')
   // Open the DevTools.
   if (dev) mainWindow.webContents.openDevTools()
   mainWindow.on('close', () => {
@@ -170,6 +171,9 @@ function createMainWindow() {
     // Prevent HDPI Window Size Issue
     mainWindow.setPosition(0, 0)
     store.set('cache.mainSize', mainWindow.getSize())
+  })
+  mainWindow.on('blur', () => {
+    mainWindow?.webContents.send('blur')
   })
   mainWindow.on('closed', () => {
     mainWindow = null
@@ -205,14 +209,7 @@ function createMainWindow() {
     app.quit()
   })
   ipcMain.on('setting', () => {
-    if (settingWindow) {
-      settingWindow.focus()
-    } else {
-      settingWindow = createSettingWindow()
-      settingWindow.on('closed', () => {
-        settingWindow = null
-      })
-    }
+    createSettingWindow()
   })
   ipcMain.on('store-watch', (_, key, newValue) => {
     mainWindow?.webContents.send('store-watch', key, newValue)
@@ -232,14 +229,11 @@ function createMainWindow() {
     nativeTheme.themeSource = 'light'
     store.set('cache.theme', 'light')
   }
-  ipcMain.on('theme:switch', () => {
-    if (store.get('cache.theme', 'light') === 'light') {
-      nativeTheme.themeSource = 'dark'
-      store.set('cache.theme', 'dark')
-    } else {
-      nativeTheme.themeSource = 'light'
-      store.set('cache.theme', 'light')
-    }
+  ipcMain.on('theme:switch', (_, theme) => {
+    nativeTheme.themeSource = theme
+  })
+  ipcMain.on('minimize', () => {
+    mainWindow.minimize()
   })
   checkUpdateFromGithubAPI()
 }
@@ -402,35 +396,71 @@ function createSuperchatWindow() {
 }
 
 function createSettingWindow() {
-  let settingWindow = new BrowserWindow({
+  if (settingWindow) {
+    settingWindow.focus()
+    return
+  }
+  settingWindow = new BrowserWindow({
     width: 600,
     height: 400,
     resizable: false,
     title: '设置',
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
   })
   settingWindow.loadFile('src/setting-window/index.html')
   settingWindow.setAlwaysOnTop(true, 'screen-saver')
-  return settingWindow
+  settingWindow.on('closed', () => {
+    settingWindow = null
+  })
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
+let tray = null
 app.whenReady().then(() => {
   createMainWindow()
   createGiftWindow()
   createSuperchatWindow()
-  app.on('activate', function() {
+  app.on('activate', function () {
+  })
+  // 创建一个托盘实例，指定图标文件路径
+  tray = new Tray(path.join(__dirname, 'assets/icons/main.png'))
+
+  // 创建一个菜单，包含一些项
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '鼠标穿透', submenu: [
+        { label: '弹幕窗口', type: 'checkbox', click: (e) => { mainWindow.setIgnoreMouseEvents(e.checked) } },
+        { label: '礼物窗口', type: 'checkbox', click: (e) => { giftWindow.setIgnoreMouseEvents(e.checked) } },
+        {
+          label: '醒目留言窗口', type: 'checkbox', click: (e) => { superchatWindow.setIgnoreMouseEvents(e.checked) },
+        }]
+    },
+    {
+      label: '设置', type: 'normal', click: () => {
+        createSettingWindow()
+      }
+    },
+    { label: '退出', type: 'normal', click: () => { stopBackendService(); app.quit() } }
+  ])
+
+  // 设置托盘的上下文菜单
+  tray.setContextMenu(contextMenu)
+
+  // 注册一个点击事件处理函数
+  tray.on('click', () => {
+    mainWindow.restore()
   })
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
-app.on('window-all-closed', function() {
+app.on('window-all-closed', function () {
   stopBackendService()
   app.quit()
 })
@@ -479,7 +509,7 @@ function startBackendService() {
       Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
         () => {
           // All Preload Data Loaded
-          let msgHandler = function(type: number, msg: any) {
+          let msgHandler = function (type: number, msg: any) {
             switch (type) {
               case 3:
                 mainWindow?.webContents.send('update-heat', msg)
@@ -620,30 +650,30 @@ function startBackendService() {
           }
           service.stopConn = connecting(realroom, msgHandler)
           // For debugging
-          if (dev) {
-            setInterval(() => {
-              switch (Math.floor(Math.random() * 4)) {
-                case 0: {
-                  msgHandler(5, SuperChatMockMessage)
-                  break
-                }
-                case 1: {
-                  msgHandler(5, GuardMockMessage)
-                  break
-                }
-                case 2: {
-                  msgHandler(5, DanmuMockMessage)
-                  break
-                }
-                case 3: {
-                  msgHandler(5, GiftMockMessage)
-                  break
-                }
-                default:
-                  break
-              }
-            }, 10 * 1000)
-          }
+          // if (dev) {
+          //   setInterval(() => {
+          //     switch (Math.floor(Math.random() * 4)) {
+          //       case 0: {
+          //         msgHandler(5, SuperChatMockMessage)
+          //         break
+          //       }
+          //       case 1: {
+          //         msgHandler(5, GuardMockMessage)
+          //         break
+          //       }
+          //       case 2: {
+          //         msgHandler(5, DanmuMockMessage)
+          //         break
+          //       }
+          //       case 3: {
+          //         msgHandler(5, GiftMockMessage)
+          //         break
+          //       }
+          //       default:
+          //         break
+          //     }
+          //   }, 10 * 1000)
+          // }
         }
       )
     })
@@ -807,7 +837,7 @@ function loadPreSuperchats() {
 }
 
 // Catch Other Exception
-process.on('uncaughtException', function(err) {
+process.on('uncaughtException', function (err) {
   console.log(err)
 })
 
