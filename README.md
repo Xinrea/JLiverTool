@@ -2,6 +2,8 @@
 
 [![CodeFactor](https://www.codefactor.io/repository/github/xinrea/jlivertool/badge)](https://www.codefactor.io/repository/github/xinrea/jlivertool)
 
+> 自 1.3.0 版本进行了重构，引入了 AlpineJS、TypeScript 以及 Webpack 便于后续维护和开发。
+
 ![screenshot](imgs/screenshot.png)
 
 ## 使用说明

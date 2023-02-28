@@ -10,13 +10,12 @@
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background-color: rgba(var(--main-bg-rgb),var(--global-opacity));
+  background-color: rgba(var(--main-bg-rgb), var(--global-opacity));
   box-sizing: border-box;
   border: 2px solid var(--border);
 }
 
-#roomInputPanel {
-  visibility: hidden;
+#room-input-panel {
   position: fixed;
   align-items: center;
   align-content: center;
@@ -51,6 +50,7 @@ input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
 }
+
 input[type='number'] {
   -moz-appearance: textfield;
 }
@@ -72,7 +72,7 @@ button:hover {
   background-color: var(--main-bg);
 }
 
-#enterRoom {
+#enter-room {
   margin-left: 10px;
 }
 
@@ -81,7 +81,7 @@ button:hover {
 }
 
 #dropdown-content {
-  display: none;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   top: 26px;
   right: 24px;
   flex-direction: column;
@@ -126,8 +126,8 @@ button:hover {
   border-top: 1px solid #ffffff75;
 }
 
-#livetext {
-  font-family: 'Roboto';
+#live-text {
+  font-family: 'Roboto', system-ui;
   font-size: 14px;
   line-height: 16px;
   color: white;
@@ -136,23 +136,23 @@ button:hover {
 }
 
 #online {
-  font-family: 'Roboto';
+  font-family: 'Roboto', system-ui;
   font-size: 14px;
   line-height: 16px;
   color: white;
   align-items: center;
 }
 
-#livetitle {
-  font-family: 'Roboto';
+#live-title {
+  font-family: 'Roboto', system-ui;
   font-size: 14px;
   line-height: 16px;
   color: var(--font-color);
   margin-left: 14px;
 }
 
-#liveheat {
-  font-family: 'Roboto';
+#live-heat {
+  font-family: 'Roboto', system-ui;
   align-items: center;
   justify-content: flex-end;
   margin-right: 10px;
@@ -171,7 +171,6 @@ button:hover {
 }
 
 #cover {
-  visibility: hidden;
   background-color: rgba(0, 0, 0, 0);
   backdrop-filter: blur(1px);
   border-radius: 10px;
@@ -184,21 +183,20 @@ button:hover {
 
 .sender {
   font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
-    'Microsoft SanSerf', 微软雅黑 !important;
+    'Microsoft SanSerf', 微软雅黑, system-ui !important;
   font-size: var(--danmu-size);
   word-wrap: normal;
   white-space: nowrap;
   vertical-align: middle;
   cursor: pointer;
-  color:var(--font-secolor);
+  color: var(--font-secolor);
   line-height: 20px;
 }
 
 .content {
   font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
-    'Microsoft SanSerf', 微软雅黑 !important;
+    'Microsoft SanSerf', 微软雅黑, system-ui !important;
   font-size: var(--danmu-size);
-  color: var(--font-color) !important;
   word-wrap: break-word;
   white-space: normal;
   vertical-align: middle;
@@ -210,7 +208,7 @@ button:hover {
 .danmu_entry {
   cursor: pointer;
   font-family: Arial, 'Microsoft YaHei', 'Microsoft Sans Serif',
-    'Microsoft SanSerf', 微软雅黑 !important;
+    'Microsoft SanSerf', 微软雅黑, system-ui !important;
   font-size: var(--danmu-size);
   padding: 1px 1px 1px 10px;
   transform: translateZ(0);
@@ -234,7 +232,7 @@ button:hover {
 }
 
 .danmu_entry.gift {
-  border: 1px solid #f7b500;
+  border: 2px solid #f7b500;
 }
 
 .emoji {
@@ -247,17 +245,18 @@ button:hover {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
 
 .danmu_entry:hover {
-  box-shadow: var(--font-secolor) 0 0 0 1px;
+  box-shadow: var(--font-secolor) 0 0 0 2px;
 }
 
 .danmu_entry.selected {
-  box-shadow: var(--font-secolor) 0 0 0 1px;
+  box-shadow: var(--font-secolor) 0 0 0 2px;
 }
 
 #danmu {
@@ -269,8 +268,7 @@ button:hover {
   overflow-y: auto;
 }
 
-#bottomIndicator {
-  visibility: hidden;
+#bottom-indicator {
   cursor: pointer;
   align-items: center;
   justify-content: center;
@@ -304,8 +302,8 @@ button:hover {
 
 .gift-icon {
   display: inline-block;
-  width: 24px;
-  height: 24px;
+  width: calc(var(--danmu-size) + 4px);
+  height: calc(var(--danmu-size) + 4px);
   margin-left: 5px;
   background-size: contain;
   vertical-align: middle;

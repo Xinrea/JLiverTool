@@ -3,3 +3,10 @@ dist
 .DS_Store
 .idea
 .fleet
+*.min.js
+*.LICENSE.txt
+*.node
+
+src/bilibili.js
+src/main.js
+src/preload.js

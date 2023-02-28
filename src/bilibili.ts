@@ -1,12 +1,12 @@
-const WS = require('ws')
-const ReconnectingWebSocket = require('reconnecting-websocket')
-const pako = require('pako')
-const http = require('https')
+import WS = require('ws')
+import ReconnectingWebSocket from 'reconnecting-websocket'
+import pako = require('pako')
+import http = require('https')
 
-const textEncoder = new TextEncoder('utf-8')
+const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder('utf-8')
 
-const readInt = function (buffer, start, len) {
+const readInt = function(buffer, start, len): number {
   let result = 0
   for (let i = len - 1; i >= 0; i--) {
     result += Math.pow(256, len - i - 1) * buffer[start + i]
@@ -14,7 +14,7 @@ const readInt = function (buffer, start, len) {
   return result
 }
 
-const writeInt = function (buffer, start, len, value) {
+const writeInt = function(buffer, start, len, value) {
   let i = 0
   while (i < len) {
     buffer[start + i] = value / Math.pow(256, len - i - 1)
@@ -22,17 +22,34 @@ const writeInt = function (buffer, start, len, value) {
   }
 }
 
-const encode = function (str, op) {
+const encode = function(str, op) {
   let data = textEncoder.encode(str)
   let packetLen = 16 + data.byteLength
   let header = [0, 0, 0, 0, 0, 16, 0, 1, 0, 0, 0, op, 0, 0, 0, 1]
   writeInt(header, 0, 4, packetLen)
-  return new Uint8Array(header.concat(...data)).buffer
+  return new Uint8Array(header.concat(...Array.from(data))).buffer
 }
-const decode = function (blob) {
-  return new Promise(function (resolve, reject) {
+
+interface PackResult {
+  packetLen: number,
+  headerLen: number,
+  ver: number,
+  op: number,
+  seq: number,
+  body: any
+}
+
+const decode = function(blob): Promise<PackResult> {
+  return new Promise(function(resolve, reject) {
     let buffer = new Uint8Array(blob)
-    let result = {}
+    let result: PackResult = {
+      packetLen: 0,
+      headerLen: 0,
+      ver: 0,
+      op: 0,
+      seq: 0,
+      body: null
+    }
     result.packetLen = readInt(buffer, 0, 4)
     result.headerLen = readInt(buffer, 4, 2)
     result.ver = readInt(buffer, 6, 2)
@@ -73,7 +90,7 @@ const decode = function (blob) {
   })
 }
 
-function connecting(room, msgHandler) {
+export function connecting(room, msgHandler) {
   const ws = new ReconnectingWebSocket(
     'wss://broadcastlv.chat.bilibili.com:2245/sub',
     [],
@@ -81,7 +98,7 @@ function connecting(room, msgHandler) {
       WebSocket: WS
     }
   )
-  ws.onopen = function () {
+  ws.onopen = function() {
     ws.send(
       encode(
         JSON.stringify({
@@ -92,11 +109,11 @@ function connecting(room, msgHandler) {
     )
   }
 
-  let heartBeatTask = setInterval(function () {
+  let heartBeatTask = setInterval(function() {
     ws.send(encode('', 2))
   }, 30000)
 
-  ws.onmessage = async function (msgEvent) {
+  ws.onmessage = async function(msgEvent) {
     const packet = await decode(msgEvent.data)
     switch (packet.op) {
       case 8:
@@ -113,14 +130,14 @@ function connecting(room, msgHandler) {
         console.warn(packet)
     }
   }
-  return function () {
+  return function() {
     clearInterval(heartBeatTask)
     ws.close()
   }
 }
 
-function checkLiveStatus(room) {
-  return new Promise(function (resolve, reject) {
+export function checkLiveStatus(room) {
+  return new Promise(function(resolve, reject) {
     http
       .get(
         `https://api.live.bilibili.com/room/v1/Room/room_init?id=${room}`,
@@ -161,8 +178,8 @@ function checkLiveStatus(room) {
   })
 }
 
-function getRoomInfo(room) {
-  return new Promise(function (resolve, reject) {
+export function getRoomInfo(room) {
+  return new Promise(function(resolve, reject) {
     http
       .get(
         `https://api.live.bilibili.com/room/v1/Room/get_info?id=${room}`,
@@ -185,8 +202,8 @@ function getRoomInfo(room) {
   })
 }
 
-function getGiftList(room) {
-  return new Promise(function (resolve, reject) {
+export function getGiftList(room) {
+  return new Promise(function(resolve, reject) {
     http
       .get(
         `https://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${room}`,
@@ -209,8 +226,8 @@ function getGiftList(room) {
   })
 }
 
-function getOnlineNum(uid, room) {
-  return new Promise(function (resolve, reject) {
+export function getOnlineNum(uid, room) {
+  return new Promise(function(resolve, reject) {
     http
       .get(
         `https://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${uid}&roomId=${room}&page=1&pageSize=1`,
@@ -231,12 +248,4 @@ function getOnlineNum(uid, room) {
         console.error(e)
       })
   })
-}
-
-module.exports = {
-  connecting,
-  checkLiveStatus,
-  getRoomInfo,
-  getOnlineNum,
-  getGiftList
 }

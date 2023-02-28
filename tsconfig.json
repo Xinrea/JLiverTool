@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "module": "commonjs",
+    "target": "es5",
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "strict": false,
+    "lib": [
+      "dom",
+      "es2015",
+      "es2016",
+      "es2017"
+    ]
+  },
+  "exclude": [
+    "./node_modules",
+    "./webpack.config.js"
+  ]
+}

@@ -1,10 +1,21 @@
-$hideButton = document.getElementById('hideButton')
-$panel = document.getElementById('panel')
+import { createConfirmBox } from '../common/confirmbox'
+import { createSuperchatEntry } from '../common/superchat'
 
-document.getElementById('clearButton').onclick = () => {
+let $hideButton = document.getElementById('hide-button')
+let $panel = document.getElementById('panel')
+let giftMap = new Map()
+
+window.electron.onDidChange('config.opacity', (newValue) => {
+  document.documentElement.style.setProperty(
+    '--global-opacity',
+    newValue
+  )
+})
+
+document.getElementById('clear-button').onclick = () => {
   document.body.appendChild(
     createConfirmBox('确定清空所有醒目留言记录？', () => {
-      panel.innerHTML = ''
+      $panel.innerHTML = ''
       giftMap = new Map()
       window.electron.send('clear-superchats')
     })
@@ -24,18 +35,13 @@ $panel.addEventListener('scroll', () => {
     return
   }
   // User scroll
-  if (
-    Math.ceil($panel.scrollTop) ==
-    $panel.scrollHeight - $panel.clientHeight
-  ) {
-    autoScroll = true
-  } else {
-    autoScroll = false
-  }
+  autoScroll =
+    Math.ceil($panel.scrollTop) == $panel.scrollHeight - $panel.clientHeight
 })
 
 window.electron.register('superchat', (g) => {
-  let scEntry = createSuperchatEntry(g.id, g.msg, true)
+  console.log(g)
+  let scEntry = createSuperchatEntry({ id: g.id, g: g.msg, removable: true })
   $panel.appendChild(scEntry)
   if (autoScroll) {
     $panel.scrollTop = lastPosition = $panel.scrollHeight - $panel.clientHeight
@@ -44,17 +50,5 @@ window.electron.register('superchat', (g) => {
 
 window.electron.register('reset', () => {
   $panel.innerHTML = ''
-  window.electron.send('reseted')
+  window.electron.send('reset')
 })
-
-window.electron.register('updateOpacity', () => {
-  document.documentElement.style.setProperty(
-    '--global-opacity',
-    window.electron.get('config.opacity', 1)
-  )
-})
-
-document.documentElement.style.setProperty(
-  '--global-opacity',
-  window.electron.get('config.opacity', 1)
-)
