@@ -855,7 +855,7 @@ function checkUpdateFromGithubAPI() {
     res.on('end', () => {
       let json = JSON.parse(data)
       let version = json.tag_name
-      console.log('latest version:', version)
+      if (version == undefined) return
       if (version !== 'v' + app.getVersion()) {
         console.log('Update available')
         dialog
