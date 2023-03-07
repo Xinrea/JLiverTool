@@ -124,7 +124,8 @@ let appStatus = {
       if (this.danmuPanel.autoScroll && this.danmuPanel.scrollRemain > 0) {
         let v = Math.ceil(this.danmuPanel.scrollRemain / 60)
         $danmuArea.scrollTop += v
-        this.danmuPanel.scrollRemain -= v
+        this.danmuPanel.scrollRemain = Math.max(Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop)
+, this.danmuPanel.scrollRemain - v)
       } else {
         this.danmuPanel.scrollRemain = 0
       }
@@ -156,7 +157,7 @@ let appStatus = {
     handleNewEntry(entry: HTMLElement) {
       $danmuArea.appendChild(entry)
       if (this.autoScroll) {
-        this.scrollRemain = Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop) + 10
+        this.scrollRemain = Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop)
       }
     },
     scrollHandler() {
@@ -167,7 +168,7 @@ let appStatus = {
       ) {
         this.autoScroll = true
         this.newDanmuCount = 0
-        this.scrollRemain = Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop) + 10
+        this.scrollRemain = Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop)
       } else {
         this.autoScroll = false
       }
