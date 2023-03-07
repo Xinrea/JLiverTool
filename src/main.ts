@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, Tray, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, Tray, Menu, nativeImage } from 'electron'
 import { DanmuMockMessage, GiftMockMessage, GuardMockMessage, SuperChatMockMessage } from './common/mock'
 import path = require('path')
 import Store = require('electron-store')
@@ -233,7 +233,7 @@ function createMainWindow() {
   ipcMain.on('minimize', () => {
     mainWindow.minimize()
   })
-  checkUpdateFromGithubAPI()
+  checkUpdate()
 }
 
 let giftPosInit = true
@@ -424,10 +424,28 @@ app.whenReady().then(() => {
   app.on('activate', function () {
   })
   // 创建一个托盘实例，指定图标文件路径
-  tray = new Tray(path.join(__dirname, 'assets/icons/main.png'))
+  const icon = nativeImage.createFromPath(
+    path.join(__dirname, 'assets/icons/main.png')
+  );
+  tray = new Tray(icon.resize({ width: 16, height: 16}))
 
   // 创建一个菜单，包含一些项
   const contextMenu = Menu.buildFromTemplate([
+    {
+      label: '关于', type: 'normal', click: () => {
+        dialog.showMessageBox(mainWindow,{
+          type: 'info',
+          title: '关于',
+          message: 'JLiverTool 弹幕机 v'+app.getVersion(),
+          detail: '作者：@Xinrea',
+        })
+      }
+    },
+    {
+      label: '检查更新', type: 'normal', click: () => {
+        checkUpdate()
+      }
+    },
     {
       label: '鼠标穿透', submenu: [
         { label: '弹幕窗口', type: 'checkbox', click: (e) => { mainWindow.setIgnoreMouseEvents(e.checked) } },
@@ -837,11 +855,16 @@ process.on('uncaughtException', function (err) {
   console.log(err)
 })
 
-function checkUpdateFromGithubAPI() {
+function checkUpdate() {
+  let updateFile = 'latest.yml'
+  // if current platform is MacOS
+  if (process.platform === 'darwin') {
+    updateFile = 'latest-mac.yml'
+  }
   const options = {
-    hostname: 'api.github.com',
+    hostname: 'raw.vjoi.cn',
     port: 443,
-    path: '/repos/xinrea/JLiverTool/releases/latest',
+    path: '/jlivertool/'+updateFile,
     method: 'GET',
     headers: {
       'User-Agent': 'request',
@@ -853,22 +876,25 @@ function checkUpdateFromGithubAPI() {
       data += d
     })
     res.on('end', () => {
-      let json = JSON.parse(data)
-      let version = json.tag_name
+      // parse yaml data
+      let yaml = require('yaml')
+      let latest = yaml.parse(data)
+      let version = latest.version
       if (version == undefined) return
-      if (version !== 'v' + app.getVersion()) {
+      var semver = require('semver');
+      if (semver.gt(version,app.getVersion())) {
         console.log('Update available')
         dialog
           .showMessageBox(mainWindow, {
             type: 'info',
             title: '更新',
-            message: '发现新版本 ' + version + '，是否前往下载？\n' + json.body,
+            message: '发现新版本 ' + version + '，是否前往下载？',
             buttons: ['是', '否'],
           })
           .then((result) => {
             if (result.response === 0) {
               console.log('Update now')
-              require('openurl').open(json.html_url)
+              require('openurl').open('https://raw.vjoi.cn/jlivertool/'+latest.path)
             }
           })
       }
