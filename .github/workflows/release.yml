@@ -20,6 +20,7 @@ jobs:
       with:
         artifacts: "dist/*.dmg,dist/*.exe,dist/*.blockmap"
         token: ${{ github.token }}
+    - run: mv dist jlivertool
     - name: Upload to oss
       id: upload_to_oss
       uses: tvrcgo/upload-to-oss@master
@@ -29,7 +30,7 @@ jobs:
         region: oss-cn-beijing
         bucket: raw-content
         assets: |
-          dist/*.dmg:/jlivertool/
-          dist/*.exe:/jlivertool/
-          dist/*.yml:/jlivertool/
-          dist/*.blockmap:/jlivertool/
+          jlivertool/*.dmg:/
+          jlivertool/*.exe:/
+          jlivertool/*.yml:/
+          jlivertool/*.blockmap:/
