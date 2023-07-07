@@ -69,7 +69,8 @@ const backendConfig = {
   target: "electron-main",
   entry: {
     './src/main': './src/main.ts',
-    './src/bilibili': './src/bilibili.ts'
+    './src/bilibili': './src/bilibili.ts',
+    './src/bililogin': './src/bililogin.ts'
   },
   module: {
     rules: [

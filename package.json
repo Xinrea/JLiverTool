@@ -4,8 +4,8 @@
   "description": "Simple Bilibili Danmaku Tool",
   "main": "src/main.js",
   "scripts": {
-    "start": "npx webpack && cross-env NODE_ENV=development electron .",
-    "build": "npx webpack && cross-env NODE_ENV=production electron-builder build -mw --publish=never"
+    "start": "npx webpack && cross-env NODE_ENV=development WS_NO_BUFFER_UTIL=1 electron .",
+    "build": "npx webpack && cross-env NODE_ENV=production WS_NO_BUFFER_UTIL=1 electron-builder build -mw --publish=never"
   },
   "build": {
     "win": {
@@ -36,6 +36,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/alpinejs": "^3.7.1",
+    "@types/ws": "^8.5.5",
     "cross-env": "^7.0.3",
     "electron": "^15.0.0",
     "electron-builder": "^23.0.2",
@@ -53,14 +54,17 @@
     "electron-store": "^8.0.1",
     "exceljs": "^4.3.0",
     "filereader": "^0.10.3",
+    "form-data": "^4.0.0",
     "moment": "^2.29.1",
     "node-fetch": "^3.2.0",
     "openurl": "^1.1.1",
     "pako": "^2.0.4",
+    "qrcode": "^1.5.3",
+    "querystring": "^0.2.1",
     "reconnecting-websocket": "^4.4.0",
     "semver": "^7.3.8",
     "uuid": "^8.3.2",
-    "ws": "^8.5.0",
+    "ws": "^8.13.0",
     "yaml": "^2.2.1"
   }
 }

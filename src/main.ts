@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, Tray, Menu, nativeImage } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, Tray, Menu, nativeImage, Cookie } from 'electron'
 import { DanmuMockMessage, GiftMockMessage, GuardMockMessage, SuperChatMockMessage } from './common/mock'
 import path = require('path')
 import Store = require('electron-store')
@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid'
 import ExcelJS = require('exceljs')
 import moment = require('moment')
 import https = require('https')
+import { GetNewQrCode, CheckQrCodeStatus, QrCodeStatus, Logout } from './bililogin'
+import { Cookies } from './types'
 
 let dev: boolean = false
 if (process.env.NODE_ENV) {
@@ -427,16 +429,16 @@ app.whenReady().then(() => {
   const icon = nativeImage.createFromPath(
     path.join(__dirname, 'assets/icons/main.png')
   );
-  tray = new Tray(icon.resize({ width: 16, height: 16}))
+  tray = new Tray(icon.resize({ width: 16, height: 16 }))
 
   // 创建一个菜单，包含一些项
   const contextMenu = Menu.buildFromTemplate([
     {
       label: '关于', type: 'normal', click: () => {
-        dialog.showMessageBox(mainWindow,{
+        dialog.showMessageBox(mainWindow, {
           type: 'info',
           title: '关于',
-          message: 'JLiverTool 弹幕机 v'+app.getVersion(),
+          message: 'JLiverTool 弹幕机 v' + app.getVersion(),
           detail: '作者：@Xinrea',
         })
       }
@@ -482,7 +484,7 @@ app.on('window-all-closed', function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-import { connecting, checkLiveStatus, getRoomInfo, getOnlineNum, getGiftList } from './bilibili'
+import { connecting, checkLiveStatus, getRoomInfo, getOnlineNum, getGiftList, GetUserInfo, LiveStatus, WsInfo, getDanmuInfo, DanmuSend, UpdateRoomTitle, StopLive } from './bilibili'
 
 let service = {
   stopConn: null,
@@ -491,106 +493,62 @@ let service = {
 }
 let giftList
 
-function startBackendService() {
-  giftList = new Map()
-  checkLiveStatus(room).then((res: any) => {
-    console.log('check room status')
-    realroom = res.room
-    uid = res.uid
+
+async function startBackendService() {
+  let giftList = new Map()
+  let cookies = store.get('config.cookies', '')
+  let statusRes = await checkLiveStatus(room)
+  console.log('check room status')
+  realroom = statusRes.room
+  uid = statusRes.uid
+  let roomRes = await getRoomInfo(realroom)
+  mainWindow?.webContents.send('update-room', roomRes)
+  let onlineRes = await getOnlineNum(uid, realroom)
+  mainWindow?.webContents.send('update-online', onlineRes)
+  service.updateTask = setInterval(() => {
     getRoomInfo(realroom).then((res) => {
       mainWindow?.webContents.send('update-room', res)
     })
     getOnlineNum(uid, realroom).then((res) => {
       mainWindow?.webContents.send('update-online', res)
     })
-    service.updateTask = setInterval(() => {
-      getRoomInfo(realroom).then((res) => {
-        mainWindow?.webContents.send('update-room', res)
+  }, 10 * 1000)
+  getGiftList(realroom).then((res: any) => {
+    console.log('get gift list')
+    res.list.forEach((e) => {
+      giftList.set(e.id, {
+        animation_frame_num: e.animation_frame_num,
+        png: e.frame_animation,
+        gif: e.gif,
       })
-      getOnlineNum(uid, realroom).then((res) => {
-        mainWindow?.webContents.send('update-online', res)
-      })
-    }, 10 * 1000)
-    getGiftList(realroom).then((res: any) => {
-      console.log('get gift list')
-      res.list.forEach((e) => {
-        giftList.set(e.id, {
-          animation_frame_num: e.animation_frame_num,
-          png: e.frame_animation,
-          gif: e.gif,
-        })
-      })
-      Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
-        () => {
-          // All Preload Data Loaded
-          let msgHandler = function (type: number, msg: any) {
-            switch (type) {
-              case 3:
-                mainWindow?.webContents.send('update-heat', msg)
+    })
+    Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
+      async () => {
+        // All Preload Data Loaded
+        let msgHandler = function (type: number, msg: any) {
+          switch (type) {
+            case 3:
+              mainWindow?.webContents.send('update-heat', msg)
+              break
+            case 5: {
+              if (msg.cmd.includes('DANMU_MSG')) {
+                mainWindow?.webContents.send('danmu', msg)
                 break
-              case 5: {
-                if (msg.cmd.includes('DANMU_MSG')) {
-                  mainWindow?.webContents.send('danmu', msg)
+              }
+              if (msg.cmd.includes('SEND_GIFT')) {
+                if (
+                  msg.data.coin_type === 'silver' &&
+                  msg.data.giftName == '辣条'
+                ) {
                   break
                 }
-                if (msg.cmd.includes('SEND_GIFT')) {
-                  if (
-                    msg.data.coin_type === 'silver' &&
-                    msg.data.giftName == '辣条'
-                  ) {
-                    break
-                  }
-                  let id = msg.data.batch_combo_id
-                  if (id === '') {
-                    id = uuidv4()
-                  }
-                  if (msg.data.coin_type === 'gold') {
-                    db.insertTableContent(
-                      'gifts',
-                      {
-                        room: room,
-                        sid: id,
-                        data: msg,
-                      },
-                      () => {
-                      }
-                    )
-                  }
-                  let giftInfo = {
-                    animation_frame_num: 1,
-                    png: '',
-                    gif: '',
-                  }
-                  if (giftList.has(msg.data.giftId)) {
-                    giftInfo = giftList.get(msg.data.giftId)
-                  }
-                  let giftData = {
-                    gif: {
-                      frame: giftInfo.animation_frame_num,
-                      png: giftInfo.png,
-                      gif: giftInfo.gif,
-                    },
-                    data: msg.data,
-                  }
-                  giftWindow?.webContents.send('gift', {
-                    id: id,
-                    msg: giftData,
-                  })
-                  mainWindow?.webContents.send('gift', {
-                    id: id,
-                    msg: giftData,
-                  })
-                  break
+                let id = msg.data.batch_combo_id
+                if (id === '') {
+                  id = uuidv4()
                 }
-                if (msg.cmd.includes('INTERACT_WORD')) {
-                  mainWindow?.webContents.send('interact', msg)
-                  break
-                }
-                if (msg.cmd.includes('GUARD_BUY')) {
-                  // getUserInfo(msg.data.uid).then((userinfo) => {
-                  let id = uuidv4()
+                if (msg.data.coin_type === 'gold') {
                   db.insertTableContent(
-                    'guards',
+                    'gifts',
                     {
                       room: room,
                       sid: id,
@@ -599,98 +557,155 @@ function startBackendService() {
                     () => {
                     }
                   )
-                  let guardBuy = {
-                    medal: msg.data.medal,
-                    face: msg.data.face,
-                    name: msg.data.username,
-                    gift_name: msg.data.gift_name,
-                    guard_level: msg.data.guard_level,
-                    price: msg.data.price,
-                    timestamp: msg.data.start_time,
+                }
+                let giftInfo = {
+                  animation_frame_num: 1,
+                  png: '',
+                  gif: '',
+                }
+                if (giftList.has(msg.data.giftId)) {
+                  giftInfo = giftList.get(msg.data.giftId)
+                }
+                let giftData = {
+                  gif: {
+                    frame: giftInfo.animation_frame_num,
+                    png: giftInfo.png,
+                    gif: giftInfo.gif,
+                  },
+                  data: msg.data,
+                }
+                giftWindow?.webContents.send('gift', {
+                  id: id,
+                  msg: giftData,
+                })
+                mainWindow?.webContents.send('gift', {
+                  id: id,
+                  msg: giftData,
+                })
+                break
+              }
+              if (msg.cmd.includes('INTERACT_WORD')) {
+                mainWindow?.webContents.send('interact', msg)
+                break
+              }
+              if (msg.cmd.includes('GUARD_BUY')) {
+                // getUserInfo(msg.data.uid).then((userinfo) => {
+                let id = uuidv4()
+                db.insertTableContent(
+                  'guards',
+                  {
+                    room: room,
+                    sid: id,
+                    data: msg,
+                  },
+                  () => {
                   }
-                  giftWindow?.webContents.send('guard', {
-                    id: id,
-                    msg: guardBuy,
-                  })
-                  mainWindow?.webContents.send('guard', {
-                    id: id,
-                    msg: guardBuy,
-                  })
-                  // })
-                  break
+                )
+                let guardBuy = {
+                  medal: msg.data.medal,
+                  face: msg.data.face,
+                  name: msg.data.username,
+                  gift_name: msg.data.gift_name,
+                  guard_level: msg.data.guard_level,
+                  price: msg.data.price,
+                  timestamp: msg.data.start_time,
                 }
-                if (msg.cmd == 'SUPER_CHAT_MESSAGE') {
-                  let id = uuidv4()
-                  db.insertTableContent(
-                    'superchats',
-                    {
-                      room: room,
-                      sid: id,
-                      data: msg,
-                    },
-                    (s, m) => {
-                    }
-                  )
-                  superchatWindow?.webContents.send('superchat', {
-                    id: id,
-                    msg: msg,
-                  })
-                  mainWindow?.webContents.send('superchat', {
-                    id: id,
-                    msg: msg,
-                  })
-                  break
-                }
-                // 在线舰长数
-                // { cmd: 'ONLINE_RANK_COUNT', data: { count: 22 } }
-                if (msg.cmd.includes('ONLINE_RANK_COUNT')) {
-                  mainWindow?.webContents.send('online_guard', msg.data.count)
-                  break
-                }
-                // STOP_LIVE_ROOM_LIST 没啥用
-                if (msg.cmd === 'STOP_LIVE_ROOM_LIST') {
-                  break
-                }
-                // ENTRY_EFFECT 舰长入场
-                if (msg.cmd.includes('ENTRY_EFFECT')) {
-                  mainWindow?.webContents.send(
-                    'entry-effect',
-                    msg.data.copy_writing.replace(/(<%)|(%>)/g, '')
-                  )
-                  break
-                }
+                giftWindow?.webContents.send('guard', {
+                  id: id,
+                  msg: guardBuy,
+                })
+                mainWindow?.webContents.send('guard', {
+                  id: id,
+                  msg: guardBuy,
+                })
+                // })
+                break
+              }
+              if (msg.cmd == 'SUPER_CHAT_MESSAGE') {
+                let id = uuidv4()
+                db.insertTableContent(
+                  'superchats',
+                  {
+                    room: room,
+                    sid: id,
+                    data: msg,
+                  },
+                  (s, m) => {
+                  }
+                )
+                superchatWindow?.webContents.send('superchat', {
+                  id: id,
+                  msg: msg,
+                })
+                mainWindow?.webContents.send('superchat', {
+                  id: id,
+                  msg: msg,
+                })
+                break
+              }
+              // 在线舰长数
+              // { cmd: 'ONLINE_RANK_COUNT', data: { count: 22 } }
+              if (msg.cmd.includes('ONLINE_RANK_COUNT')) {
+                mainWindow?.webContents.send('online_guard', msg.data.count)
+                break
+              }
+              // STOP_LIVE_ROOM_LIST 没啥用
+              if (msg.cmd === 'STOP_LIVE_ROOM_LIST') {
+                break
+              }
+              // ENTRY_EFFECT 舰长入场
+              if (msg.cmd.includes('ENTRY_EFFECT')) {
+                mainWindow?.webContents.send(
+                  'entry-effect',
+                  msg.data.copy_writing.replace(/(<%)|(%>)/g, '')
+                )
+                break
               }
             }
           }
-          service.stopConn = connecting(realroom, msgHandler)
-          // For debugging
-          // if (dev) {
-          //   setInterval(() => {
-          //     switch (Math.floor(Math.random() * 4)) {
-          //       case 0: {
-          //         msgHandler(5, SuperChatMockMessage)
-          //         break
-          //       }
-          //       case 1: {
-          //         msgHandler(5, GuardMockMessage)
-          //         break
-          //       }
-          //       case 2: {
-          //         msgHandler(5, DanmuMockMessage)
-          //         break
-          //       }
-          //       case 3: {
-          //         msgHandler(5, GiftMockMessage)
-          //         break
-          //       }
-          //       default:
-          //         break
-          //     }
-          //   }, 10 * 1000)
-          // }
         }
-      )
-    })
+        let wsInfo = {} as WsInfo
+        wsInfo.roomid = realroom
+        if (cookies != '') {
+          wsInfo.uid = Number(cookies['DedeUserID'])
+        }
+        let danmuInfo = await getDanmuInfo(cookies, realroom)
+        if (danmuInfo['code'] != 0) {
+          console.warn(danmuInfo, 'Using default setting')
+          wsInfo.uid = 0
+          wsInfo.server = 'wss://broadcastlv.chat.bilibili.com/sub'
+        } else {
+          wsInfo.token = danmuInfo['data']['token']
+          wsInfo.server = 'wss://' + danmuInfo['data']['host_list'][0]['host'] + '/sub'
+        }
+        service.stopConn = connecting(wsInfo, msgHandler)
+        // For debugging
+        // if (dev) {
+        //   setInterval(() => {
+        //     switch (Math.floor(Math.random() * 4)) {
+        //       case 0: {
+        //         msgHandler(5, SuperChatMockMessage)
+        //         break
+        //       }
+        //       case 1: {
+        //         msgHandler(5, GuardMockMessage)
+        //         break
+        //       }
+        //       case 2: {
+        //         msgHandler(5, DanmuMockMessage)
+        //         break
+        //       }
+        //       case 3: {
+        //         msgHandler(5, GiftMockMessage)
+        //         break
+        //       }
+        //       default:
+        //         break
+        //     }
+        //   }, 10 * 1000)
+        // }
+      }
+    )
   })
 }
 
@@ -768,6 +783,63 @@ ipcMain.on('clear-superchats', () => {
   deleteAllRows('superchats', {
     room: room,
   })
+})
+
+ipcMain.handle('getQrCode', async (event) => {
+  return await GetNewQrCode()
+})
+
+ipcMain.handle('checkQrCode', async (event, authinfo: string) => {
+  return await CheckQrCodeStatus(authinfo)
+})
+
+ipcMain.handle('getUserInfo', async (event, mid) => {
+  return await GetUserInfo(store.get('config.cookies', ''), mid)
+})
+
+ipcMain.handle('logout', async () => {
+  let cookies = store.get('config.cookies', '')
+  if (cookies == '') {
+    return
+  }
+  return await Logout(cookies)
+})
+
+ipcMain.handle('getVersion', () => {
+  return app.getVersion()
+})
+
+ipcMain.handle('sendDanmu', async (event, content) => {
+  if (!store.get('config.loggined')) {
+    return
+  }
+  let cookies = store.get('config.cookies') as Cookies
+  return await DanmuSend(cookies, realroom, content)
+})
+
+ipcMain.handle('callCommand', async (e, cmd) => {
+  cmd = cmd.substring(1)
+  let parts = cmd.split(' ')
+  if (!store.get('config.loggined') as boolean) {
+    return
+  }
+  let cookies = store.get('config.cookies') as Cookies
+  switch (parts[0]) {
+    case 'title':
+      // Set new title for room
+      if (parts.length != 2) {
+        return
+      }
+      const newTitle = parts[1]
+      if (newTitle.length == 0) {
+        return
+      }
+      let resp = await UpdateRoomTitle(cookies, realroom, newTitle)
+      break
+    case 'bye':
+      resp = await StopLive(cookies, realroom)
+      break
+  }
 })
 
 function loadPreGifts() {
@@ -864,7 +936,7 @@ function checkUpdate() {
   const options = {
     hostname: 'raw.vjoi.cn',
     port: 443,
-    path: '/jlivertool/'+updateFile,
+    path: '/jlivertool/' + updateFile,
     method: 'GET',
     headers: {
       'User-Agent': 'request',
@@ -882,7 +954,7 @@ function checkUpdate() {
       let version = latest.version
       if (version == undefined) return
       var semver = require('semver');
-      if (semver.gt(version,app.getVersion())) {
+      if (semver.gt(version, app.getVersion())) {
         console.log('Update available')
         dialog
           .showMessageBox(mainWindow, {
@@ -894,7 +966,7 @@ function checkUpdate() {
           .then((result) => {
             if (result.response === 0) {
               console.log('Update now')
-              require('openurl').open('https://raw.vjoi.cn/jlivertool/'+latest.path)
+              require('openurl').open('https://raw.vjoi.cn/jlivertool/' + latest.path)
             }
           })
       }
