@@ -125,11 +125,15 @@ let appStatus = {
         let v = Math.ceil(this.danmuPanel.scrollRemain / 60)
         $danmuArea.scrollTop += v
         this.danmuPanel.scrollRemain = Math.max(Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop)
-, this.danmuPanel.scrollRemain - v)
+          , this.danmuPanel.scrollRemain - v)
       } else {
         this.danmuPanel.scrollRemain = 0
       }
     }, 16)
+    this.login = window.electron.get('config.loggined', false)
+    window.electron.onDidChange('config.loggined', v => {
+      this.login = v
+    })
   },
   base: {
     title: 'Loading',
@@ -255,6 +259,26 @@ let appStatus = {
     let $newEntry = createSuperchatEntry({ id, g: msg, removable: false })
     this.danmuPanel.handleNewEntry($newEntry)
   },
+  login: false,
+  content: '',
+  async sendDanmu(e) {
+    if (this.content != '') {
+      e.target.innerText = ''
+      this.content = this.content.slice(0, -2)
+      if (this.content[0] == '/') {
+        await window.electron.invoke('callCommand', this.content)
+      } else {
+        await window.electron.invoke('sendDanmu', this.content)
+      }
+    }
+  },
+  async handleContentEdit(e) {
+    if (e.target.innerText.length <= 30) {
+      this.content = e.target.innerText
+    } else {
+      e.target.innerText = this.content
+    }
+  }
 }
 
 Alpine.data('appStatus', () => appStatus)

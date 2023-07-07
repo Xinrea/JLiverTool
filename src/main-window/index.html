@@ -72,6 +72,16 @@
           </div>
         </div>
       </div>
+      <div id="danmuSender" x-show="login">
+        <span>></span>
+        <span 
+        class="input" 
+        role="textbox" 
+        @input="handleContentEdit"
+        @keyup.enter="sendDanmu"
+        contenteditable>
+        </span>
+      </div>
       <div id="danmu" @wheel="danmuPanel.scrollHandler()" :style="`--danmu-size: ${base.fontSize}px;`"></div>
       <div id="bottom-indicator" @click="danmuPanel.enableAutoScroll()"
         x-show="!danmuPanel.autoScroll && danmuPanel.newDanmuCount>0">

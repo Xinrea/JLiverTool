@@ -432,3 +432,23 @@ textarea,
 .tooltip:hover .tooltiptext {
     visibility: visible;
 }
+
+#danmuSender {
+    position: fixed;
+    right: 56px;
+    bottom: 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 1px solid gray;
+    border-radius: 3px;
+    padding: 1px 8px 1px 1px;
+    vertical-align: middle;
+    z-index: 999;
+}
+
+#danmuSender>span {
+    color: white;
+    font-size: 13px;
+    padding: 4px;
+    text-align: left;
+    max-height: 30px;
+}

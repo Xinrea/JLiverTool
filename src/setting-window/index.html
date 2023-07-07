@@ -17,10 +17,25 @@
         </div>
         <div class="content">
           <template x-if="active == 0">
-            <div style="align-items: center;">
-              <label for=" room">房间号：</label>
-              <input id="room" type="text" x-model="roomID" />
-              <button @click="confirmRoom">确认</button>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <template x-if="!loggined">
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
+                  <img :src="qrImage" width="200px" />
+                  <span x-text="qrPrompt"></span>
+                </div>
+              </template>
+              <template x-if="loggined && userInfo != null">
+                <div style="display: flex; align-items: center;">
+                  <img class="avatar" :src="'https:'+userInfo.face" width="64px" />
+                  <span x-text="userInfo.uname" style="margin: 12px;"></span>
+                  <button @click="accountLogout">退出登录</button>
+                </div>
+              </template>
+              <div style="align-items: center; margin-top: 10px;">
+                <label for="room">房间号：</label>
+                <input id="room" type="text" x-model="roomID" />
+                <button @click="confirmRoom">确认</button>
+              </div>
             </div>
           </template>
           <template x-if="active == 1">
@@ -36,6 +51,17 @@
                 <label for="opacity">透明度：</label>
                 <input id="opacity" type="number" x-model="opacity" min="0" max="1" step="0.01" />
               </div>
+            </div>
+          </template>
+          <template x-if="active == 2">
+            <div style="flex-direction: column; align-items: center;">
+              <div style="margin-bottom: 12px;">JLiverTool<span x-text="currentVersion" style="margin-left: 6px;"></span></div>
+              <div style="margin-bottom: 12px;">Author: Xinrea</div>
+              <div style="margin-bottom: 12px;">
+                <button @click="openURL('https://space.bilibili.com/475210')">哔哩哔哩</button>
+                <button @click="openURL('https://afdian.net/a/Xinrea')">爱发电</button>
+              </div>
+              <div style="font-size: 12px;">*爱发电留言中提出的需求将优先考虑实现</div>
             </div>
           </template>
         </div>
