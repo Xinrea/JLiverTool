@@ -83,7 +83,7 @@ function exportGift() {
   db.getRows('gifts', { room: room }, (success: boolean, r: any[]) => {
     if (success) {
       r.forEach((gift) => {
-        let row = [
+        const row = [
           gift.data.data.uid,
           gift.data.data.uname,
           gift.data.data.giftName,
@@ -356,7 +356,7 @@ function createSuperchatWindow() {
       x: mainWinPos[0],
       y: mainWinPos[1],
     })
-    let relativeMainCenter = [
+    const relativeMainCenter = [
       mainWinPos[0] - currentDisplay.bounds.x + mainWindow.getSize()[0] / 2,
       mainWinPos[1] - currentDisplay.bounds.y + mainWindow.getSize()[1] / 2,
     ]
@@ -491,7 +491,7 @@ const service = {
   updateTask: null,
   conn: null
 }
-let giftList = {}
+const giftList = {}
 
 
 async function startBackendService() {
@@ -590,7 +590,7 @@ async function startBackendService() {
               }
               if (msg.cmd.includes('GUARD_BUY')) {
                 // getUserInfo(msg.data.uid).then((userinfo) => {
-                let id = uuidv4()
+                const id = uuidv4()
                 db.insertTableContent(
                   'guards',
                   {
@@ -601,7 +601,7 @@ async function startBackendService() {
                   () => {
                   }
                 )
-                let guardBuy = {
+                const guardBuy = {
                   medal: msg.data.medal,
                   face: msg.data.face,
                   name: msg.data.username,
@@ -852,8 +852,8 @@ function loadPreGifts() {
       console.log('load pre gifts:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
-          let id = r[i].sid
-          let msg = r[i].data
+          const id = r[i].sid
+          const msg = r[i].data
           let giftInfo = {
             animation_frame_num: 1,
             png: '',
@@ -861,7 +861,7 @@ function loadPreGifts() {
           if (giftList.has(msg.data.giftId)) {
             giftInfo = giftList.get(msg.data.giftId)
           }
-          let giftData = {
+          const giftData = {
             gif: {
               frame: giftInfo.animation_frame_num,
               png: giftInfo.png,
