@@ -1,5 +1,5 @@
 import WS = require('ws')
-var FormData = require('form-data');
+const FormData = require('form-data');
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import pako = require('pako')
 import https = require('https')
@@ -25,9 +25,9 @@ const writeInt = function (buffer, start, len, value) {
 }
 
 const encode = function (str, op) {
-  let data = textEncoder.encode(str)
-  let packetLen = 16 + data.byteLength
-  let header = [0, 0, 0, 0, 0, 16, 0, 1, 0, 0, 0, op, 0, 0, 0, 1]
+  const data = textEncoder.encode(str)
+  const packetLen = 16 + data.byteLength
+  const header = [0, 0, 0, 0, 0, 16, 0, 1, 0, 0, 0, op, 0, 0, 0, 1]
   writeInt(header, 0, 4, packetLen)
   return new Uint8Array(header.concat(...Array.from(data))).buffer
 }
@@ -43,8 +43,8 @@ interface PackResult {
 
 const decode = function (blob): Promise<PackResult> {
   return new Promise(function (resolve, reject) {
-    let buffer = new Uint8Array(blob)
-    let result: PackResult = {
+    const buffer = new Uint8Array(blob)
+    const result: PackResult = {
       packetLen: 0,
       headerLen: 0,
       ver: 0,
@@ -60,23 +60,23 @@ const decode = function (blob): Promise<PackResult> {
     if (result.op === 5) {
       result.body = []
       if (result.ver === 0) {
-        let data = buffer.slice(result.headerLen, result.packetLen)
-        let body = textDecoder.decode(data)
+        const data = buffer.slice(result.headerLen, result.packetLen)
+        const body = textDecoder.decode(data)
         result.body.push(JSON.parse(body))
       } else if (result.ver === 2) {
-        let newbuffer = pako.inflate(
+        const newbuffer = pako.inflate(
           buffer.slice(result.headerLen, result.packetLen)
         )
         let offset = 0
         while (offset < newbuffer.length) {
-          let packetLen = readInt(newbuffer, offset + 0, 4)
-          let headerLen = 16 // readInt(buffer,offset + 4,4)
-          let data = newbuffer.slice(offset + headerLen, offset + packetLen)
+          const packetLen = readInt(newbuffer, offset + 0, 4)
+          const headerLen = 16 // readInt(buffer,offset + 4,4)
+          const data = newbuffer.slice(offset + headerLen, offset + packetLen)
           /**
            *    引入pako做message解压处理，具体代码链接如下
            *    https://github.com/nodeca/pako/blob/master/dist/pako.js
            */
-          let body = textDecoder.decode(data)
+          const body = textDecoder.decode(data)
           if (body) {
             result.body.push(JSON.parse(body))
           }
@@ -130,7 +130,7 @@ export function getDanmuInfo(cookies, room) {
 }
 export function connecting(info: WsInfo, msgHandler) {
   console.log("Connecting", info.server)
-  let authInfo = {
+  const authInfo = {
     uid: Number(info.uid),
     roomid: Number(info.roomid),
     protover: 2,
@@ -154,7 +154,7 @@ export function connecting(info: WsInfo, msgHandler) {
     )
   }
 
-  let heartBeatTask = setInterval(function () {
+  const heartBeatTask = setInterval(function () {
     ws.send(encode('', 2))
   }, 30000)
 
@@ -312,7 +312,7 @@ function cookiesToString(cookies: Cookies): string {
 export function GetUserInfo(cookies, mid) {
   return new Promise((resolve, reject) => {
     // https://line3-h5-mobile-api.biligame.com/game/center/h5/user/space/info?uid=475210&sdk_type=1
-    let options = {
+    const options = {
       hostname: 'line3-h5-mobile-api.biligame.com',
       path: `/game/center/h5/user/space/info?uid=${mid}&sdk_type=1`,
       port: 443,
@@ -321,13 +321,13 @@ export function GetUserInfo(cookies, mid) {
         'cookie': cookiesToString(cookies)
       }
     }
-    let req = https.request(options, res => {
+    const req = https.request(options, res => {
       let dd = ''
       res.on('data', chunk => {
         dd += chunk
       })
       res.on('end', () => {
-        let resp = JSON.parse(dd.toString())
+        const resp = JSON.parse(dd.toString())
         if (resp.code === 0) {
           resolve(resp.data)
         } else {
@@ -345,7 +345,7 @@ export function GetUserInfo(cookies, mid) {
 export function DanmuSend(cookies: Cookies, room, content) {
   // https://api.live.bilibili.com/msg/send
   return new Promise((resolve, reject) => {
-    let formData = {};
+    const formData = {};
     formData['bubble'] = 0
     formData['msg'] = content
     formData['color'] = 16777215
@@ -363,7 +363,7 @@ export function DanmuSend(cookies: Cookies, room, content) {
         postData.append(key, item);
       }
     }
-    let postOptions = {
+    const postOptions = {
       hostname: 'api.live.bilibili.com',
       path: '/msg/send',
       method: 'POST',
@@ -374,13 +374,13 @@ export function DanmuSend(cookies: Cookies, room, content) {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
       }
     }
-    let sendReq = https.request(postOptions, res => {
+    const sendReq = https.request(postOptions, res => {
       let dd = ''
       res.on('data', secCheck => {
         dd += secCheck
       })
       res.on('end', () => {
-        let resp = JSON.parse(dd)
+        const resp = JSON.parse(dd)
         resolve(resp)
       })
       res.on('error', err => {
@@ -401,22 +401,22 @@ export function UpdateRoomTitle(cookies: Cookies, room, title) {
     // title: test
     // csrf_token: 87007ec04d7cbedcd8122aaf4cd3b180
     // csrf: 87007ec04d7cbedcd8122aaf4cd3b180
-    let formData = {};
+    const formData = {};
     formData['platform'] = 'pc'
     formData['room_id'] = room
     formData['title'] = title
     formData['csrf'] = cookies.bili_jct
     formData['csrf_token'] = cookies.bili_jct
-    var formBody = [];
+    const formBody = [];
     for (const key in formData) {
       if (Object.prototype.hasOwnProperty.call(formData, key)) {
-        var encodedKey = encodeURIComponent(key);
-        var encodedValue = encodeURIComponent(formData[key]);
+        const encodedKey = encodeURIComponent(key);
+        const encodedValue = encodeURIComponent(formData[key]);
         formBody.push(encodedKey + "=" + encodedValue);
       }
     }
-    let postData = formBody.join("&");
-    let postOptions = {
+    const postData = formBody.join("&");
+    const postOptions = {
       hostname: 'api.live.bilibili.com',
       path: '/room/v1/Room/update',
       method: 'POST',
@@ -427,13 +427,13 @@ export function UpdateRoomTitle(cookies: Cookies, room, title) {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
       }
     }
-    let sendReq = https.request(postOptions, res => {
+    const sendReq = https.request(postOptions, res => {
       let dd = ''
       res.on('data', secCheck => {
         dd += secCheck
       })
       res.on('end', () => {
-        let resp = JSON.parse(dd)
+        const resp = JSON.parse(dd)
         resolve(resp)
       })
       res.on('error', err => {
@@ -449,20 +449,20 @@ export function UpdateRoomTitle(cookies: Cookies, room, title) {
 export function StopLive(cookies: Cookies, room) {
   // https://api.live.bilibili.com/room/v1/Room/stopLive
   return new Promise((resolve, reject) => {
-    let formData = {};
+    const formData = {};
     formData['room_id'] = room
     formData['csrf'] = cookies.bili_jct
     formData['csrf_token'] = cookies.bili_jct
-    var formBody = [];
+    const formBody = [];
     for (const key in formData) {
       if (Object.prototype.hasOwnProperty.call(formData, key)) {
-        var encodedKey = encodeURIComponent(key);
-        var encodedValue = encodeURIComponent(formData[key]);
+        const encodedKey = encodeURIComponent(key);
+        const encodedValue = encodeURIComponent(formData[key]);
         formBody.push(encodedKey + "=" + encodedValue);
       }
     }
-    let postData = formBody.join("&");
-    let postOptions = {
+    const postData = formBody.join("&");
+    const postOptions = {
       hostname: 'api.live.bilibili.com',
       path: '/room/v1/Room/stopLive',
       method: 'POST',
@@ -473,13 +473,13 @@ export function StopLive(cookies: Cookies, room) {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
       }
     }
-    let sendReq = https.request(postOptions, res => {
+    const sendReq = https.request(postOptions, res => {
       let dd = ''
       res.on('data', secCheck => {
         dd += secCheck
       })
       res.on('end', () => {
-        let resp = JSON.parse(dd)
+        const resp = JSON.parse(dd)
         resolve(resp)
       })
       res.on('error', err => {
