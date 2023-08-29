@@ -9,7 +9,7 @@ import {
 } from './danmu-entry'
 import Alpine from 'alpinejs'
 
-let appStatus = {
+const appStatus = {
   init() {
     configLoad()
     this.base.fontSize = parseInt(window.electron.get('config.fontSize', 18))
@@ -45,7 +45,7 @@ let appStatus = {
         return
       }
       // 判断是否为特殊身份
-      let special = arg.info[2][2] > 0
+      const special = arg.info[2][2] > 0
       // 处理牌子
       let medalInfo = null
       if (arg.info[3].length > 0) {
@@ -122,7 +122,7 @@ let appStatus = {
     // AutoScroll thread, 16 ms for 60 fps
     setInterval(() => {
       if (this.danmuPanel.autoScroll && this.danmuPanel.scrollRemain > 0) {
-        let v = Math.ceil(this.danmuPanel.scrollRemain / 60)
+        const v = Math.ceil(this.danmuPanel.scrollRemain / 60)
         $danmuArea.scrollTop += v
         this.danmuPanel.scrollRemain = Math.max(Math.ceil($danmuArea.scrollHeight - $danmuArea.clientHeight - $danmuArea.scrollTop)
           , this.danmuPanel.scrollRemain - v)
@@ -217,17 +217,17 @@ let appStatus = {
   },
   onReceiveNewDanmu(special, medalInfo, sender, content) {
     this.danmuPanel.doClean()
-    let $newEntry = createDanmuEntry(special, medalInfo, sender, content)
+    const $newEntry = createDanmuEntry(special, medalInfo, sender, content)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveInteract(medalInfo, sender) {
     this.danmuPanel.doClean()
-    let $newEntry = createEnterEntry(medalInfo, sender)
+    const $newEntry = createEnterEntry(medalInfo, sender)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveEffect(content) {
     this.danmuPanel.doClean()
-    let $newEntry = createEffectEntry(content)
+    const $newEntry = createEffectEntry(content)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveGift(id, msg) {
@@ -237,26 +237,26 @@ let appStatus = {
       }
     }
     if (giftCache.has(id)) {
-      let old = giftCache.get(id)
-      let oldNum = parseInt(old.getAttribute('gift-num'))
-      let newNum = oldNum + parseInt(msg.data.num)
+      const old = giftCache.get(id)
+      const oldNum = parseInt(old.getAttribute('gift-num'))
+      const newNum = oldNum + parseInt(msg.data.num)
       old.querySelector('.gift-num').innerText = `共${newNum}个`
       old.setAttribute('gift-num', String(newNum))
       return
     }
     this.danmuPanel.doClean()
-    let $newEntry = createGiftEntry(id, msg)
+    const $newEntry = createGiftEntry(id, msg)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveGuard(id, msg) {
     this.danmuPanel.doClean()
-    let $newEntry = createGuardEntry(msg)
+    const $newEntry = createGuardEntry(msg)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveSuperchat(id, msg) {
     this.danmuPanel.doClean()
     // Superchat entry should not be able to remove in chat window
-    let $newEntry = createSuperchatEntry({ id, g: msg, removable: false })
+    const $newEntry = createSuperchatEntry({ id, g: msg, removable: false })
     this.danmuPanel.handleNewEntry($newEntry)
   },
   login: false,
@@ -284,7 +284,7 @@ let appStatus = {
 Alpine.data('appStatus', () => appStatus)
 Alpine.start()
 
-let $danmuArea = document.getElementById('danmu')
+const $danmuArea = document.getElementById('danmu')
 
 function configLoad() {
   // Load initial medal style in setter
