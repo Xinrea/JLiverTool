@@ -28,7 +28,7 @@ let giftWindow
 let superchatWindow
 let settingWindow
 let windowCount = 0
-let windowStatus = {
+const windowStatus = {
   gift: false,
   superchat: false,
 }
@@ -39,7 +39,7 @@ function exportGift() {
   const guardsheet = workbook.addWorksheet('舰长')
   const superchatsheet = workbook.addWorksheet('醒目留言')
   let sheetComplete = 0
-  let completeExcel = () => {
+  const completeExcel = () => {
     console.log('complete')
     if (sheetComplete === 3) {
       console.log('export to file')
@@ -50,7 +50,7 @@ function exportGift() {
         })
         .then((result) => {
           if (!result.canceled) {
-            let filename = result.filePath
+            const filename = result.filePath
             console.log('export to', filename)
             workbook.xlsx.writeFile(filename).then(() => {
               console.log('导出成功')
@@ -100,7 +100,7 @@ function exportGift() {
   db.getRows('guards', { room: room }, (success: boolean, r: any[]) => {
     if (success) {
       r.forEach((guard) => {
-        let row = [
+        const row = [
           guard.data.data.uid,
           guard.data.data.username,
           guard.data.data.gift_name,
@@ -117,7 +117,7 @@ function exportGift() {
   db.getRows('superchats', { room: room }, (success: boolean, r: any[]) => {
     if (success) {
       r.forEach((superchat) => {
-        let row = [
+        const row = [
           superchat.data.data.uid,
           superchat.data.data.user_info.uname,
           superchat.data.data.message,
@@ -140,7 +140,7 @@ function notifyWindowChange() {
 
 function createMainWindow() {
   // Create the browser window.
-  let mainSize = store.get('cache.mainSize', [400, 800])
+  const mainSize = store.get('cache.mainSize', [400, 800])
   mainWindow = new BrowserWindow({
     width: mainSize[0],
     height: mainSize[1],
@@ -241,7 +241,7 @@ function createMainWindow() {
 let giftPosInit = true
 
 function createGiftWindow() {
-  let giftSize = store.get('cache.giftSize', [400, 400])
+  const giftSize = store.get('cache.giftSize', [400, 400])
   giftWindow = new BrowserWindow({
     width: giftSize[0],
     height: giftSize[1],
@@ -275,12 +275,12 @@ function createGiftWindow() {
       return
     }
     giftPosInit = false
-    let mainWinPos = mainWindow.getPosition()
-    let currentDisplay = screen.getDisplayNearestPoint({
+    const mainWinPos = mainWindow.getPosition()
+    const currentDisplay = screen.getDisplayNearestPoint({
       x: mainWinPos[0],
       y: mainWinPos[1],
     })
-    let relativeMainCenter = [
+    const relativeMainCenter = [
       mainWinPos[0] - currentDisplay.bounds.x + mainWindow.getSize()[0] / 2,
       mainWinPos[1] - currentDisplay.bounds.y + mainWindow.getSize()[1] / 2,
     ]
@@ -317,7 +317,7 @@ function createGiftWindow() {
 let superchatPosInit = true
 
 function createSuperchatWindow() {
-  let superchatSize = store.get('cache.superchatSize', [400, 400])
+  const superchatSize = store.get('cache.superchatSize', [400, 400])
   superchatWindow = new BrowserWindow({
     width: superchatSize[0],
     height: superchatSize[1],
@@ -351,8 +351,8 @@ function createSuperchatWindow() {
       return
     }
     superchatPosInit = false
-    let mainWinPos = mainWindow.getPosition()
-    let currentDisplay = screen.getDisplayNearestPoint({
+    const mainWinPos = mainWindow.getPosition()
+    const currentDisplay = screen.getDisplayNearestPoint({
       x: mainWinPos[0],
       y: mainWinPos[1],
     })
@@ -378,10 +378,10 @@ function createSuperchatWindow() {
     }
     superchatWindow.show()
   })
-  superchatWindow.webContents.on('did-finish-load', () => {
+  superchatWindow.webContents.on('did-finish-load', async () => {
     windowCount++
     if (windowCount === 3) {
-      startBackendService()
+      await startBackendService()
     }
   })
   superchatWindow.on('close', () => {
@@ -486,24 +486,24 @@ app.on('window-all-closed', function () {
 
 import { connecting, checkLiveStatus, getRoomInfo, getOnlineNum, getGiftList, GetUserInfo, LiveStatus, WsInfo, getDanmuInfo, DanmuSend, UpdateRoomTitle, StopLive } from './bilibili'
 
-let service = {
+const service = {
   stopConn: null,
   updateTask: null,
   conn: null
 }
-let giftList
+let giftList = {}
 
 
 async function startBackendService() {
-  let giftList = new Map()
-  let cookies = store.get('config.cookies', '')
-  let statusRes = await checkLiveStatus(room)
+  const giftList = new Map()
+  const cookies = store.get('config.cookies', '')
+  const statusRes = await checkLiveStatus(room)
   console.log('check room status')
   realroom = statusRes.room
   uid = statusRes.uid
-  let roomRes = await getRoomInfo(realroom)
+  const roomRes = await getRoomInfo(realroom)
   mainWindow?.webContents.send('update-room', roomRes)
-  let onlineRes = await getOnlineNum(uid, realroom)
+  const onlineRes = await getOnlineNum(uid, realroom)
   mainWindow?.webContents.send('update-online', onlineRes)
   service.updateTask = setInterval(() => {
     getRoomInfo(realroom).then((res) => {
@@ -525,7 +525,7 @@ async function startBackendService() {
     Promise.all([loadPreGifts(), loadPreGuards(), loadPreSuperchats()]).then(
       async () => {
         // All Preload Data Loaded
-        let msgHandler = function (type: number, msg: any) {
+        const msgHandler = function (type: number, msg: any) {
           switch (type) {
             case 3:
               mainWindow?.webContents.send('update-heat', msg)
@@ -566,7 +566,7 @@ async function startBackendService() {
                 if (giftList.has(msg.data.giftId)) {
                   giftInfo = giftList.get(msg.data.giftId)
                 }
-                let giftData = {
+                const giftData = {
                   gif: {
                     frame: giftInfo.animation_frame_num,
                     png: giftInfo.png,
@@ -622,7 +622,7 @@ async function startBackendService() {
                 break
               }
               if (msg.cmd == 'SUPER_CHAT_MESSAGE') {
-                let id = uuidv4()
+                const id = uuidv4()
                 db.insertTableContent(
                   'superchats',
                   {
@@ -630,7 +630,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  (s, m) => {
+                  () => {
                   }
                 )
                 superchatWindow?.webContents.send('superchat', {
@@ -664,12 +664,12 @@ async function startBackendService() {
             }
           }
         }
-        let wsInfo = {} as WsInfo
+        const wsInfo = {} as WsInfo
         wsInfo.roomid = realroom
         if (cookies != '') {
           wsInfo.uid = Number(cookies['DedeUserID'])
         }
-        let danmuInfo = await getDanmuInfo(cookies, realroom)
+        const danmuInfo = await getDanmuInfo(cookies, realroom)
         if (danmuInfo['code'] != 0) {
           console.warn(danmuInfo, 'Using default setting')
           wsInfo.uid = 0
@@ -798,7 +798,7 @@ ipcMain.handle('getUserInfo', async (event, mid) => {
 })
 
 ipcMain.handle('logout', async () => {
-  let cookies = store.get('config.cookies', '')
+  const cookies = store.get('config.cookies', '')
   if (cookies == '') {
     return
   }
@@ -813,19 +813,19 @@ ipcMain.handle('sendDanmu', async (event, content) => {
   if (!store.get('config.loggined')) {
     return
   }
-  let cookies = store.get('config.cookies') as Cookies
+  const cookies = store.get('config.cookies') as Cookies
   return await DanmuSend(cookies, realroom, content)
 })
 
 ipcMain.handle('callCommand', async (e, cmd) => {
   cmd = cmd.substring(1)
-  let parts = cmd.split(' ')
+  const parts = cmd.split(' ')
   if (!store.get('config.loggined') as boolean) {
     return
   }
-  let cookies = store.get('config.cookies') as Cookies
+  const cookies = store.get('config.cookies') as Cookies
   switch (parts[0]) {
-    case 'title':
+    case 'title': {
       // Set new title for room
       if (parts.length != 2) {
         return
@@ -834,11 +834,15 @@ ipcMain.handle('callCommand', async (e, cmd) => {
       if (newTitle.length == 0) {
         return
       }
-      let resp = await UpdateRoomTitle(cookies, realroom, newTitle)
+      const resp = await UpdateRoomTitle(cookies, realroom, newTitle)
+      console.log(resp)
       break
-    case 'bye':
-      resp = await StopLive(cookies, realroom)
+    }
+    case 'bye': {
+      const resp = await StopLive(cookies, realroom)
+      console.log(resp)
       break
+    }
   }
 })
 
@@ -881,9 +885,9 @@ function loadPreGuards() {
       console.log('load pre guards:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
-          let id = r[i].sid
-          let msg = r[i].data
-          let guardBuy = {
+          const id = r[i].sid
+          const msg = r[i].data
+          const guardBuy = {
             medal: msg.data.medal,
             face: msg.data.face,
             name: msg.data.username,
@@ -909,8 +913,8 @@ function loadPreSuperchats() {
       console.log('load pre superchats:', r.length)
       if (s) {
         for (let i = 0; i < r.length; i++) {
-          let id = r[i].sid
-          let msg = r[i].data
+          const id = r[i].sid
+          const msg = r[i].data
           superchatWindow?.webContents.send('superchat', {
             id: id,
             msg: msg,
@@ -949,12 +953,12 @@ function checkUpdate() {
     })
     res.on('end', () => {
       // parse yaml data
-      let yaml = require('yaml')
-      let latest = yaml.parse(data)
-      let version = latest.version
+      const yaml = require('yaml')
+      const latest = yaml.parse(data)
+      const version = latest.version
       if (version == undefined) return
-      var semver = require('semver');
-      if (semver.gt(version, app.getVersion())) {
+      const semver = require('semver');
+      if (semver.gt(version, app.getVersion(), {})) {
         console.log('Update available')
         dialog
           .showMessageBox(mainWindow, {
