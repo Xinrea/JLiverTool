@@ -5,57 +5,57 @@ import { SuperChat } from './superchatInterface';
 
 // Create Superchat HTML entry for display
 export function createSuperchatEntry({ id, g, removable }: { id: string; g: SuperChat; removable: boolean }): HTMLElement {
-  let level = getSuperChatLevel(g.data.price)
-  let scEntry = document.createElement('div')
+  const level = getSuperChatLevel(g.data.price)
+  const scEntry = document.createElement('div')
   scEntry.classList.add('sc-entry')
-  let scEntryHeader = document.createElement('div')
+  const scEntryHeader = document.createElement('div')
   scEntryHeader.classList.add('sc-entry-header')
   scEntryHeader.style.border = `1px solid var(--sc-f-level-${level})`
   scEntryHeader.style.backgroundColor = `var(--sc-b-level-${level})`
-  let scEntryHeaderLeft = document.createElement('div')
+  const scEntryHeaderLeft = document.createElement('div')
   scEntryHeaderLeft.classList.add('sc-entry-header-left')
-  let scEntryHeaderLeftAvatar = document.createElement('div')
+  const scEntryHeaderLeftAvatar = document.createElement('div')
   scEntryHeaderLeftAvatar.classList.add('sc-entry-header-left-avatar')
-  let scEntryHeaderLeftAvatarImg = document.createElement('img')
+  const scEntryHeaderLeftAvatarImg = document.createElement('img')
   scEntryHeaderLeftAvatarImg.classList.add('avatar')
   scEntryHeaderLeftAvatarImg.src = g.data.user_info.face
   scEntryHeaderLeftAvatar.appendChild(scEntryHeaderLeftAvatarImg)
   if (g.data.user_info.face_frame != '') {
-    let scEntryHeaderLeftAvatarFrameImg = document.createElement('img')
+    const scEntryHeaderLeftAvatarFrameImg = document.createElement('img')
     scEntryHeaderLeftAvatarFrameImg.classList.add('avatar-frame')
     scEntryHeaderLeftAvatarFrameImg.src = g.data.user_info.face_frame
     scEntryHeaderLeftAvatar.appendChild(scEntryHeaderLeftAvatarFrameImg)
   }
   scEntryHeaderLeft.appendChild(scEntryHeaderLeftAvatar)
-  let scEntryHeaderLeftName = document.createElement('div')
+  const scEntryHeaderLeftName = document.createElement('div')
   scEntryHeaderLeftName.classList.add('sc-entry-header-left-name')
   if (g.data.medal_info) {
-    let scEntryHeaderLeftNameMedal = createMedal(
+    const scEntryHeaderLeftNameMedal = createMedal(
       g.data.medal_info.guard_level,
       g.data.medal_info.medal_name,
       g.data.medal_info.medal_level
     )
     scEntryHeaderLeftName.appendChild(scEntryHeaderLeftNameMedal)
   }
-  let scEntryHeaderLeftNameSender = document.createElement('div')
+  const scEntryHeaderLeftNameSender = document.createElement('div')
   scEntryHeaderLeftNameSender.classList.add('sender')
   scEntryHeaderLeftNameSender.innerText = g.data.user_info.uname
   scEntryHeaderLeftName.appendChild(scEntryHeaderLeftNameSender)
   scEntryHeaderLeft.appendChild(scEntryHeaderLeftName)
   scEntryHeader.appendChild(scEntryHeaderLeft)
-  let scEntryHeaderRight = document.createElement('div')
+  const scEntryHeaderRight = document.createElement('div')
   scEntryHeaderRight.classList.add('sc-entry-header-right')
   scEntryHeaderRight.innerText = '￥' + g.data.price
   scEntryHeader.appendChild(scEntryHeaderRight)
   scEntry.appendChild(scEntryHeader)
-  let scEntryContent = document.createElement('div')
+  const scEntryContent = document.createElement('div')
   scEntryContent.classList.add('sc-entry-content')
   scEntryContent.style.backgroundColor = `var(--sc-f-level-${level})`
-  let scEntryContentText = document.createElement('div')
+  const scEntryContentText = document.createElement('div')
   scEntryContentText.classList.add('sc-entry-content-text')
   scEntryContentText.appendChild(renderContent(g.data.message))
   scEntryContent.appendChild(scEntryContentText)
-  let scEntryContentTime = document.createElement('div')
+  const scEntryContentTime = document.createElement('div')
   scEntryContentTime.classList.add('sc-entry-content-time')
   scEntryContentTime.innerText = moment(g.data.start_time * 1000).format('YYYY/MM/DD HH:mm:ss')
   scEntryContent.appendChild(scEntryContentTime)
