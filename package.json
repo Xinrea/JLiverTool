@@ -62,6 +62,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/alpinejs": "^3.7.1",
+    "@types/uuid": "^9.0.3",
     "@types/ws": "^8.5.5",
     "cross-env": "^7.0.3",
     "electron": "^15.0.0",
