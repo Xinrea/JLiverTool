@@ -1,13 +1,15 @@
-const path = require('path');
-const webpack = require("webpack");
+const path = require('path')
+const webpack = require('webpack')
 
 const frontendConfig = {
-  mode: "development",
+  mode: 'development',
   entry: {
     './src/gift-window/gift-window.min': './src/gift-window/gift-window.ts',
-    './src/superchat-window/superchat-window.min': './src/superchat-window/superchat-window.ts',
+    './src/superchat-window/superchat-window.min':
+      './src/superchat-window/superchat-window.ts',
     './src/main-window/main-window.min': './src/main-window/main-window.ts',
-    './src/setting-window/setting-window.min': './src/setting-window/setting-window.ts'
+    './src/setting-window/setting-window.min':
+      './src/setting-window/setting-window.ts',
   },
   module: {
     rules: [
@@ -19,7 +21,7 @@ const frontendConfig = {
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js']
+    extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
     filename: '[name].js',
@@ -29,15 +31,16 @@ const frontendConfig = {
     new webpack.IgnorePlugin({
       resourceRegExp: /^\.\/locale$/,
       contextRegExp: /moment$/,
-    })
+    }),
   ],
 }
 
 const preloadConfig = {
-  mode: "development",
+  mode: 'development',
   target: 'electron-preload',
   entry: {
-    './src/preload': './src/preload.ts'
+    './src/main': './src/main.ts',
+    './src/preload': './src/preload.ts',
   },
   module: {
     rules: [
@@ -49,7 +52,7 @@ const preloadConfig = {
     ],
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js']
+    extensions: ['.tsx', '.ts', '.js'],
   },
   output: {
     filename: '[name].js',
@@ -59,18 +62,15 @@ const preloadConfig = {
     new webpack.IgnorePlugin({
       resourceRegExp: /^\.\/locale$/,
       contextRegExp: /moment$/,
-    })
+    }),
   ],
 }
 
-
 const backendConfig = {
-  mode: "development",
-  target: "electron-main",
+  mode: 'development',
+  target: 'electron-main',
   entry: {
     './src/main': './src/main.ts',
-    './src/bilibili': './src/bilibili.ts',
-    './src/bililogin': './src/bililogin.ts'
   },
   module: {
     rules: [
@@ -82,15 +82,15 @@ const backendConfig = {
       {
         test: /\.node$/,
         use: 'node-loader',
-      }
+      },
     ],
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     fallback: {
-      'bufferutil': false,
-      'utf-8-validate': false
-    }
+      bufferutil: false,
+      'utf-8-validate': false,
+    },
   },
   output: {
     filename: '[name].js',
@@ -100,8 +100,8 @@ const backendConfig = {
     new webpack.IgnorePlugin({
       resourceRegExp: /^\.\/locale$/,
       contextRegExp: /moment$/,
-    })
+    }),
   ],
-};
+}
 
 module.exports = [frontendConfig, preloadConfig, backendConfig]

@@ -1,6 +1,21 @@
 // Modules to control application life and create native browser window
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, screen, Tray, Menu, nativeImage, Cookie } from 'electron'
-import { DanmuMockMessage, GiftMockMessage, GuardMockMessage, SuperChatMockMessage } from './common/mock'
+import {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  nativeTheme,
+  screen,
+  Tray,
+  Menu,
+  nativeImage,
+} from 'electron'
+import {
+  DanmuMockMessage,
+  GiftMockMessage,
+  GuardMockMessage,
+  SuperChatMockMessage,
+} from './common/mock'
 import path = require('path')
 import Store = require('electron-store')
 import db = require('electron-db')
@@ -8,8 +23,12 @@ import { v4 as uuidv4 } from 'uuid'
 import ExcelJS = require('exceljs')
 import moment = require('moment')
 import https = require('https')
-import { GetNewQrCode, CheckQrCodeStatus, QrCodeStatus, Logout } from './bililogin'
-import { Cookies } from './types'
+import {
+  GetNewQrCode,
+  CheckQrCodeStatus,
+  Logout,
+} from './lib/bilibili/bililogin'
+import * as type from './lib/types'
 
 let dev: boolean = false
 if (process.env.NODE_ENV) {
@@ -19,14 +38,14 @@ if (process.env.NODE_ENV) {
 Store.initRenderer()
 const store = new Store()
 
-let room = store.get('config.room', 21484828)
+let room: number = store.get('config.room', 21484828) as number
 let realroom = 0
 let uid = 0
 
-let mainWindow
-let giftWindow
-let superchatWindow
-let settingWindow
+let mainWindow: BrowserWindow
+let giftWindow: BrowserWindow
+let superchatWindow: BrowserWindow
+let settingWindow: BrowserWindow
 let windowCount = 0
 const windowStatus = {
   gift: false,
@@ -164,7 +183,8 @@ function createMainWindow() {
   mainWindow.show()
   // and load the index.html of the app.
   mainWindow.loadFile('src/main-window/index.html')
-  if (store.get('config.alwaysOnTop', false)) mainWindow.setAlwaysOnTop(true, 'screen-saver')
+  if (store.get('config.alwaysOnTop', false))
+    mainWindow.setAlwaysOnTop(true, 'screen-saver')
   mainWindow.on('close', () => {
     store.set('cache.mainPos', mainWindow.getPosition())
     mainWindow.hide()
@@ -196,7 +216,9 @@ function createMainWindow() {
     }
   })
   ipcMain.on('openBrowser', () => {
-    require('openurl').open('https://link.bilibili.com/p/center/index/my-room/start-live#/my-room/start-live')
+    require('openurl').open(
+      'https://link.bilibili.com/p/center/index/my-room/start-live#/my-room/start-live'
+    )
   })
   ipcMain.on('openURL', (_, arg) => {
     require('openurl').open(arg)
@@ -224,7 +246,11 @@ function createMainWindow() {
   })
   if (store.has('cache.theme')) {
     const themeSetting = store.get('cache.theme', 'light') as string
-    nativeTheme.themeSource = themeSetting.includes('light') ? 'light' : (themeSetting.includes('dark') ? 'dark' : 'system')
+    nativeTheme.themeSource = themeSetting.includes('light')
+      ? 'light'
+      : themeSetting.includes('dark')
+      ? 'dark'
+      : 'system'
   } else {
     nativeTheme.themeSource = 'light'
     store.set('cache.theme', 'light')
@@ -423,45 +449,75 @@ app.whenReady().then(() => {
   createMainWindow()
   createGiftWindow()
   createSuperchatWindow()
-  app.on('activate', function () {
-  })
+  app.on('activate', function () {})
   // 创建一个托盘实例，指定图标文件路径
   const icon = nativeImage.createFromPath(
     path.join(__dirname, 'assets/icons/main.png')
-  );
+  )
   tray = new Tray(icon.resize({ width: 16, height: 16 }))
 
   // 创建一个菜单，包含一些项
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: '关于', type: 'normal', click: () => {
+      label: '关于',
+      type: 'normal',
+      click: () => {
         dialog.showMessageBox(mainWindow, {
           type: 'info',
           title: '关于',
           message: 'JLiverTool 弹幕机 v' + app.getVersion(),
           detail: '作者：@Xinrea',
         })
-      }
+      },
     },
     {
-      label: '检查更新', type: 'normal', click: () => {
+      label: '检查更新',
+      type: 'normal',
+      click: () => {
         checkUpdate()
-      }
+      },
     },
     {
-      label: '鼠标穿透', submenu: [
-        { label: '弹幕窗口', type: 'checkbox', click: (e) => { mainWindow.setIgnoreMouseEvents(e.checked) } },
-        { label: '礼物窗口', type: 'checkbox', click: (e) => { giftWindow.setIgnoreMouseEvents(e.checked) } },
+      label: '鼠标穿透',
+      submenu: [
         {
-          label: '醒目留言窗口', type: 'checkbox', click: (e) => { superchatWindow.setIgnoreMouseEvents(e.checked) },
-        }]
+          label: '弹幕窗口',
+          type: 'checkbox',
+          click: (e) => {
+            mainWindow.setIgnoreMouseEvents(e.checked)
+          },
+        },
+        {
+          label: '礼物窗口',
+          type: 'checkbox',
+          click: (e) => {
+            giftWindow.setIgnoreMouseEvents(e.checked)
+          },
+        },
+        {
+          label: '醒目留言窗口',
+          type: 'checkbox',
+          click: (e) => {
+            superchatWindow.setIgnoreMouseEvents(e.checked)
+          },
+        },
+      ],
     },
     {
-      label: '设置', type: 'normal', click: () => {
+      label: '设置',
+      type: 'normal',
+      click: () => {
         createSettingWindow()
-      }
+      },
     },
-    { label: '退出', type: 'normal', click: () => { stopBackendService(); app.quit() } }
+    {
+      label: '退出',
+      type: 'normal',
+      click: () => {
+        stopBackendService()
+        app.quit()
+      },
+    },
   ])
 
   // 设置托盘的上下文菜单
@@ -484,15 +540,26 @@ app.on('window-all-closed', function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
-import { connecting, checkLiveStatus, getRoomInfo, getOnlineNum, getGiftList, GetUserInfo, LiveStatus, WsInfo, getDanmuInfo, DanmuSend, UpdateRoomTitle, StopLive } from './bilibili'
+import {
+  connecting,
+  checkLiveStatus,
+  getRoomInfo,
+  getOnlineNum,
+  getGiftList,
+  GetUserInfo,
+  WsInfo,
+  getDanmuInfo,
+  DanmuSend,
+  UpdateRoomTitle,
+  StopLive,
+} from './lib/bilibili/message'
 
 const service = {
   stopConn: null,
   updateTask: null,
-  conn: null
+  conn: null,
 }
-const giftList = {}
-
+const giftList = new Map()
 
 async function startBackendService() {
   const giftList = new Map()
@@ -515,7 +582,7 @@ async function startBackendService() {
   }, 10 * 1000)
   getGiftList(realroom).then((res: any) => {
     console.log('get gift list')
-    res.list.forEach((e) => {
+    res.list.forEach((e: any) => {
       giftList.set(e.id, {
         animation_frame_num: e.animation_frame_num,
         png: e.frame_animation,
@@ -554,8 +621,7 @@ async function startBackendService() {
                       sid: id,
                       data: msg,
                     },
-                    () => {
-                    }
+                    () => {}
                   )
                 }
                 let giftInfo = {
@@ -598,8 +664,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  () => {
-                  }
+                  () => {}
                 )
                 const guardBuy = {
                   medal: msg.data.medal,
@@ -630,8 +695,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  () => {
-                  }
+                  () => {}
                 )
                 superchatWindow?.webContents.send('superchat', {
                   id: id,
@@ -676,34 +740,35 @@ async function startBackendService() {
           wsInfo.server = 'wss://broadcastlv.chat.bilibili.com/sub'
         } else {
           wsInfo.token = danmuInfo['data']['token']
-          wsInfo.server = 'wss://' + danmuInfo['data']['host_list'][0]['host'] + '/sub'
+          wsInfo.server =
+            'wss://' + danmuInfo['data']['host_list'][0]['host'] + '/sub'
         }
         service.stopConn = connecting(wsInfo, msgHandler)
         // For debugging
-        // if (dev) {
-        //   setInterval(() => {
-        //     switch (Math.floor(Math.random() * 4)) {
-        //       case 0: {
-        //         msgHandler(5, SuperChatMockMessage)
-        //         break
-        //       }
-        //       case 1: {
-        //         msgHandler(5, GuardMockMessage)
-        //         break
-        //       }
-        //       case 2: {
-        //         msgHandler(5, DanmuMockMessage)
-        //         break
-        //       }
-        //       case 3: {
-        //         msgHandler(5, GiftMockMessage)
-        //         break
-        //       }
-        //       default:
-        //         break
-        //     }
-        //   }, 10 * 1000)
-        // }
+        if (dev) {
+          setInterval(() => {
+            switch (Math.floor(Math.random() * 4)) {
+              case 0: {
+                msgHandler(5, SuperChatMockMessage)
+                break
+              }
+              case 1: {
+                msgHandler(5, GuardMockMessage)
+                break
+              }
+              case 2: {
+                msgHandler(5, DanmuMockMessage)
+                break
+              }
+              case 3: {
+                msgHandler(5, GiftMockMessage)
+                break
+              }
+              default:
+                break
+            }
+          }, 10 * 1000)
+        }
       }
     )
   })
@@ -738,15 +803,15 @@ function initDB() {
   //   id: uuid(),
   //   data: 'raw'
   // }
-  db.createTable('gifts', (success, msg) => {
+  db.createTable('gifts', (success: boolean, msg: string) => {
     console.log(success)
     console.log(msg)
   })
-  db.createTable('guards', (success, msg) => {
+  db.createTable('guards', (success: boolean, msg: string) => {
     console.log(success)
     console.log(msg)
   })
-  db.createTable('superchats', (success, msg) => {
+  db.createTable('superchats', (success: boolean, msg: string) => {
     console.log(success)
     console.log(msg)
   })
@@ -759,8 +824,8 @@ ipcMain.on('remove', (_, info) => {
   })
 })
 
-function deleteAllRows(type, condition) {
-  db.deleteRow(type, condition, (success, msg) => {
+function deleteAllRows(type: string, condition: type.DBCondition) {
+  db.deleteRow(type, condition, (success: boolean) => {
     if (success) {
       deleteAllRows(type, condition)
     }
@@ -785,15 +850,15 @@ ipcMain.on('clear-superchats', () => {
   })
 })
 
-ipcMain.handle('getQrCode', async (event) => {
+ipcMain.handle('getQrCode', async (_) => {
   return await GetNewQrCode()
 })
 
-ipcMain.handle('checkQrCode', async (event, authinfo: string) => {
+ipcMain.handle('checkQrCode', async (_, authinfo: string) => {
   return await CheckQrCodeStatus(authinfo)
 })
 
-ipcMain.handle('getUserInfo', async (event, mid) => {
+ipcMain.handle('getUserInfo', async (_, mid) => {
   return await GetUserInfo(store.get('config.cookies', ''), mid)
 })
 
@@ -809,21 +874,21 @@ ipcMain.handle('getVersion', () => {
   return app.getVersion()
 })
 
-ipcMain.handle('sendDanmu', async (event, content) => {
+ipcMain.handle('sendDanmu', async (_, content) => {
   if (!store.get('config.loggined')) {
     return
   }
-  const cookies = store.get('config.cookies') as Cookies
+  const cookies = store.get('config.cookies') as type.Cookies
   return await DanmuSend(cookies, realroom, content)
 })
 
-ipcMain.handle('callCommand', async (e, cmd) => {
+ipcMain.handle('callCommand', async (_, cmd) => {
   cmd = cmd.substring(1)
   const parts = cmd.split(' ')
   if (!store.get('config.loggined') as boolean) {
     return
   }
-  const cookies = store.get('config.cookies') as Cookies
+  const cookies = store.get('config.cookies') as type.Cookies
   switch (parts[0]) {
     case 'title': {
       // Set new title for room
@@ -847,13 +912,13 @@ ipcMain.handle('callCommand', async (e, cmd) => {
 })
 
 function loadPreGifts() {
-  return new Promise((resolve, reject) => {
-    db.getRows('gifts', { room: room }, (s, r) => {
-      console.log('load pre gifts:', r.length)
-      if (s) {
-        for (let i = 0; i < r.length; i++) {
-          const id = r[i].sid
-          const msg = r[i].data
+  return new Promise((resolve, _) => {
+    db.getRows('gifts', { room: room }, (success: boolean, result: any) => {
+      console.log('load pre gifts:', result.length)
+      if (success) {
+        for (let i = 0; i < result.length; i++) {
+          const id = result[i].sid
+          const msg = result[i].data
           let giftInfo = {
             animation_frame_num: 1,
             png: '',
@@ -880,13 +945,13 @@ function loadPreGifts() {
 }
 
 function loadPreGuards() {
-  return new Promise((resolve, reject) => {
-    db.getRows('guards', { room: room }, (s, r) => {
-      console.log('load pre guards:', r.length)
-      if (s) {
-        for (let i = 0; i < r.length; i++) {
-          const id = r[i].sid
-          const msg = r[i].data
+  return new Promise((resolve, _) => {
+    db.getRows('guards', { room: room }, (success: boolean, result: any) => {
+      console.log('load pre guards:', result.length)
+      if (success) {
+        for (let i = 0; i < result.length; i++) {
+          const id = result[i].sid
+          const msg = result[i].data
           const guardBuy = {
             medal: msg.data.medal,
             face: msg.data.face,
@@ -908,21 +973,25 @@ function loadPreGuards() {
 }
 
 function loadPreSuperchats() {
-  return new Promise((resolve, reject) => {
-    db.getRows('superchats', { room: room }, (s, r) => {
-      console.log('load pre superchats:', r.length)
-      if (s) {
-        for (let i = 0; i < r.length; i++) {
-          const id = r[i].sid
-          const msg = r[i].data
-          superchatWindow?.webContents.send('superchat', {
-            id: id,
-            msg: msg,
-          })
+  return new Promise((resolve, _) => {
+    db.getRows(
+      'superchats',
+      { room: room },
+      (success: boolean, result: any) => {
+        console.log('load pre superchats:', result.length)
+        if (success) {
+          for (let i = 0; i < result.length; i++) {
+            const id = result[i].sid
+            const msg = result[i].data
+            superchatWindow?.webContents.send('superchat', {
+              id: id,
+              msg: msg,
+            })
+          }
         }
+        resolve(true)
       }
-      resolve(true)
-    })
+    )
   })
 }
 
@@ -957,7 +1026,7 @@ function checkUpdate() {
       const latest = yaml.parse(data)
       const version = latest.version
       if (version == undefined) return
-      const semver = require('semver');
+      const semver = require('semver')
       if (semver.gt(version, app.getVersion(), {})) {
         console.log('Update available')
         dialog
@@ -970,7 +1039,9 @@ function checkUpdate() {
           .then((result) => {
             if (result.response === 0) {
               console.log('Update now')
-              require('openurl').open('https://raw.vjoi.cn/jlivertool/' + latest.path)
+              require('openurl').open(
+                'https://raw.vjoi.cn/jlivertool/' + latest.path
+              )
             }
           })
       }
