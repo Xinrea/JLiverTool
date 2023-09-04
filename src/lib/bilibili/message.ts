@@ -1,5 +1,5 @@
 import WS = require('ws')
-const FormData = require('form-data');
+const FormData = require('form-data')
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import pako = require('pako')
 import https = require('https')
@@ -33,11 +33,11 @@ const encode = function (str, op) {
 }
 
 interface PackResult {
-  packetLen: number,
-  headerLen: number,
-  ver: number,
-  op: number,
-  seq: number,
+  packetLen: number
+  headerLen: number
+  ver: number
+  op: number
+  seq: number
   body: any
 }
 
@@ -50,7 +50,7 @@ const decode = function (blob): Promise<PackResult> {
       ver: 0,
       op: 0,
       seq: 0,
-      body: null
+      body: null,
     }
     result.packetLen = readInt(buffer, 0, 4)
     result.headerLen = readInt(buffer, 4, 2)
@@ -85,7 +85,7 @@ const decode = function (blob): Promise<PackResult> {
       }
     } else if (result.op === 3) {
       result.body = {
-        count: readInt(buffer, 16, 4)
+        count: readInt(buffer, 16, 4),
       }
     }
     resolve(result)
@@ -106,52 +106,40 @@ export function getDanmuInfo(cookies, room) {
       hostname: 'api.live.bilibili.com',
       path: `/xlive/web-room/v1/index/getDanmuInfo?id=${room}`,
       headers: {
-        cookie: cookiesToString(cookies)
-      }
+        cookie: cookiesToString(cookies),
+      },
     }
     https
-      .get(
-        options,
-        (res) => {
-          let data = ''
-          res.on('data', (chunk) => {
-            data += chunk
-          })
-          res.on('end', () => {
-            const result = JSON.parse(data)
-            resolve(result)
-          })
-        }
-      )
+      .get(options, (res) => {
+        let data = ''
+        res.on('data', (chunk) => {
+          data += chunk
+        })
+        res.on('end', () => {
+          const result = JSON.parse(data)
+          resolve(result)
+        })
+      })
       .on('error', (e) => {
         reject(e)
       })
   })
 }
 export function connecting(info: WsInfo, msgHandler) {
-  console.log("Connecting", info.server)
+  console.log('Connecting', info.server)
   const authInfo = {
     uid: Number(info.uid),
     roomid: Number(info.roomid),
     protover: 2,
     type: 2,
     platform: 'web',
-    key: info.token
+    key: info.token,
   }
-  const ws = new ReconnectingWebSocket(
-    info.server,
-    [],
-    {
-      WebSocket: WS
-    }
-  )
+  const ws = new ReconnectingWebSocket(info.server, [], {
+    WebSocket: WS,
+  })
   ws.onopen = function () {
-    ws.send(
-      encode(
-        JSON.stringify(authInfo),
-        7
-      )
-    )
+    ws.send(encode(JSON.stringify(authInfo), 7))
   }
 
   const heartBeatTask = setInterval(function () {
@@ -204,20 +192,20 @@ export function checkLiveStatus(room): Promise<LiveStatus> {
                 resolve({
                   status: true,
                   room: result.data.room_id,
-                  uid: result.data.uid
+                  uid: result.data.uid,
                 })
               } else {
                 resolve({
                   status: false,
                   room: result.data.room_id,
-                  uid: result.data.uid
+                  uid: result.data.uid,
                 })
               }
             } else {
               resolve({
                 status: false,
                 room: 0,
-                uid: 0
+                uid: 0,
               })
             }
           })
@@ -302,11 +290,18 @@ export function getOnlineNum(uid, room) {
 }
 
 function cookiesToString(cookies: Cookies): string {
-  return "SESSDATA=" + encodeURIComponent(cookies.SESSDATA)
-    + "; DedeUserID=" + cookies.DedeUserID
-    + "; DedeUserID_ckMd5=" + cookies.DedeUserID__ckMd5
-    + "; bili_jct=" + cookies.bili_jct
-    + "; Expires=" + cookies.Expires
+  return (
+    'SESSDATA=' +
+    encodeURIComponent(cookies.SESSDATA) +
+    '; DedeUserID=' +
+    cookies.DedeUserID +
+    '; DedeUserID_ckMd5=' +
+    cookies.DedeUserID__ckMd5 +
+    '; bili_jct=' +
+    cookies.bili_jct +
+    '; Expires=' +
+    cookies.Expires
+  )
 }
 
 export function GetUserInfo(cookies, mid) {
@@ -318,12 +313,12 @@ export function GetUserInfo(cookies, mid) {
       port: 443,
       method: 'GET',
       headers: {
-        'cookie': cookiesToString(cookies)
-      }
+        cookie: cookiesToString(cookies),
+      },
     }
-    const req = https.request(options, res => {
+    const req = https.request(options, (res) => {
       let dd = ''
-      res.on('data', chunk => {
+      res.on('data', (chunk) => {
         dd += chunk
       })
       res.on('end', () => {
@@ -334,7 +329,7 @@ export function GetUserInfo(cookies, mid) {
           reject(resp)
         }
       })
-      res.on('error', err => {
+      res.on('error', (err) => {
         reject(err)
       })
     })
@@ -345,7 +340,7 @@ export function GetUserInfo(cookies, mid) {
 export function DanmuSend(cookies: Cookies, room, content) {
   // https://api.live.bilibili.com/msg/send
   return new Promise((resolve, reject) => {
-    const formData = {};
+    const formData = {}
     formData['bubble'] = 0
     formData['msg'] = content
     formData['color'] = 16777215
@@ -356,11 +351,11 @@ export function DanmuSend(cookies: Cookies, room, content) {
     formData['roomid'] = room
     formData['csrf'] = cookies.bili_jct
     formData['csrf_token'] = cookies.bili_jct
-    const postData = new FormData();
+    const postData = new FormData()
     for (const key in formData) {
       if (Object.prototype.hasOwnProperty.call(formData, key)) {
-        const item = formData[key];
-        postData.append(key, item);
+        const item = formData[key]
+        postData.append(key, item)
       }
     }
     const postOptions = {
@@ -371,19 +366,20 @@ export function DanmuSend(cookies: Cookies, room, content) {
       headers: {
         ...postData.getHeaders(),
         cookie: cookiesToString(cookies),
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
-      }
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+      },
     }
-    const sendReq = https.request(postOptions, res => {
+    const sendReq = https.request(postOptions, (res) => {
       let dd = ''
-      res.on('data', secCheck => {
+      res.on('data', (secCheck) => {
         dd += secCheck
       })
       res.on('end', () => {
         const resp = JSON.parse(dd)
         resolve(resp)
       })
-      res.on('error', err => {
+      res.on('error', (err) => {
         console.error(err)
         reject(err)
       })
@@ -401,21 +397,21 @@ export function UpdateRoomTitle(cookies: Cookies, room, title) {
     // title: test
     // csrf_token: 87007ec04d7cbedcd8122aaf4cd3b180
     // csrf: 87007ec04d7cbedcd8122aaf4cd3b180
-    const formData = {};
+    const formData = {}
     formData['platform'] = 'pc'
     formData['room_id'] = room
     formData['title'] = title
     formData['csrf'] = cookies.bili_jct
     formData['csrf_token'] = cookies.bili_jct
-    const formBody = [];
+    const formBody = []
     for (const key in formData) {
       if (Object.prototype.hasOwnProperty.call(formData, key)) {
-        const encodedKey = encodeURIComponent(key);
-        const encodedValue = encodeURIComponent(formData[key]);
-        formBody.push(encodedKey + "=" + encodedValue);
+        const encodedKey = encodeURIComponent(key)
+        const encodedValue = encodeURIComponent(formData[key])
+        formBody.push(encodedKey + '=' + encodedValue)
       }
     }
-    const postData = formBody.join("&");
+    const postData = formBody.join('&')
     const postOptions = {
       hostname: 'api.live.bilibili.com',
       path: '/room/v1/Room/update',
@@ -424,19 +420,20 @@ export function UpdateRoomTitle(cookies: Cookies, room, title) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         cookie: cookiesToString(cookies),
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
-      }
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+      },
     }
-    const sendReq = https.request(postOptions, res => {
+    const sendReq = https.request(postOptions, (res) => {
       let dd = ''
-      res.on('data', secCheck => {
+      res.on('data', (secCheck) => {
         dd += secCheck
       })
       res.on('end', () => {
         const resp = JSON.parse(dd)
         resolve(resp)
       })
-      res.on('error', err => {
+      res.on('error', (err) => {
         console.error(err)
         reject(err)
       })
@@ -449,19 +446,19 @@ export function UpdateRoomTitle(cookies: Cookies, room, title) {
 export function StopLive(cookies: Cookies, room) {
   // https://api.live.bilibili.com/room/v1/Room/stopLive
   return new Promise((resolve, reject) => {
-    const formData = {};
+    const formData = {}
     formData['room_id'] = room
     formData['csrf'] = cookies.bili_jct
     formData['csrf_token'] = cookies.bili_jct
-    const formBody = [];
+    const formBody = []
     for (const key in formData) {
       if (Object.prototype.hasOwnProperty.call(formData, key)) {
-        const encodedKey = encodeURIComponent(key);
-        const encodedValue = encodeURIComponent(formData[key]);
-        formBody.push(encodedKey + "=" + encodedValue);
+        const encodedKey = encodeURIComponent(key)
+        const encodedValue = encodeURIComponent(formData[key])
+        formBody.push(encodedKey + '=' + encodedValue)
       }
     }
-    const postData = formBody.join("&");
+    const postData = formBody.join('&')
     const postOptions = {
       hostname: 'api.live.bilibili.com',
       path: '/room/v1/Room/stopLive',
@@ -470,19 +467,20 @@ export function StopLive(cookies: Cookies, room) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         cookie: cookiesToString(cookies),
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
-      }
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+      },
     }
-    const sendReq = https.request(postOptions, res => {
+    const sendReq = https.request(postOptions, (res) => {
       let dd = ''
-      res.on('data', secCheck => {
+      res.on('data', (secCheck) => {
         dd += secCheck
       })
       res.on('end', () => {
         const resp = JSON.parse(dd)
         resolve(resp)
       })
-      res.on('error', err => {
+      res.on('error', (err) => {
         console.error(err)
         reject(err)
       })
