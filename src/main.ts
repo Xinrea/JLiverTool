@@ -29,10 +29,16 @@ import {
   Logout,
 } from './lib/bilibili/bililogin'
 import * as type from './lib/types'
+import { DEBUG, INFO, Logger } from '@jalik/logger'
+
+const log = new Logger({ name: 'main', level: INFO })
 
 let dev: boolean = false
 if (process.env.NODE_ENV) {
   dev = process.env.NODE_ENV.includes('development')
+  if (dev) {
+    log.setLevel(DEBUG)
+  }
 }
 
 Store.initRenderer()
@@ -59,9 +65,7 @@ function exportGift() {
   const superchatsheet = workbook.addWorksheet('醒目留言')
   let sheetComplete = 0
   const completeExcel = () => {
-    console.log('complete')
     if (sheetComplete === 3) {
-      console.log('export to file')
       dialog
         .showSaveDialog({
           title: '导出礼物数据',
@@ -70,9 +74,9 @@ function exportGift() {
         .then((result) => {
           if (!result.canceled) {
             const filename = result.filePath
-            console.log('export to', filename)
+            log.debug(`Gift data export to ${filename}`)
             workbook.xlsx.writeFile(filename).then(() => {
-              console.log('导出成功')
+              log.info('Gift data export success')
             })
           }
         })
@@ -206,7 +210,7 @@ function createMainWindow() {
   ipcMain.on('setRoom', (_, arg) => {
     if (arg) {
       room = parseInt(arg)
-      console.log('Set room: ', room)
+      log.info('Update room id', { roomid: room })
       store.set('config.room', room)
       stopBackendService()
       // Reset All Windows For New Room
@@ -565,7 +569,7 @@ async function startBackendService() {
   const giftList = new Map()
   const cookies = store.get('config.cookies', '')
   const statusRes = await checkLiveStatus(room)
-  console.log('check room status')
+  log.info('check room status')
   realroom = statusRes.room
   uid = statusRes.uid
   const roomRes = await getRoomInfo(realroom)
@@ -581,7 +585,7 @@ async function startBackendService() {
     })
   }, 10 * 1000)
   getGiftList(realroom).then((res: any) => {
-    console.log('get gift list')
+    log.info('get gift list')
     res.list.forEach((e: any) => {
       giftList.set(e.id, {
         animation_frame_num: e.animation_frame_num,
@@ -804,21 +808,18 @@ function initDB() {
   //   data: 'raw'
   // }
   db.createTable('gifts', (success: boolean, msg: string) => {
-    console.log(success)
-    console.log(msg)
+    log.debug('Gifts table creating', { success: success, result: msg })
   })
   db.createTable('guards', (success: boolean, msg: string) => {
-    console.log(success)
-    console.log(msg)
+    log.debug('Guards table creating', { success: success, result: msg })
   })
   db.createTable('superchats', (success: boolean, msg: string) => {
-    console.log(success)
-    console.log(msg)
+    log.debug('Superchats table creating', { success: success, result: msg })
   })
 }
 
 ipcMain.on('remove', (_, info) => {
-  console.log('remove', info)
+  log.info('remove', info)
   deleteAllRows(info.type, {
     sid: info.id,
   })
@@ -900,12 +901,12 @@ ipcMain.handle('callCommand', async (_, cmd) => {
         return
       }
       const resp = await UpdateRoomTitle(cookies, realroom, newTitle)
-      console.log(resp)
+      log.debug('Update room title responsed', { response: resp })
       break
     }
     case 'bye': {
       const resp = await StopLive(cookies, realroom)
-      console.log(resp)
+      log.debug('Stop live responsed', { response: resp })
       break
     }
   }
@@ -914,7 +915,7 @@ ipcMain.handle('callCommand', async (_, cmd) => {
 function loadPreGifts() {
   return new Promise((resolve, _) => {
     db.getRows('gifts', { room: room }, (success: boolean, result: any) => {
-      console.log('load pre gifts:', result.length)
+      log.info('Load previous gifts', { count: result.length })
       if (success) {
         for (let i = 0; i < result.length; i++) {
           const id = result[i].sid
@@ -947,7 +948,7 @@ function loadPreGifts() {
 function loadPreGuards() {
   return new Promise((resolve, _) => {
     db.getRows('guards', { room: room }, (success: boolean, result: any) => {
-      console.log('load pre guards:', result.length)
+      log.info('Load previous guards', { count: result.length })
       if (success) {
         for (let i = 0; i < result.length; i++) {
           const id = result[i].sid
@@ -978,7 +979,7 @@ function loadPreSuperchats() {
       'superchats',
       { room: room },
       (success: boolean, result: any) => {
-        console.log('load pre superchats:', result.length)
+        log.info('Load previous superchats', { count: result.length })
         if (success) {
           for (let i = 0; i < result.length; i++) {
             const id = result[i].sid
@@ -997,7 +998,7 @@ function loadPreSuperchats() {
 
 // Catch Other Exception
 process.on('uncaughtException', function (err) {
-  console.log(err)
+  log.error('UncaughtException', { error: err })
 })
 
 function checkUpdate() {
@@ -1028,7 +1029,7 @@ function checkUpdate() {
       if (version == undefined) return
       const semver = require('semver')
       if (semver.gt(version, app.getVersion(), {})) {
-        console.log('Update available')
+        log.info('Update available')
         dialog
           .showMessageBox(mainWindow, {
             type: 'info',
@@ -1038,7 +1039,7 @@ function checkUpdate() {
           })
           .then((result) => {
             if (result.response === 0) {
-              console.log('Update now')
+              log.info('Update now')
               require('openurl').open(
                 'https://raw.vjoi.cn/jlivertool/' + latest.path
               )
