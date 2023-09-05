@@ -29,9 +29,37 @@ import {
   Logout,
 } from './lib/bilibili/bililogin'
 import * as type from './lib/types'
-import { DEBUG, INFO, Logger } from '@jalik/logger'
+import {
+  consoleOutput,
+  DEBUG,
+  defaultFormatter,
+  INFO,
+  Logger,
+} from '@jalik/logger'
+import fileOutput from '@jalik/logger/dist/outputs/fileOutput.js'
 
-const log = new Logger({ name: 'main', level: INFO })
+const appDataPath = app.getPath('appData')
+const logFilePath = path.join(appDataPath, 'JLiverTool.log')
+
+const log = new Logger({
+  name: 'main',
+  level: INFO,
+  outputs: [
+    consoleOutput(),
+    fileOutput({
+      // the logs destination file
+      path: logFilePath,
+      // the formatter to use
+      formatter: defaultFormatter,
+      // improve performances by flushing (writing) logs at interval
+      // instead of writing logs every time
+      flushInterval: 1000,
+    }),
+  ],
+})
+
+log.info('JLiverTool starting')
+log.info('Logger init', { path: logFilePath })
 
 let dev: boolean = false
 if (process.env.NODE_ENV) {
@@ -569,7 +597,7 @@ async function startBackendService() {
   const giftList = new Map()
   const cookies = store.get('config.cookies', '')
   const statusRes = await checkLiveStatus(room)
-  log.info('check room status')
+  log.info('Check room status', { statusRes })
   realroom = statusRes.room
   uid = statusRes.uid
   const roomRes = await getRoomInfo(realroom)
@@ -585,7 +613,7 @@ async function startBackendService() {
     })
   }, 10 * 1000)
   getGiftList(realroom).then((res: any) => {
-    log.info('get gift list')
+    log.info('Get gift list info', { length: res.list.length })
     res.list.forEach((e: any) => {
       giftList.set(e.id, {
         animation_frame_num: e.animation_frame_num,
@@ -739,16 +767,19 @@ async function startBackendService() {
         }
         const danmuInfo = await getDanmuInfo(cookies, realroom)
         if (danmuInfo['code'] != 0) {
-          console.warn(danmuInfo, 'Using default setting')
           wsInfo.uid = 0
           wsInfo.server = 'wss://broadcastlv.chat.bilibili.com/sub'
+          log.warn('Get room websocket info failed, using default setting', {
+            wsInfo,
+          })
         } else {
           wsInfo.token = danmuInfo['data']['token']
           wsInfo.server =
             'wss://' + danmuInfo['data']['host_list'][0]['host'] + '/sub'
+          log.info('Get room websocket success', { wsInfo })
         }
         service.stopConn = connecting(wsInfo, msgHandler)
-        // For debugging
+        // For debugging, if dev is true, then every 10 secs this will generate a gift message for displaying
         if (dev) {
           setInterval(() => {
             switch (Math.floor(Math.random() * 4)) {

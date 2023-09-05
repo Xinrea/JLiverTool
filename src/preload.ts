@@ -1,11 +1,11 @@
-const { contextBridge, ipcRenderer } = require('electron')
-const Store = require('electron-store')
+import { contextBridge, ipcRenderer } from 'electron'
+import * as Store from 'electron-store'
 const store = new Store()
 
 let listeners = {}
 
-function registerListener(name) {
-  ipcRenderer.on(name, (event, arg) => {
+function registerListener(name: string) {
+  ipcRenderer.on(name, (_, arg) => {
     if (listeners[name]) {
       listeners[name](arg)
     }
@@ -28,28 +28,28 @@ registerListener('updateWindowStatus')
 
 let watched = {}
 
-ipcRenderer.on('store-watch', (event, key, newValue) => {
+ipcRenderer.on('store-watch', (_, key, newValue) => {
   if (watched[key]) {
     watched[key](newValue)
   }
 })
 
 contextBridge.exposeInMainWorld('electron', {
-  get: (key, d) => {
+  get: (key: string, d: any) => {
     return store.get(key, d)
   },
-  set: (key, value) => {
+  set: (key: string, value: any) => {
     store.set(key, value)
     ipcRenderer.send('store-watch', key, value)
   },
-  onDidChange: (key, callback) => {
+  onDidChange: (key: string, callback: Function) => {
     watched[key] = callback
   },
-  invoke: (channel, ...args) => {
+  invoke: (channel: string, ...args: any[]) => {
     return ipcRenderer.invoke(channel, ...args)
   },
   send: ipcRenderer.send,
-  register: (name, callback) => {
+  register: (name: string, callback: Function) => {
     listeners[name] = callback
   },
 })
