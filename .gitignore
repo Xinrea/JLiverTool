@@ -11,4 +11,5 @@ package-lock.json
 src/bilibili.js
 src/main.js
 src/preload.js
-src/bililogin.js
+
+.cookiestest
