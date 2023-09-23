@@ -1,6 +1,6 @@
 import BasicResponse from '../basic_response'
 
-export type getInfoResponse = BasicResponse & {
+export type GetInfoResponse = BasicResponse & {
   data: {
     uid: number
     room_id: number
@@ -74,3 +74,5 @@ export type getInfoResponse = BasicResponse & {
     }
   }
 }
+
+export default GetInfoResponse

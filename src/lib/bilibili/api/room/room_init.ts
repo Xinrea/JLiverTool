@@ -1,6 +1,6 @@
 import BasicResponse from '../basic_response'
 
-export type roomInitResponse = BasicResponse & {
+export type RoomInitResponse = BasicResponse & {
   data: {
     room_id: number
     short_id: number
@@ -21,4 +21,4 @@ export type roomInitResponse = BasicResponse & {
   }
 }
 
-export default roomInitResponse
+export default RoomInitResponse
