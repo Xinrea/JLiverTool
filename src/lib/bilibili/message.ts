@@ -3,7 +3,7 @@ const FormData = require('form-data');
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import pako = require('pako')
 import https = require('https')
-import { Cookies } from './types'
+import { Cookies } from '../types'
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder('utf-8')
