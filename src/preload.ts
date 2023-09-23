@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { WindowType } from './lib/window_manager'
 import * as Store from 'electron-store'
 const store = new Store()
 
@@ -45,8 +46,15 @@ contextBridge.exposeInMainWorld('electron', {
   onDidChange: (key: string, callback: Function) => {
     watched[key] = callback
   },
+  //TODO this should be removed after all channel wrapped in function
   invoke: (channel: string, ...args: any[]) => {
     return ipcRenderer.invoke(channel, ...args)
+  },
+  hideWindow: (wtype: WindowType) => {
+    return ipcRenderer.invoke('hideWindow', wtype)
+  },
+  showWindow: (wtype: WindowType) => {
+    return ipcRenderer.invoke('showWindow', wtype)
   },
   send: ipcRenderer.send,
   register: (name: string, callback: Function) => {

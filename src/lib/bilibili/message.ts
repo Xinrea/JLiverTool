@@ -2,8 +2,8 @@ import WS = require('ws')
 const FormData = require('form-data')
 import ReconnectingWebSocket from 'reconnecting-websocket'
 import pako = require('pako')
-import https = require('https')
 import { Cookies } from '../types'
+import { RequestInfo } from 'node-fetch'
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder('utf-8')
@@ -32,7 +32,7 @@ const encode = function (str, op) {
   return new Uint8Array(header.concat(...Array.from(data))).buffer
 }
 
-interface PackResult {
+type PackResult = {
   packetLen: number
   headerLen: number
   ver: number
@@ -125,7 +125,7 @@ export function getDanmuInfo(cookies, room) {
       })
   })
 }
-export function connecting(info: WsInfo, msgHandler) {
+export function connecting(info: WsInfo, msgHandler: Function) {
   console.log('Connecting', info.server)
   const authInfo = {
     uid: Number(info.uid),

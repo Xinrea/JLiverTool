@@ -29,48 +29,28 @@ import {
   Logout,
 } from './lib/bilibili/bililogin'
 import * as type from './lib/types'
-import {
-  consoleOutput,
-  DEBUG,
-  defaultFormatter,
-  INFO,
-  Logger,
-} from '@jalik/logger'
-import fileOutput from '@jalik/logger/dist/outputs/fileOutput.js'
+import { WindowManager } from './lib/window_manager'
+import JLogger from './lib/logger'
 
-const appDataPath = app.getPath('appData')
-const logFilePath = path.join(appDataPath, 'JLiverTool.log')
+const log = JLogger.getInstance()
 
-const log = new Logger({
-  name: 'main',
-  level: INFO,
-  outputs: [
-    consoleOutput(),
-    fileOutput({
-      // the logs destination file
-      path: logFilePath,
-      // the formatter to use
-      formatter: defaultFormatter,
-      // improve performances by flushing (writing) logs at interval
-      // instead of writing logs every time
-      flushInterval: 1000,
-    }),
-  ],
-})
-
-log.info('JLiverTool starting')
-log.info('Logger init', { path: logFilePath })
-
-let dev: boolean = false
-if (process.env.NODE_ENV) {
-  dev = process.env.NODE_ENV.includes('development')
-  if (dev) {
-    log.setLevel(DEBUG)
-  }
-}
-
+// initialize store
 Store.initRenderer()
 const store = new Store()
+
+// initialize windows
+const window_manager = new WindowManager(
+  store,
+  () => {
+    log.info('All window loaded, starting backend service')
+    startBackendService()
+  },
+  () => {
+    log.info('Main window closed, stopping backend service')
+    stopBackendService()
+    app.quit()
+  }
+)
 
 let room: number = store.get('config.room', 21484828) as number
 let realroom = 0
@@ -246,14 +226,6 @@ function createMainWindow() {
       giftWindow?.webContents.send('reset')
       superchatWindow?.webContents.send('reset')
     }
-  })
-  ipcMain.on('openBrowser', () => {
-    require('openurl').open(
-      'https://link.bilibili.com/p/center/index/my-room/start-live#/my-room/start-live'
-    )
-  })
-  ipcMain.on('openURL', (_, arg) => {
-    require('openurl').open(arg)
   })
   ipcMain.on('exportGift', () => {
     exportGift()
