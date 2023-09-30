@@ -1,12 +1,15 @@
 import { app } from 'electron'
 import path = require('path')
+
 import {
   consoleOutput,
   DEBUG,
   defaultFormatter,
   INFO,
   Logger,
+  // @ts-ignore
 } from '@jalik/logger'
+// @ts-ignore
 import fileOutput from '@jalik/logger/dist/outputs/fileOutput.js'
 
 // Initialize logger
@@ -20,7 +23,7 @@ if (process.env.NODE_ENV) {
 
 class JLogger {
   private static _logger: Logger
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): Logger {
     if (!JLogger._logger) {
