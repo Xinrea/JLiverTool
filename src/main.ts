@@ -253,8 +253,8 @@ function createMainWindow() {
     nativeTheme.themeSource = themeSetting.includes('light')
       ? 'light'
       : themeSetting.includes('dark')
-      ? 'dark'
-      : 'system'
+        ? 'dark'
+        : 'system'
   } else {
     nativeTheme.themeSource = 'light'
     store.set('cache.theme', 'light')
@@ -453,7 +453,7 @@ app.whenReady().then(() => {
   createMainWindow()
   createGiftWindow()
   createSuperchatWindow()
-  app.on('activate', function () {})
+  app.on('activate', function () { })
   // 创建一个托盘实例，指定图标文件路径
   const icon = nativeImage.createFromPath(
     path.join(__dirname, 'assets/icons/main.png')
@@ -556,7 +556,7 @@ import {
   DanmuSend,
   UpdateRoomTitle,
   StopLive,
-} from './lib/bilibili/message'
+} from './lib/bilibili/biliws'
 
 const service = {
   stopConn: null,
@@ -625,7 +625,7 @@ async function startBackendService() {
                       sid: id,
                       data: msg,
                     },
-                    () => {}
+                    () => { }
                   )
                 }
                 let giftInfo = {
@@ -668,7 +668,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  () => {}
+                  () => { }
                 )
                 const guardBuy = {
                   medal: msg.data.medal,
@@ -699,7 +699,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  () => {}
+                  () => { }
                 )
                 superchatWindow?.webContents.send('superchat', {
                   id: id,

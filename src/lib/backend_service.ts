@@ -12,7 +12,7 @@ import {
   DanmuSend,
   UpdateRoomTitle,
   StopLive,
-} from './bilibili/message'
+} from './bilibili/biliws'
 import JEvent from './events'
 import JLogger from './logger'
 import { WindowManager, WindowType } from './window_manager'
@@ -24,7 +24,7 @@ export default class BackendService {
   private _cookies: string
   private _window_manager: WindowManager
 
-  public constructor() {}
+  public constructor() { }
   public async start(
     room: number,
     store: ElectronStore,
@@ -112,7 +112,7 @@ async function startBackendService() {
                       sid: id,
                       data: msg,
                     },
-                    () => {}
+                    () => { }
                   )
                 }
                 let giftInfo = {
@@ -155,7 +155,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  () => {}
+                  () => { }
                 )
                 const guardBuy = {
                   medal: msg.data.medal,
@@ -186,7 +186,7 @@ async function startBackendService() {
                     sid: id,
                     data: msg,
                   },
-                  () => {}
+                  () => { }
                 )
                 superchatWindow?.webContents.send('superchat', {
                   id: id,
