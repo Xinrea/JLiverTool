@@ -4,9 +4,10 @@ import path = require('path')
 import Languages from '../i18n'
 import Config from './global_config'
 import JLogger from './logger'
+import JEvent from './events'
 
 const L = Languages[Config.language]
-const log = JLogger.getInstance()
+const log = JLogger.getInstance('window_manager')
 
 export enum WindowType {
   WINVALID = 'invalid',
@@ -18,6 +19,9 @@ export enum WindowType {
 
 const DEFAULT_WINDOWSIZE = new Map()
 DEFAULT_WINDOWSIZE[WindowType.WMAIN] = [400, 800]
+DEFAULT_WINDOWSIZE[WindowType.WGIFT] = [400, 300]
+DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
+DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [400, 300]
 
 function WindowTypeTitle(wtype: WindowType): string {
   switch (wtype) {
@@ -84,11 +88,12 @@ class Window {
       `cache.${this.wtype}Size`,
       DEFAULT_WINDOWSIZE[wtype]
     ) as [number, number]
+    log.debug('Creating window', { window: this.wtype, size })
     // if not set position, electron will put window in the middle, that's what we need
     // so we firt initialize window and set position later
     // window created with show=false, cuz we need to adjust its position later
     this._window = new BrowserWindow({
-      parent: parent._window,
+      parent: parent ? parent._window : null,
       width: size[0],
       height: size[1],
       minHeight: 200,
@@ -112,7 +117,6 @@ class Window {
     if (wtype == WindowType.WMAIN) {
       this.show = true
     }
-
     this.registerEvents()
   }
 
@@ -128,18 +132,18 @@ class Window {
 
   // registerEvents handles window related events
   private registerEvents() {
-    this._window.on('close', function () {
+    this._window.on('close', () => {
       this._window.hide()
       this._store.set(`cache.${this.wtype}Pos`, this._window.getPosition())
       this._store.set(`cache.${this.wtype}Size`, this._window.getSize())
     })
-    this._window.on('closed', function () {
-      if (this._close_callback) {
-        this._close_callback()
+    this._window.on('closed', () => {
+      if (this._closed_callback) {
+        this._closed_callback()
       }
     })
-    this._window.webContents.on('did-finish-load', function () {
-      log.debug('Window content loaded', this.wtype)
+    this._window.webContents.on('did-finish-load', () => {
+      log.debug('Window content loaded', { window: this.wtype })
       this.loaded = true
       this._load_callback()
     })
@@ -199,7 +203,7 @@ export class WindowManager {
     )
   }
 
-  public sendTo(wtype: WindowType, channel: string, ...args: any[]) {
+  public sendTo(wtype: WindowType, channel: JEvent, ...args: any[]) {
     let target_window: Window = null
     switch (wtype) {
       case WindowType.WMAIN: {
@@ -216,7 +220,7 @@ export class WindowManager {
       }
     }
     if (target_window) {
-      target_window.send(channel, args)
+      target_window.send(JEvent[channel], args)
     }
   }
 

@@ -22,28 +22,26 @@ if (process.env.NODE_ENV) {
 }
 
 class JLogger {
-  private static _logger: Logger
-  private constructor() { }
+  private constructor() {}
 
-  public static getInstance(): Logger {
-    if (!JLogger._logger) {
-      JLogger._logger = new Logger({
-        level: dev ? DEBUG : INFO,
-        outputs: [
-          consoleOutput(),
-          fileOutput({
-            // the logs destination file
-            path: logFilePath,
-            // the formatter to use
-            formatter: defaultFormatter,
-            // improve performances by flushing (writing) logs at interval
-            // instead of writing logs every time
-            flushInterval: 1000,
-          }),
-        ],
-      })
-    }
-    return JLogger._logger
+  public static getInstance(name: string): Logger {
+    const logger = new Logger({
+      name,
+      level: dev ? DEBUG : INFO,
+      outputs: [
+        consoleOutput(),
+        fileOutput({
+          // the logs destination file
+          path: logFilePath,
+          // the formatter to use
+          formatter: defaultFormatter,
+          // improve performances by flushing (writing) logs at interval
+          // instead of writing logs every time
+          flushInterval: 1000,
+        }),
+      ],
+    })
+    return logger
   }
 }
 
