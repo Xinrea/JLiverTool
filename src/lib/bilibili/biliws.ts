@@ -2,7 +2,7 @@ import { WebSocket } from 'ws'
 import pako = require('pako')
 import JLogger from '../logger'
 
-const log = JLogger.getInstance()
+const log = JLogger.getInstance('biliws')
 
 export type WsInfo = {
   server: string
@@ -22,39 +22,56 @@ export type PackResult = {
 
 export enum MessageOP {
   KEEP_ALIVE = 2,
-  AUTH = 7
+  AUTH = 7,
 }
 
 export class BiliWsMessage {
-  private buffer: Uint8Array
-  private text_encoder: TextEncoder
-  private text_decoder: TextDecoder
+  private _buffer: Uint8Array
+  private _text_encoder: TextEncoder
+  private _text_decoder: TextDecoder
 
   constructor(op?: MessageOP, str?: string) {
-    this.text_encoder = new TextEncoder()
-    this.text_decoder = new TextDecoder()
+    this._text_encoder = new TextEncoder()
+    this._text_decoder = new TextDecoder()
     if (!op || !str) {
-      this.buffer = new Uint8Array()
+      this._buffer = new Uint8Array()
       return
     }
-    const header = new Uint8Array([0, 0, 0, 0, 0, 16, 0, 1, 0, 0, 0, op, 0, 0, 0, 1])
-    const data = this.text_encoder.encode(str)
+    const header = new Uint8Array([
+      0,
+      0,
+      0,
+      0,
+      0,
+      16,
+      0,
+      1,
+      0,
+      0,
+      0,
+      op,
+      0,
+      0,
+      0,
+      1,
+    ])
+    const data = this._text_encoder.encode(str)
     const packet_len = header.length + data.byteLength
     // Set data into buffer
-    this.buffer = new Uint8Array(packet_len)
-    this.buffer.set(header, 0)
-    this.buffer.set(data, header.length)
+    this._buffer = new Uint8Array(packet_len)
+    this._buffer.set(header, 0)
+    this._buffer.set(data, header.length)
     // Update packet_len in header
-    this.writeInt(this.buffer, 0, 4, packet_len)
+    this.writeInt(this._buffer, 0, 4, packet_len)
   }
 
   public SetBuffer(buffer: Uint8Array): BiliWsMessage {
-    this.buffer = buffer
+    this._buffer = buffer
     return this
   }
 
   public GetBuffer(): Buffer {
-    return Buffer.from(this.buffer)
+    return Buffer.from(this._buffer)
   }
 
   // ToPack decodes buffer into PackResult
@@ -67,20 +84,20 @@ export class BiliWsMessage {
       seq: 0,
       body: null,
     }
-    result.packetLen = this.readInt(this.buffer, 0, 4)
-    result.headerLen = this.readInt(this.buffer, 4, 2)
-    result.ver = this.readInt(this.buffer, 6, 2)
-    result.op = this.readInt(this.buffer, 8, 4)
-    result.seq = this.readInt(this.buffer, 12, 4)
+    result.packetLen = this.readInt(this._buffer, 0, 4)
+    result.headerLen = this.readInt(this._buffer, 4, 2)
+    result.ver = this.readInt(this._buffer, 6, 2)
+    result.op = this.readInt(this._buffer, 8, 4)
+    result.seq = this.readInt(this._buffer, 12, 4)
     if (result.op === 5) {
       result.body = []
       if (result.ver === 0) {
-        const data = this.buffer.slice(result.headerLen, result.packetLen)
-        const body = this.text_decoder.decode(data)
+        const data = this._buffer.slice(result.headerLen, result.packetLen)
+        const body = this._text_decoder.decode(data)
         result.body.push(JSON.parse(body))
       } else if (result.ver === 2) {
         const next_buffer = pako.inflate(
-          this.buffer.slice(result.headerLen, result.packetLen)
+          this._buffer.slice(result.headerLen, result.packetLen)
         )
         let offset = 0
         while (offset < next_buffer.length) {
@@ -91,7 +108,7 @@ export class BiliWsMessage {
            *    引入pako做message解压处理，具体代码链接如下
            *    https://github.com/nodeca/pako/blob/master/dist/pako.js
            */
-          const body = this.text_decoder.decode(data)
+          const body = this._text_decoder.decode(data)
           if (body) {
             result.body.push(JSON.parse(body))
           }
@@ -100,7 +117,7 @@ export class BiliWsMessage {
       }
     } else if (result.op === 3) {
       result.body = {
-        count: this.readInt(this.buffer, 16, 4),
+        count: this.readInt(this._buffer, 16, 4),
       }
     }
     return result
@@ -114,7 +131,12 @@ export class BiliWsMessage {
     return result
   }
 
-  private writeInt(buffer: Uint8Array, start: number, len: number, value: number) {
+  private writeInt(
+    buffer: Uint8Array,
+    start: number,
+    len: number,
+    value: number
+  ) {
     let i = 0
     while (i < len) {
       buffer[start + i] = value / Math.pow(256, len - i - 1)
@@ -124,65 +146,85 @@ export class BiliWsMessage {
 }
 
 export class BiliWebSocket {
-  private ws_info: WsInfo
-  private ws: WebSocket
-  private heartbeat_task: any
+  private _ws_info: WsInfo
+  private _ws: WebSocket
+  private _heartbeat_task: any
+  private _is_manual_close: boolean = false
+  private _is_reconnect: boolean = false
+  private _try_reconnect_count: number = 0
+
   public msg_handler: Function
 
   constructor(ws_info: WsInfo) {
-    this.ws_info = ws_info
+    this._ws_info = ws_info
   }
 
   public Connect(reconnect?: boolean) {
-    log.info('Connecting to room websocket', this.ws_info)
-    // Maybe connect from auto-reconnect
+    log.info('Connecting to room websocket', this._ws_info)
+    // Clean up old connection
     this.Disconnect()
 
+    if (reconnect) {
+      this._is_reconnect = true
+    }
+
     // Setup new connection
-    this.ws = new WebSocket(this.ws_info.server)
-    this.ws.on('open', () => {
+    this._ws = new WebSocket(this._ws_info.server)
+    this._ws.on('open', () => {
+      this._try_reconnect_count = 0
       // Prepare auth info
       const auth_info = {
-        uid: Number(this.ws_info.uid),
-        roomid: Number(this.ws_info.roomid),
+        uid: Number(this._ws_info.uid),
+        roomid: Number(this._ws_info.roomid),
         protover: 2,
         type: 2,
         platform: 'web',
-        key: this.ws_info.token,
+        key: this._ws_info.token,
       }
-      const auth_msg = new BiliWsMessage(MessageOP.AUTH, JSON.stringify(auth_info))
-      this.ws.send(auth_msg.GetBuffer())
+      const auth_msg = new BiliWsMessage(
+        MessageOP.AUTH,
+        JSON.stringify(auth_info)
+      )
+      this._ws.send(auth_msg.GetBuffer())
 
       // Setup task for heart beating
       const heart_msg = new BiliWsMessage(MessageOP.KEEP_ALIVE, '')
-      this.ws.send(heart_msg.GetBuffer())
-      this.heartbeat_task = setInterval(() => {
-        this.ws.send(heart_msg.GetBuffer())
+      this._heartbeat_task = setInterval(() => {
+        this._ws.send(heart_msg.GetBuffer())
       }, 30000)
     })
 
-    this.ws.on('message', (data: Buffer) => {
+    this._ws.on('message', (data: Buffer) => {
       const msg = new BiliWsMessage().SetBuffer(data)
       if (this.msg_handler) {
         this.msg_handler(msg.ToPack())
       }
     })
 
-    this.ws.on('close', () => {
-      log.info('Websocket closed', this.ws_info)
+    this._ws.on('close', () => {
+      log.info('Websocket closed', this._ws_info)
+      if (!this._is_manual_close && reconnect) {
+        if (this._try_reconnect_count < 5) {
+          this._try_reconnect_count++
+        }
+        setTimeout(() => {
+          log.info('Reconnecting to room websocket', this._ws_info)
+          this.Connect(true)
+        }, 1000 * this._try_reconnect_count)
+      }
     })
   }
 
   public Disconnect() {
-    if (this.heartbeat_task) {
-      clearInterval(this.heartbeat_task)
-      this.heartbeat_task = null
+    this._is_manual_close = true
+    if (this._heartbeat_task) {
+      clearInterval(this._heartbeat_task)
+      this._heartbeat_task = null
     }
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
+    if (this._ws) {
+      this._ws.close()
+      this._ws = null
     }
+    this._is_manual_close = false
   }
 }
-
-

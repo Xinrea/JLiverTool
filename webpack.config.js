@@ -3,6 +3,7 @@ const webpack = require('webpack')
 
 const frontendConfig = {
   mode: 'development',
+  devtool: 'inline-source-map',
   entry: {
     './src/gift-window/gift-window.min': './src/gift-window/gift-window.ts',
     './src/superchat-window/superchat-window.min':
@@ -37,9 +38,9 @@ const frontendConfig = {
 
 const preloadConfig = {
   mode: 'development',
+  devtool: 'inline-source-map',
   target: 'electron-preload',
   entry: {
-    './src/main': './src/main.ts',
     './src/preload': './src/preload.ts',
   },
   module: {
@@ -68,6 +69,7 @@ const preloadConfig = {
 
 const backendConfig = {
   mode: 'development',
+  devtool: 'inline-source-map',
   target: 'electron-main',
   entry: {
     './src/main': './src/main.ts',

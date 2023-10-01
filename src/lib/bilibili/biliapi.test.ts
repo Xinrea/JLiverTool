@@ -13,7 +13,7 @@ function readTestingCookies(): Cookies {
 describe('BiliApi', function () {
   describe('#roomInit', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.roomInit(new Cookies(), 21484828)
+      const resp = await BiliApi.RoomInit(new Cookies(), 21484828)
       resp.code.should.eq(0)
       resp.data.room_id.should.eq(21484828)
       resp.data.uid.should.eq(61639371)
@@ -21,7 +21,7 @@ describe('BiliApi', function () {
   })
   describe('#getRoomInfo', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.getRoomInfo(new Cookies(), 21484828)
+      const resp = await BiliApi.GetRoomInfo(new Cookies(), 21484828)
       resp.code.should.eq(0)
       resp.data.room_id.should.eq(21484828)
       resp.data.uid.should.eq(61639371)
@@ -29,20 +29,20 @@ describe('BiliApi', function () {
   })
   describe('#giftConfig', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.getGiftConfig(new Cookies(), 21484828)
+      const resp = await BiliApi.GetGiftConfig(new Cookies(), 21484828)
       resp.code.should.eq(0)
     })
   })
   describe('#getDanmuInfo', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.getDanmuInfo(new Cookies(), 21484828)
+      const resp = await BiliApi.GetDanmuInfo(new Cookies(), 21484828)
       resp.code.should.eq(0)
       resp.data.host_list.length.should.gt(0)
     })
   })
   describe('#getOnlineGoldRank', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.getOnlineGoldRank(
+      const resp = await BiliApi.GetOnlineGoldRank(
         new Cookies(),
         61639371,
         21484828
@@ -52,7 +52,7 @@ describe('BiliApi', function () {
   })
   describe('#getUserInfo', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.getUserInfo(new Cookies(), 475210)
+      const resp = await BiliApi.GetUserInfo(new Cookies(), 475210)
       resp.code.should.eq(0)
       resp.data.level.should.eq(6)
       resp.data.sex.should.eq(1)
@@ -61,7 +61,7 @@ describe('BiliApi', function () {
   describe('#sendDanmu', function () {
     it('🤔should send danmu successfully with valid cookies', async function () {
       const cookies = readTestingCookies()
-      const resp = await BiliApi.sendDanmu(
+      const resp = await BiliApi.SendDanmu(
         cookies,
         843610,
         'test from jlivertool'
@@ -72,7 +72,7 @@ describe('BiliApi', function () {
   describe('#updateRoomTitle', function () {
     it('🤔should update title successfully with valid cookies', async function () {
       const cookies = readTestingCookies()
-      const resp = await BiliApi.updateRoomTitle(
+      const resp = await BiliApi.UpdateRoomTitle(
         cookies,
         843610,
         'test' + Math.floor(Date.now() / 1000).toString()
@@ -83,7 +83,7 @@ describe('BiliApi', function () {
   describe('#stopRoomLive', function () {
     it('🤔should stop live successfully with valid cookies', async function () {
       const cookies = readTestingCookies()
-      const resp = await BiliApi.stopRoomLive(cookies, 843610)
+      const resp = await BiliApi.StopRoomLive(cookies, 843610)
       resp.code.should.eq(0)
     })
   })

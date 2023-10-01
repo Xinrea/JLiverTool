@@ -11,7 +11,7 @@ import StopLiveResponse from './api/room/stop_live'
 
 // WARN: All these api should be checked regularly, any api change will broke this tool
 class BiliApi {
-  public static async roomInit(
+  public static async RoomInit(
     cookies: Cookies,
     room: number
   ): Promise<RoomInitResponse> {
@@ -26,7 +26,7 @@ class BiliApi {
     return (await raw_response.json()) as RoomInitResponse
   }
 
-  public static async getRoomInfo(
+  public static async GetRoomInfo(
     cookies: Cookies,
     real_room: number
   ): Promise<GetInfoResponse> {
@@ -41,7 +41,7 @@ class BiliApi {
     return (await raw_response.json()) as GetInfoResponse
   }
 
-  public static async getGiftConfig(
+  public static async GetGiftConfig(
     cookies: Cookies,
     real_room: number
   ): Promise<GiftConfigResponse> {
@@ -56,7 +56,7 @@ class BiliApi {
     return (await raw_response.json()) as GiftConfigResponse
   }
 
-  public static async getDanmuInfo(
+  public static async GetDanmuInfo(
     cookies: Cookies,
     real_room: number
   ): Promise<GetDanmuInfoResponse> {
@@ -71,7 +71,7 @@ class BiliApi {
     return (await raw_response.json()) as GetDanmuInfoResponse
   }
 
-  public static async getOnlineGoldRank(
+  public static async GetOnlineGoldRank(
     cookies: Cookies,
     owner_id: number,
     real_room: number
@@ -87,7 +87,7 @@ class BiliApi {
     return (await raw_response.json()) as GetOnlineGoldRankResponse
   }
 
-  public static async getUserInfo(
+  public static async GetUserInfo(
     cookies: Cookies,
     uid: number
   ): Promise<UserInfoResponse> {
@@ -103,7 +103,7 @@ class BiliApi {
   }
 
   /** Valid cookies must be provided to send danmu. */
-  public static async sendDanmu(
+  public static async SendDanmu(
     cookies: Cookies,
     real_room: number,
     content: string
@@ -133,7 +133,7 @@ class BiliApi {
     return (await raw_response.json()) as SendDanmuResponse
   }
 
-  public static async updateRoomTitle(
+  public static async UpdateRoomTitle(
     cookies: Cookies,
     real_room: number,
     title: string
@@ -158,7 +158,7 @@ class BiliApi {
     return (await raw_response.json()) as UpdateRoomTitleResponse
   }
 
-  public static async stopRoomLive(
+  public static async StopRoomLive(
     cookies: Cookies,
     real_room: number
   ): Promise<StopLiveResponse> {
