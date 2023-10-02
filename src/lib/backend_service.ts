@@ -7,6 +7,7 @@ import { WindowManager, WindowType } from './window_manager'
 import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
+import ConfigStore from './config_store'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -28,15 +29,17 @@ export default class BackendService {
   private _gift_list_cache: Map<number, any> = new Map()
   private _gift_store: GiftStore = new GiftStore()
 
+  private _window_ready: boolean[] = [false, false, false]
+
   public constructor() {}
   public async Start(
     room: number,
-    store: ElectronStore,
+    store: ConfigStore,
     window_manager: WindowManager
   ) {
     log.info('Starting backend service', { room })
     this._window_manager = window_manager
-    let cookies = store.get('config.cookies', new Cookies()) as Cookies
+    let cookies = store.Cookies
     this._cookies = new Cookies().fromJSON(cookies)
     log.info('Loading cookies', { uid: this._cookies.DedeUserID })
 
@@ -127,6 +130,9 @@ export default class BackendService {
         return this._gift_store.Get(args[0], this._real_room)
       }
     )
+    ipcMain.on(JEvent[JEvent.EVENT_WINDOW_READY], (e, wtype: WindowType) => {
+      this._window_ready[wtype] = true
+    })
   }
 
   private msgHandler(packet: PackResult) {

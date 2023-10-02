@@ -13,8 +13,10 @@ import {
 import fileOutput from '@jalik/logger/dist/outputs/fileOutput.js'
 
 // Initialize logger
-const appDataPath = app.getPath('appData')
-const logFilePath = path.join(appDataPath, 'JLiverTool.log')
+const logPath = app.getPath('logs')
+const logFilePath = path.join(logPath, 'JLiverTool.log')
+
+console.log('Log file path:', logFilePath)
 
 let dev: boolean = false
 if (process.env.NODE_ENV) {
