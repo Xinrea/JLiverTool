@@ -5,6 +5,7 @@ import Languages from '../i18n'
 import Config from './global_config'
 import JLogger from './logger'
 import JEvent from './events'
+import ConfigStore from './config_store'
 
 const L = Languages[Config.language]
 const log = JLogger.getInstance('window_manager')
@@ -16,12 +17,6 @@ export enum WindowType {
   WSUPERCHAT = 'superchat',
   WSETTING = 'setting',
 }
-
-const DEFAULT_WINDOWSIZE = new Map()
-DEFAULT_WINDOWSIZE[WindowType.WMAIN] = [400, 800]
-DEFAULT_WINDOWSIZE[WindowType.WGIFT] = [400, 300]
-DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
-DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [400, 300]
 
 function WindowTypeTitle(wtype: WindowType): string {
   switch (wtype) {
@@ -40,10 +35,9 @@ function WindowTypeTitle(wtype: WindowType): string {
 
 class Window {
   private _window: BrowserWindow
-  private _store: ElectronStore
+  private _store: ConfigStore
 
   private _closed_callback: Function
-  private _load_callback: Function
 
   public wtype: WindowType
   public loaded: boolean = false
@@ -58,6 +52,7 @@ class Window {
     if (this._window) {
       this._window.setAlwaysOnTop(b, 'screen-saver')
     }
+    this._store.OnTop = b
   }
 
   public _show: boolean = false
@@ -75,27 +70,18 @@ class Window {
     }
   }
 
-  public constructor(
-    parent: Window,
-    wtype: WindowType,
-    store: ElectronStore,
-    loadCallback: Function
-  ) {
+  public constructor(parent: Window, wtype: WindowType, store: ConfigStore) {
     this.wtype = wtype
     this._store = store
-    this._load_callback = loadCallback
-    const size = store.get(
-      `cache.${this.wtype}Size`,
-      DEFAULT_WINDOWSIZE[wtype]
-    ) as [number, number]
-    log.debug('Creating window', { window: this.wtype, size })
+    const setting = store.GetWindowCachedSetting(wtype)
+    log.debug('Creating window', { window: this.wtype, setting: setting })
     // if not set position, electron will put window in the middle, that's what we need
     // so we firt initialize window and set position later
     // window created with show=false, cuz we need to adjust its position later
     this._window = new BrowserWindow({
       parent: parent ? parent._window : null,
-      width: size[0],
-      height: size[1],
+      width: setting.size[0],
+      height: setting.size[1],
       minHeight: 200,
       minWidth: 320,
       transparent: true,
@@ -108,11 +94,9 @@ class Window {
       },
     })
     this._window.loadFile(`src/${this.wtype}-window/index.html`)
-    if (store.has(`cache.${this.wtype}Pos`)) {
-      const pos = store.get(`cache.${this.wtype}Pos`) as [number, number]
-      this._window.setPosition(pos[0], pos[1])
+    if (setting.pos) {
+      this._window.setPosition(setting.pos[0], setting.pos[1])
     }
-    this.top = store.get('config.alwaysOnTop', false) as boolean
     // main window should always show at starting
     if (wtype == WindowType.WMAIN) {
       this.show = true
@@ -134,8 +118,10 @@ class Window {
   private registerEvents() {
     this._window.on('close', () => {
       this._window.hide()
-      this._store.set(`cache.${this.wtype}Pos`, this._window.getPosition())
-      this._store.set(`cache.${this.wtype}Size`, this._window.getSize())
+      this._store.UpdateWindowCachedSetting(this.wtype, {
+        pos: [this._window.getPosition()[0], this._window.getPosition()[1]],
+        size: [this._window.getSize()[0], this._window.getSize()[1]],
+      })
     })
     this._window.on('closed', () => {
       if (this._closed_callback) {
@@ -145,7 +131,6 @@ class Window {
     this._window.webContents.on('did-finish-load', () => {
       log.debug('Window content loaded', { window: this.wtype })
       this.loaded = true
-      this._load_callback()
     })
   }
 }
@@ -155,40 +140,21 @@ export class WindowManager {
   private _gift_window: Window
   private _superchat_window: Window
   private _setting_window: Window
-  private _load_cnt: number = 0
-  private _all_load_callback: Function
 
-  public constructor(
-    store: ElectronStore,
-    allLoadedCallback: Function,
-    mainClosedCallback: Function
-  ) {
-    this._all_load_callback = allLoadedCallback
-    this._main_window = new Window(
-      null,
-      WindowType.WMAIN,
-      store,
-      this.loadCallback
-    )
+  public constructor(store: ConfigStore, mainClosedCallback: Function) {
+    this._main_window = new Window(null, WindowType.WMAIN, store)
     this._main_window.setClosedCallback(mainClosedCallback)
     // window should be created and hide at start, cuz gift data stream need to be processed in window render process
-    this._gift_window = new Window(
-      this._main_window,
-      WindowType.WGIFT,
-      store,
-      this.loadCallback
-    )
+    this._gift_window = new Window(this._main_window, WindowType.WGIFT, store)
     this._superchat_window = new Window(
       this._main_window,
       WindowType.WSUPERCHAT,
-      store,
-      this.loadCallback
+      store
     )
     this._setting_window = new Window(
       this._main_window,
       WindowType.WSETTING,
-      store,
-      this.loadCallback
+      store
     )
 
     this.registerEvents()
@@ -221,13 +187,6 @@ export class WindowManager {
     }
     if (target_window) {
       target_window.send(JEvent[channel], args)
-    }
-  }
-
-  private loadCallback() {
-    this._load_cnt += 1
-    if (this._load_cnt == 4) {
-      this._all_load_callback()
     }
   }
 

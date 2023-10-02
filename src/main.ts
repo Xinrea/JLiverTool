@@ -1,53 +1,20 @@
 // Modules to control application life and create native browser window
-import {
-  app,
-  BrowserWindow,
-  dialog,
-  ipcMain,
-  nativeTheme,
-  screen,
-  Tray,
-  Menu,
-  nativeImage,
-} from 'electron'
-import {
-  DanmuMockMessage,
-  GiftMockMessage,
-  GuardMockMessage,
-  SuperChatMockMessage,
-} from './common/mock'
+import { app, dialog, Tray, Menu, nativeImage } from 'electron'
 import path = require('path')
-import Store = require('electron-store')
-import https = require('https')
-import {
-  GetNewQrCode,
-  CheckQrCodeStatus,
-  Logout,
-} from './lib/bilibili/bililogin'
-import * as type from './lib/types'
 import { WindowManager } from './lib/window_manager'
 import JLogger from './lib/logger'
 import BackendService from './lib/backend_service'
+import ConfigStore from './lib/config_store'
 
 const log = JLogger.getInstance('main')
 
-// initialize store
-Store.initRenderer()
-const store = new Store()
-
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
 let tray = null
 app.whenReady().then(() => {
   app.on('activate', function () {})
-  // 创建一个托盘实例，指定图标文件路径
   const icon = nativeImage.createFromPath(
     path.join(__dirname, 'assets/icons/main.png')
   )
   tray = new Tray(icon.resize({ width: 16, height: 16 }))
-
-  // 创建一个菜单，包含一些项
   const contextMenu = Menu.buildFromTemplate([
     {
       label: '关于',
@@ -114,18 +81,14 @@ app.on('window-all-closed', function () {
 })
 
 app.on('ready', () => {
-  // initialize windows
-  const window_manager = new WindowManager(
-    store,
-    () => {
-      log.info('All window loaded, starting backend service')
-    },
-    () => {
-      log.info('Main window closed, stopping backend service')
-      app.quit()
-    }
-  )
-
+  const store = new ConfigStore()
   const backend_service = new BackendService()
+  // initialize windows
+  const window_manager = new WindowManager(store, () => {
+    log.info('Main window closed, exiting')
+    backend_service.Stop()
+    app.quit()
+  })
+
   backend_service.Start(21484828, store, window_manager)
 })
