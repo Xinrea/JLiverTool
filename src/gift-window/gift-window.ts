@@ -2,16 +2,24 @@ import * as moment from 'moment'
 import 'moment/locale/zh-cn'
 import { createConfirmBox } from '../common/confirmbox'
 import Alpine from 'alpinejs'
+import { JLiverAPI } from '../preload'
+import JEvent from '../lib/events'
+
+declare global {
+  interface Window {
+    jliverAPI: JLiverAPI
+  }
+}
 
 Alpine.data('appStatus', () => ({
   init() {
     this.base.$panel = document.getElementById('gift-panel')
     // Opacity related
-    window.electron.onDidChange('config.opacity', (newValue) => {
+    window.jliverAPI.onDidChange('config.opacity', (newValue) => {
       this.base.opacity = newValue
     })
-    this.base.opacity = window.electron.get('config.opacity', 1)
-    window.electron.register('gift', (arg) => {
+    this.base.opacity = window.jliverAPI.get('config.opacity', 1)
+    window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (arg) => {
       console.log(arg)
       if (this.giftsCheck.has(arg.id)) {
         for (let i = 0; i < this.gifts.length; i++) {
@@ -32,14 +40,7 @@ Alpine.data('appStatus', () => ({
         }
       }, 10)
     })
-    window.electron.register('reset', () => {
-      this.base.lastSelected = null
-      this.base.autoScroll = true
-      this.base.lastPosition = 0
-      this.gifts = []
-      window.electron.send('reset')
-    })
-    window.electron.register('guard', (arg) => {
+    window.jliverAPI.register(JEvent.EVENT_NEW_SUPER_CHAT, (arg) => {
       this.gifts.push(arg)
       setTimeout(() => {
         if (this.base.autoScroll) {
@@ -52,10 +53,10 @@ Alpine.data('appStatus', () => ({
   base: {
     $panel: null,
     get filterFree(): boolean {
-      return window.electron.get('config.passFreeGift', true)
+      return window.jliverAPI.get('config.passFreeGift', true)
     },
     set filterFree(value: boolean) {
-      window.electron.set('config.passFreeGift', value)
+      window.jliverAPI.set('config.passFreeGift', value)
     },
     opacity: 1,
     lastSelected: null,
@@ -76,7 +77,7 @@ Alpine.data('appStatus', () => ({
   gifts: [],
   giftsCheck: new Map(),
   giftRemove(id: string) {
-    window.electron.send('remove', {
+    window.jliverAPI.send('remove', {
       type: 'gifts',
       id: id,
     })
@@ -91,8 +92,8 @@ Alpine.data('appStatus', () => ({
     document.body.appendChild(
       createConfirmBox('确定清空所有礼物和上舰记录？', () => {
         this.gifts = new Map()
-        window.electron.send('clear-gifts')
-        window.electron.send('clear-guards')
+        window.jliverAPI.send('clear-gifts')
+        window.jliverAPI.send('clear-guards')
       })
     )
   },
