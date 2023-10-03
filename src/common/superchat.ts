@@ -1,10 +1,18 @@
-import * as moment from 'moment/moment';
-import { renderContent } from './content-render';
-import { createMedal } from './medal';
-import { SuperChat } from './superchatInterface';
+import * as moment from 'moment/moment'
+import { renderContent } from './content-render'
+import { createMedal } from './medal'
+import { SuperChat } from './superchatInterface'
 
 // Create Superchat HTML entry for display
-export function createSuperchatEntry({ id, g, removable }: { id: string; g: SuperChat; removable: boolean }): HTMLElement {
+export function createSuperchatEntry({
+  id,
+  g,
+  removable,
+}: {
+  id: string
+  g: SuperChat
+  removable: boolean
+}): HTMLElement {
   const level = getSuperChatLevel(g.data.price)
   const scEntry = document.createElement('div')
   scEntry.classList.add('sc-entry')
@@ -57,15 +65,17 @@ export function createSuperchatEntry({ id, g, removable }: { id: string; g: Supe
   scEntryContent.appendChild(scEntryContentText)
   const scEntryContentTime = document.createElement('div')
   scEntryContentTime.classList.add('sc-entry-content-time')
-  scEntryContentTime.innerText = moment(g.data.start_time * 1000).format('YYYY/MM/DD HH:mm:ss')
+  scEntryContentTime.innerText = moment(g.data.start_time * 1000).format(
+    'YYYY/MM/DD HH:mm:ss'
+  )
   scEntryContent.appendChild(scEntryContentTime)
   scEntry.appendChild(scEntryContent)
   if (removable) {
     scEntry.ondblclick = () => {
       scEntry.remove()
-      window.electron.send('remove', {
+      window.jliverAPI.send('remove', {
         type: 'superchats',
-        id: id
+        id: id,
       })
     }
   }

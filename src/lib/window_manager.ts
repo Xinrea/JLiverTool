@@ -101,6 +101,7 @@ class Window {
     if (wtype == WindowType.WMAIN) {
       this.show = true
     }
+    this._window.webContents.openDevTools()
     this.registerEvents()
   }
 

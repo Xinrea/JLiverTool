@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { WindowType } from './lib/window_manager'
-import * as Store from 'electron-store'
+import JEvent from './lib/events'
+const Store = require('electron-store')
 const store = new Store()
 
 let listeners = {}
@@ -35,7 +36,18 @@ ipcRenderer.on('store-watch', (_, key, newValue) => {
   }
 })
 
-contextBridge.exposeInMainWorld('electron', {
+export type JLiverAPI = {
+  get: (key: string, d: any) => any
+  set: (key: string, value: any) => void
+  onDidChange: (key: string, callback: Function) => void
+  invoke: (channel: string, ...args: any[]) => Promise<any>
+  hideWindow: (wtype: WindowType) => Promise<void>
+  showWindow: (wtype: WindowType) => Promise<void>
+  send: (channel: string, ...args: any[]) => void
+  register: (channel: JEvent, callback: Function) => void
+}
+
+contextBridge.exposeInMainWorld('jliverAPI', {
   get: (key: string, d: any) => {
     return store.get(key, d)
   },
@@ -57,7 +69,7 @@ contextBridge.exposeInMainWorld('electron', {
     return ipcRenderer.invoke('showWindow', wtype)
   },
   send: ipcRenderer.send,
-  register: (name: string, callback: Function) => {
-    listeners[name] = callback
+  register: (channel: JEvent, callback: Function) => {
+    listeners[JEvent[channel]] = callback
   },
 })

@@ -1,6 +1,9 @@
 import * as Store from 'electron-store'
 import { Cookies } from './types'
 import { WindowType } from './window_manager'
+import JLogger from './logger'
+
+const log = JLogger.getInstance('config_store')
 
 export type WindowSetting = {
   pos: [number, number]
@@ -17,6 +20,7 @@ export class ConfigStore {
   private _store: Store
 
   constructor() {
+    log.debug('Initializing config store')
     Store.initRenderer()
     this._store = new Store()
   }
