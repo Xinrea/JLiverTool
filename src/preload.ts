@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { WindowType } from './lib/window_manager'
 import JEvent from './lib/events'
-const Store = require('electron-store')
+import * as Store from 'electron-store'
 const store = new Store()
 
 let listeners = {}
