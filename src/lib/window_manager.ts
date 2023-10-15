@@ -1,5 +1,4 @@
 import { BrowserWindow, ipcMain } from 'electron'
-import ElectronStore = require('electron-store')
 import path = require('path')
 import Languages from '../i18n'
 import Config from './global_config'

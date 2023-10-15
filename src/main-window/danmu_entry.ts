@@ -116,3 +116,4 @@ function doCreateGiftEntry(medal, sender, g) {
   }
   return danmuEntry
 }
+
