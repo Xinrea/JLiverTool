@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="stylesheet" href="../common/common.css" />
     <link rel="stylesheet" href="main_window.css" />
-    <title>弹幕</title>
+    <title>danmu</title>
   </head>
 
   <body x-data="appStatus">
@@ -40,7 +40,7 @@
             :class="medalDisplay && 'enabled'"
             @click="medalDisplay = !medalDisplay"
           >
-            <span class="tooltiptext">粉丝牌</span>
+            <span class="tooltiptext" x-text="l.texts.FANS_MEDAL"></span>
             <svg viewBox="0 0 24 24">
               <path
                 d="M20,2H4V4L9.81,8.36C6.14,9.57 4.14,13.53 5.35,17.2C6.56,20.87 10.5,22.87 14.19,21.66C17.86,20.45 19.86,16.5 18.65,12.82C17.95,10.71 16.3,9.05 14.19,8.36L20,4V2M14.94,19.5L12,17.78L9.06,19.5L9.84,16.17L7.25,13.93L10.66,13.64L12,10.5L13.34,13.64L16.75,13.93L14.16,16.17L14.94,19.5Z"
@@ -53,7 +53,7 @@
             :class="enterMessage && 'enabled'"
             @click="enterMessage = !enterMessage"
           >
-            <span class="tooltiptext">进房信息</span>
+            <span class="tooltiptext" x-text="l.texts.ENTER_INFO"></span>
             <svg viewBox="0 0 24 24">
               <path
                 d="M14 12L10 8V11H2V13H10V16M22 12A10 10 0 0 1 2.46 15H4.59A8 8 0 1 0 4.59 9H2.46A10 10 0 0 1 22 12Z"
@@ -66,7 +66,7 @@
             :class="base.alwaysOnTop && 'enabled'"
             @click="toggleOnTop"
           >
-            <span class="tooltiptext">置顶</span>
+            <span class="tooltiptext" x-text="l.texts.PINNED"></span>
             <svg viewBox="0 0 24 24">
               <path
                 d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z"
@@ -76,7 +76,7 @@
           <div
             id="minimize-button"
             class="title-button tooltip"
-            @click="minimize()"
+            @click="minimize"
           >
             <svg
               fill="white"
@@ -104,33 +104,38 @@
                 id="open-gift-window"
                 href="#"
                 @click="electronSend('showGiftWindow');menuOpen = false"
-                >礼物窗口</a
-              >
+                x-text="l.texts.GIFT_WINDOW"
+              ></a>
               <a
                 id="open-sc-window"
                 href="#"
                 @click="electronSend('showSuperchatWindow');menuOpen = false"
-                >醒目留言窗口</a
-              >
+                x-text="l.texts.SUPERCHAT_WINDOW"
+              ></a>
               <a
                 id="export-gift"
                 href="#"
                 @click="electronSend('exportGift');menuOpen = false"
-                >导出礼物记录</a
-              >
+                x-text="l.texts.EXPORT_GIFT"
+              ></a>
               <a
                 id="open-setting"
                 href="#"
                 @click="electronSend('setting');menuOpen = false"
-                >设置</a
-              >
-              <a id="quit" href="#" @click="electronSend('quit')">退出</a>
+                x-text="l.texts.SETTING"
+              ></a>
+              <a
+                id="quit"
+                href="#"
+                @click="electronSend('quit')"
+                x-text="l.texts.QUIT"
+              ></a>
             </div>
           </div>
         </div>
       </div>
       <div id="danmuSender" x-show="login">
-        <span>></span>
+        <span></span>
         <span
           class="input"
           role="textbox"

@@ -38,8 +38,7 @@ export default class BackendService {
   ) {
     log.info('Starting backend service', { room })
     this._window_manager = window_manager
-    let cookies = store.Cookies
-    this._cookies = new Cookies().fromJSON(cookies)
+    this._cookies = store.Cookies
     log.info('Loading cookies', { uid: this._cookies.DedeUserID })
 
     const status_response = await BiliApi.RoomInit(this._cookies, room)
@@ -124,18 +123,26 @@ export default class BackendService {
 
   private initEvents() {
     // Window request previous gift data
-    ipcMain.handle(
-      JEvent[JEvent.INVOKE_REQUEST_GIFT_DATA],
-      (event, ...args) => {
-        return this._gift_store.Get(args[0], this._real_room)
-      }
-    )
-    ipcMain.on(JEvent[JEvent.EVENT_WINDOW_READY], (e, wtype: WindowType) => {
+    ipcMain.handle(JEvent[JEvent.INVOKE_REQUEST_GIFT_DATA], (_, ...args) => {
+      return this._gift_store.Get(args[0], this._real_room)
+    })
+    ipcMain.on(JEvent[JEvent.EVENT_WINDOW_READY], (_, wtype: WindowType) => {
       this._window_ready[wtype] = true
+    })
+    // only used in main window
+    ipcMain.handle(JEvent[JEvent.INVOKE_WINDOW_MINIMIZE], (_) => {
+      this._window_manager.minimize(WindowType.WMAIN)
     })
   }
 
   private msgHandler(packet: PackResult) {
-    log.debug('Received message', packet)
+    if (packet.body.cmd === 'DANMU_MSG') {
+      log.debug('Received message', packet)
+    }
+    this._window_manager.sendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_DANMU,
+      packet
+    )
   }
 }

@@ -1,12 +1,9 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import path = require('path')
-import Languages from '../i18n'
-import Config from './global_config'
 import JLogger from './logger'
 import JEvent from './events'
 import ConfigStore from './config_store'
 
-const L = Languages[Config.language]
 const log = JLogger.getInstance('window_manager')
 
 export enum WindowType {
@@ -20,13 +17,13 @@ export enum WindowType {
 function WindowTypeTitle(wtype: WindowType): string {
   switch (wtype) {
     case WindowType.WMAIN:
-      return L.TITLE_MAIN
+      return 'danmu'
     case WindowType.WGIFT:
-      return L.TITLE_GIFT
+      return 'gift'
     case WindowType.WSUPERCHAT:
-      return L.TITLE_SUPERCHAT
+      return 'superchat'
     case WindowType.WSETTING:
-      return L.TITLE_SETTING
+      return 'setting'
     default:
   }
   throw new Error('Invalid WindowType')
@@ -40,6 +37,12 @@ class Window {
 
   public wtype: WindowType
   public loaded: boolean = false
+
+  public minimize() {
+    if (this._window) {
+      this._window.minimize()
+    }
+  }
 
   public get top(): boolean {
     if (!this._window) {
@@ -212,15 +215,40 @@ export class WindowManager {
     switch (wtype) {
       case WindowType.WMAIN: {
         this._main_window.show = show
+        return
       }
       case WindowType.WGIFT: {
         this._gift_window.show = show
+        return
       }
       case WindowType.WSUPERCHAT: {
         this._superchat_window.show = show
+        return
       }
       case WindowType.WSETTING: {
         this._setting_window.show = show
+        return
+      }
+    }
+  }
+
+  public minimize(wtype: WindowType) {
+    switch (wtype) {
+      case WindowType.WMAIN: {
+        this._main_window.minimize()
+        return
+      }
+      case WindowType.WGIFT: {
+        this._gift_window.minimize()
+        return
+      }
+      case WindowType.WSUPERCHAT: {
+        this._superchat_window.minimize()
+        return
+      }
+      case WindowType.WSETTING: {
+        this._setting_window.minimize()
+        return
       }
     }
   }
