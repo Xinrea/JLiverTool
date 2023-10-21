@@ -84,7 +84,7 @@ class Window {
       minHeight: 200,
       minWidth: 320,
       transparent: true,
-      frame: false,
+      //      frame: false,
       show: false,
       title: WindowTypeTitle(wtype),
       icon: path.join(__dirname, `icons/${this.wtype}.png`),
@@ -108,9 +108,10 @@ class Window {
     this._closed_callback = f
   }
 
-  public send(channel: string, ...args: any[]) {
+  public send(channel: string, args: any) {
     if (this._window) {
       this._window.webContents.send(channel, args)
+      log.debug('Sending message to window', { window: this.wtype, channel })
     }
   }
 
@@ -169,20 +170,27 @@ export class WindowManager {
     )
   }
 
-  public sendTo(wtype: WindowType, channel: JEvent, ...args: any[]) {
+  public sendTo(wtype: WindowType, channel: JEvent, args: any) {
     let target_window: Window = null
     switch (wtype) {
       case WindowType.WMAIN: {
         target_window = this._main_window
+        break
       }
       case WindowType.WGIFT: {
         target_window = this._gift_window
+        break
       }
       case WindowType.WSUPERCHAT: {
         target_window = this._superchat_window
+        break
       }
       case WindowType.WSETTING: {
         target_window = this._setting_window
+        break
+      }
+      default: {
+        log.error('Invalid window type', { wtype })
       }
     }
     if (target_window) {
