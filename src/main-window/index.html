@@ -63,8 +63,8 @@
           <div
             id="top-button"
             class="title-button tooltip"
-            :class="onTop && 'enabled'"
-            @click="onTop = !onTop"
+            :class="base.alwaysOnTop && 'enabled'"
+            @click="toggleOnTop"
           >
             <span class="tooltiptext">置顶</span>
             <svg viewBox="0 0 24 24">
@@ -259,4 +259,3 @@
   </body>
   <script src="main_window.min.js"></script>
 </html>
-

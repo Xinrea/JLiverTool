@@ -1,4 +1,3 @@
-import ElectronStore = require('electron-store')
 import { ipcMain } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
@@ -104,6 +103,7 @@ export default class BackendService {
       this._owner_uid,
       this._real_room
     )
+    log.debug('Updating online number', { online: online_response.data })
     this._window_manager.sendTo(
       WindowType.WMAIN,
       JEvent.EVENT_UPDATE_ONLINE,

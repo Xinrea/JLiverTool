@@ -17,32 +17,37 @@ declare global {
   }
 }
 
-console.log(window)
-
 const appStatus = {
-  init() {
+  async init() {
+    console.log('Init config')
+    console.log(await window.jliverAPI.get('config', true))
+    this.alwaysOnTop = await window.jliverAPI.get('config.alwaysOnTop', true)
     configLoad()
     this.base.fontSize = parseInt(window.jliverAPI.get('config.fontSize', 18))
     this.base.opacity = window.jliverAPI.get('config.opacity', 1)
-    window.jliverAPI.onDidChange('config.opacity', (newValue) => {
+    this.login = window.jliverAPI.get('config.loggined', false)
+    window.jliverAPI.onDidChange('config.loggined', (v: boolean) => {
+      this.login = v
+    })
+    window.jliverAPI.onDidChange('config.opacity', (newValue: number) => {
       this.base.opacity = newValue
     })
-    window.jliverAPI.onDidChange('config.fontSize', (newValue) => {
+    window.jliverAPI.onDidChange('config.fontSize', (newValue: number) => {
       this.base.fontSize = newValue
     })
-    window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg) => {
-      console.log(arg)
-      this.base.heat = arg
-    })
-    window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg) => {
+
+    console.log('Init events')
+    window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg: any) => {
       if (this.base.live) {
-        if (arg >= 9999) {
+        if (arg.onlineNum >= 9999) {
           this.base.online = '> 10000'
         } else {
-          this.base.online = String(arg)
+          this.base.online = String(arg.onlineNum)
         }
       }
     })
+
+    console.log('Init smooth scroll')
     setInterval(() => {
       if (this.danmuPanel.autoScroll && this.danmuPanel.scrollRemain > 0) {
         const v = Math.ceil(this.danmuPanel.scrollRemain / 60)
@@ -59,10 +64,6 @@ const appStatus = {
         this.danmuPanel.scrollRemain = 0
       }
     }, 16)
-    this.login = window.jliverAPI.get('config.loggined', false)
-    window.jliverAPI.onDidChange('config.loggined', (v) => {
-      this.login = v
-    })
   },
   base: {
     title: 'Loading',
@@ -70,6 +71,7 @@ const appStatus = {
     live: false,
     fontSize: 18,
     opacity: 1,
+    alwaysOnTop: false,
   },
   windowStatus: {
     gift: false,
@@ -122,12 +124,11 @@ const appStatus = {
       }
     },
   },
-  get onTop(): boolean {
-    return window.jliverAPI.get('config.alwaysOnTop', true)
-  },
-  set onTop(value) {
-    window.jliverAPI.set('config.alwaysOnTop', value)
-    window.jliverAPI.send('setAlwaysOnTop', value)
+
+  async toggleOnTop() {
+    this.base.alwaysOnTop = !this.base.alwaysOnTop
+    window.jliverAPI.set('config.alwaysOnTop', this.base.alwaysOnTop)
+    window.jliverAPI.send('setAlwaysOnTop', this.base.alwaysOnTop)
   },
   get enterMessage(): boolean {
     return window.jliverAPI.get('config.enableEnter', false)

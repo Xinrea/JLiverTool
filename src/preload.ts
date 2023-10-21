@@ -1,40 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { WindowType } from './lib/window_manager'
 import JEvent from './lib/events'
-import * as Store from 'electron-store'
-const store = new Store()
-
-let listeners = {}
-
-function registerListener(name: string) {
-  ipcRenderer.on(name, (_, arg) => {
-    if (listeners[name]) {
-      listeners[name](arg)
-    }
-  })
-}
-
-registerListener('blur')
-registerListener('update-room')
-registerListener('update-heat')
-registerListener('update-online')
-registerListener('danmu')
-registerListener('gift')
-registerListener('guard')
-registerListener('superchat')
-registerListener('interact')
-registerListener('entry-effect')
-registerListener('reset')
-registerListener('updateOpacity')
-registerListener('updateWindowStatus')
-
-let watched = {}
-
-ipcRenderer.on('store-watch', (_, key, newValue) => {
-  if (watched[key]) {
-    watched[key](newValue)
-  }
-})
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -47,16 +13,57 @@ export type JLiverAPI = {
   register: (channel: JEvent, callback: Function) => void
 }
 
+// listeners keeps all registered callback in renderer process
+let listeners: Map<string, Function[]> = new Map()
+function registerListener(name: string) {
+  console.log('registering listener', name)
+  ipcRenderer.on(name, (_, arg) => {
+    if (listeners[name]) {
+      listeners[name].forEach((callback: Function) => {
+        callback(arg)
+      })
+    }
+  })
+}
+
+registerListener('blur')
+registerListener('update-room')
+registerListener('update-heat')
+registerListener(JEvent[JEvent.EVENT_UPDATE_ONLINE])
+registerListener('danmu')
+registerListener('gift')
+registerListener('guard')
+registerListener('superchat')
+registerListener('interact')
+registerListener('entry-effect')
+registerListener('reset')
+registerListener('updateOpacity')
+registerListener('updateWindowStatus')
+
+// watcher keeps all registered onDidChange callback in renderer process
+// and will be called when ipcMain send store-watch event
+let watcher: Map<string, Function[]> = new Map()
+ipcRenderer.invoke('store-register')
+ipcRenderer.on('store-watch', (_, key, newValue) => {
+  if (watcher[key]) {
+    watcher[key].forEach((callback: Function) => {
+      callback(newValue)
+    })
+  }
+})
+
 contextBridge.exposeInMainWorld('jliverAPI', {
-  get: (key: string, d: any) => {
-    return store.get(key, d)
+  get: (key: string, d: any = null) => {
+    return ipcRenderer.invoke('store-get', key, d)
   },
   set: (key: string, value: any) => {
-    store.set(key, value)
-    ipcRenderer.send('store-watch', key, value)
+    return ipcRenderer.invoke('store-set', key, value)
   },
   onDidChange: (key: string, callback: Function) => {
-    watched[key] = callback
+    if (!watcher[key]) {
+      watcher[key] = []
+    }
+    watcher[key].push(callback)
   },
   //TODO this should be removed after all channel wrapped in function
   invoke: (channel: string, ...args: any[]) => {
@@ -68,8 +75,16 @@ contextBridge.exposeInMainWorld('jliverAPI', {
   showWindow: (wtype: WindowType) => {
     return ipcRenderer.invoke('showWindow', wtype)
   },
+  //TODO this should be removed after all channel wrapped in function
   send: ipcRenderer.send,
   register: (channel: JEvent, callback: Function) => {
-    listeners[JEvent[channel]] = callback
+    if (JEvent[channel] === undefined) {
+      console.log('invalid channel', channel)
+      return
+    }
+    if (!listeners[JEvent[channel]]) {
+      listeners[JEvent[channel]] = []
+    }
+    listeners[JEvent[channel]].push(callback)
   },
 })
