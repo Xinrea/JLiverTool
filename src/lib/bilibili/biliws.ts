@@ -33,7 +33,7 @@ export class BiliWsMessage {
   constructor(op?: MessageOP, str?: string) {
     this._text_encoder = new TextEncoder()
     this._text_decoder = new TextDecoder()
-    if (!op || !str) {
+    if (!op) {
       this._buffer = new Uint8Array()
       return
     }
@@ -150,7 +150,6 @@ export class BiliWebSocket {
   private _ws: WebSocket
   private _heartbeat_task: any
   private _is_manual_close: boolean = false
-  private _is_reconnect: boolean = false
   private _try_reconnect_count: number = 0
 
   public msg_handler: Function
@@ -164,10 +163,6 @@ export class BiliWebSocket {
     // Clean up old connection
     this.Disconnect()
 
-    if (reconnect) {
-      this._is_reconnect = true
-    }
-
     // Setup new connection
     this._ws = new WebSocket(this._ws_info.server)
     this._ws.on('open', () => {
@@ -176,7 +171,7 @@ export class BiliWebSocket {
       const auth_info = {
         uid: Number(this._ws_info.uid),
         roomid: Number(this._ws_info.roomid),
-        protover: 2,
+        protover: 3,
         type: 2,
         platform: 'web',
         key: this._ws_info.token,
@@ -189,7 +184,11 @@ export class BiliWebSocket {
 
       // Setup task for heart beating
       const heart_msg = new BiliWsMessage(MessageOP.KEEP_ALIVE, '')
+      this._ws.send(heart_msg.GetBuffer())
       this._heartbeat_task = setInterval(() => {
+        log.debug('Sending heartbeat message', {
+          buffer: heart_msg.GetBuffer().length,
+        })
         this._ws.send(heart_msg.GetBuffer())
       }, 30000)
     })
@@ -203,6 +202,10 @@ export class BiliWebSocket {
 
     this._ws.on('close', () => {
       log.info('Websocket closed', this._ws_info)
+      if (this._heartbeat_task) {
+        clearInterval(this._heartbeat_task)
+        this._heartbeat_task = null
+      }
       if (!this._is_manual_close && reconnect) {
         if (this._try_reconnect_count < 5) {
           this._try_reconnect_count++
@@ -217,10 +220,6 @@ export class BiliWebSocket {
 
   public Disconnect() {
     this._is_manual_close = true
-    if (this._heartbeat_task) {
-      clearInterval(this._heartbeat_task)
-      this._heartbeat_task = null
-    }
     if (this._ws) {
       this._ws.close()
       this._ws = null

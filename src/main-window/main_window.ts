@@ -10,6 +10,7 @@ import {
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
+import { Languages, LanguageType } from '../i18n'
 
 declare global {
   interface Window {
@@ -20,12 +21,14 @@ declare global {
 const appStatus = {
   async init() {
     console.log('Init config')
-    console.log(await window.jliverAPI.get('config', true))
-    this.alwaysOnTop = await window.jliverAPI.get('config.alwaysOnTop', true)
-    configLoad()
+    const initialConfig = await window.jliverAPI.get('config', {})
+
+    this.l.texts = Languages[initialConfig.language || LanguageType.zh]
+    this.alwaysOnTop = initialConfig.alwaysOnTop
     this.base.fontSize = parseInt(window.jliverAPI.get('config.fontSize', 18))
     this.base.opacity = window.jliverAPI.get('config.opacity', 1)
     this.login = window.jliverAPI.get('config.loggined', false)
+
     window.jliverAPI.onDidChange('config.loggined', (v: boolean) => {
       this.login = v
     })
@@ -38,6 +41,7 @@ const appStatus = {
 
     console.log('Init events')
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg: any) => {
+      // Update online number in title
       if (this.base.live) {
         if (arg.onlineNum >= 9999) {
           this.base.online = '> 10000'
@@ -45,6 +49,11 @@ const appStatus = {
           this.base.online = String(arg.onlineNum)
         }
       }
+    })
+    window.jliverAPI.register(JEvent.EVENT_UPDATE_ROOM, (arg: any) => {
+      // Update room title
+      this.base.title = arg.title
+      this.base.live = arg.live_status == 1
     })
 
     console.log('Init smooth scroll')
@@ -64,6 +73,10 @@ const appStatus = {
         this.danmuPanel.scrollRemain = 0
       }
     }, 16)
+  },
+  // language texts
+  l: {
+    texts: {},
   },
   base: {
     title: 'Loading',
@@ -151,7 +164,7 @@ const appStatus = {
     window.jliverAPI.send(channel, ...args)
   },
   minimize() {
-    window.jliverAPI.send('minimize')
+    window.jliverAPI.invoke(JEvent[JEvent.INVOKE_WINDOW_MINIMIZE])
   },
   onReceiveNewDanmu(special, medalInfo, sender, content) {
     this.danmuPanel.doClean()
@@ -223,9 +236,3 @@ Alpine.data('appStatus', () => appStatus)
 Alpine.start()
 
 const $danmuArea = document.getElementById('danmu')
-
-function configLoad() {
-  // Load initial medal style in setter
-  appStatus.medalDisplay = appStatus.medalDisplay
-  // Init font size
-}

@@ -4,6 +4,7 @@ import fs = require('fs')
 import { Cookies } from './types'
 import { WindowType } from './window_manager'
 import JLogger from './logger'
+import JEvent from './events'
 
 const log = JLogger.getInstance('config_store')
 
@@ -20,42 +21,49 @@ DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [400, 300]
 
 class Store {
   private webContents: Electron.WebContents[]
+  private configPath: string
   constructor() {
-    log.debug('Initializing store')
+    this.configPath = path.join(app.getPath('userData'), 'config.json')
     this.webContents = []
     this.initConfigHandlers()
+    log.debug('Config store initialized', { path: this.configPath })
   }
 
   private initConfigHandlers() {
-    ipcMain.handle('store-get', (_, key, d) => {
+    ipcMain.handle(JEvent[JEvent.INVOKE_STORE_GET], (_, key, d) => {
       log.debug('store-get called', { key, d })
       return this.get(key, d)
     })
 
-    ipcMain.handle('store-set', (_, key, value) => {
+    ipcMain.handle(JEvent[JEvent.INVOKE_STORE_SET], (_, key, value) => {
       log.debug('store-set called', { key, value })
       return this.set(key, value)
     })
 
     // this helps us to send value change event to all renderers
     // so store-register must be called in preload.ts
-    ipcMain.handle('store-register', (event) => {
+    ipcMain.handle(JEvent[JEvent.INVOKE_STORE_REGISTER], (event) => {
       log.debug('store-register called', { sender: event.sender.getTitle() })
       this.webContents.push(event.sender)
     })
   }
 
   get(key: string, default_value: any = null) {
-    const configPath = path.join(app.getPath('userData'), 'config.json')
-    if (!fs.existsSync(configPath)) {
-      fs.writeFileSync(configPath, '{}')
+    if (!fs.existsSync(this.configPath)) {
+      fs.writeFileSync(this.configPath, '{}')
     }
-    const configJson = fs.readFileSync(configPath, 'utf8')
-    const configJs = JSON.parse(configJson)
-    if (key in configJs) {
-      return configJs[key]
+    const configJson = fs.readFileSync(this.configPath, 'utf8')
+    let configJs = JSON.parse(configJson)
+    const keys = key.split('.')
+    let cur = configJs
+    for (let i = 0; i < keys.length; i++) {
+      const k = keys[i]
+      if (!(k in cur)) {
+        return default_value
+      }
+      cur = cur[k]
     }
-    return default_value
+    return cur
   }
 
   set(key: string, value: any) {
@@ -65,7 +73,16 @@ class Store {
     }
     const configJson = fs.readFileSync(configPath, 'utf8')
     const configJs = JSON.parse(configJson)
-    configJs[key] = value
+    const keys = key.split('.')
+    let cur = configJs
+    for (let i = 0; i < keys.length - 1; i++) {
+      const k = keys[i]
+      if (!(k in cur)) {
+        cur[k] = {}
+      }
+      cur = cur[k]
+    }
+    cur[keys[keys.length - 1]] = value
     const newConfigJson = JSON.stringify(configJs)
     fs.writeFileSync(configPath, newConfigJson)
     this.webContents.forEach((wc) => {
@@ -99,12 +116,12 @@ export class ConfigStore {
   }
 
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {
-    let setting = this._store.get(`config.window.${wtype}`, null)
-    if (setting === null) {
-      setting = {
-        pos: null,
-        size: DEFAULT_WINDOWSIZE[wtype],
-      }
+    let setting = this._store.get(`config.window.${wtype}`, {
+      pos: null,
+      size: DEFAULT_WINDOWSIZE[wtype],
+    })
+    if (setting.size === null) {
+      log.fatal('Window size is null', { wtype })
     }
     return setting as WindowSetting
   }

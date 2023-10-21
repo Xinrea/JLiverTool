@@ -4,7 +4,7 @@ export enum LanguageType {
   zh,
 }
 
-const L = new Map()
-L[LanguageType.zh] = zh
+export const Languages = new Map()
+Languages[LanguageType.zh] = zh
 
-export default L
+export default Languages

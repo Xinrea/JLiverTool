@@ -96,3 +96,13 @@ export type SuperChat = {
   price: number
   sender: Sender
 }
+
+export type EmojiContent = {
+  bulge_display: number
+  emoticon_unique: string
+  height: number
+  in_player_area: number
+  is_dynamic: number
+  url: string
+  width: number
+}
