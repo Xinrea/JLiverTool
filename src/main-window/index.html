@@ -33,12 +33,12 @@
             <div id="online" x-text="base.live?base.online:''"></div>
           </div>
         </div>
-        <div>
+        <div x-data="toggles">
           <div
             id="medal-button"
             class="title-button tooltip"
-            :class="medalDisplay && 'enabled'"
-            @click="medalDisplay = !medalDisplay"
+            :class="values['medal-display'] && 'enabled'"
+            @click="toggle('medal-display')"
           >
             <span class="tooltiptext" x-text="l.texts.FANS_MEDAL"></span>
             <svg viewBox="0 0 24 24">
@@ -50,8 +50,8 @@
           <div
             id="enter-button"
             class="title-button tooltip"
-            :class="enterMessage && 'enabled'"
-            @click="enterMessage = !enterMessage"
+            :class="values['enter-message'] && 'enabled'"
+            @click="toggle('enter-message')"
           >
             <span class="tooltiptext" x-text="l.texts.ENTER_INFO"></span>
             <svg viewBox="0 0 24 24">
@@ -63,8 +63,8 @@
           <div
             id="top-button"
             class="title-button tooltip"
-            :class="base.alwaysOnTop && 'enabled'"
-            @click="toggleOnTop"
+            :class="values['always-on-top'] && 'enabled'"
+            @click="toggle('always-on-top')"
           >
             <span class="tooltiptext" x-text="l.texts.PINNED"></span>
             <svg viewBox="0 0 24 24">

@@ -18,16 +18,43 @@ declare global {
   }
 }
 
+const toggles = {
+  async init() {
+    console.log('Init toggles')
+    const config = await window.jliverAPI.get('config', {})
+    this.values['always-on-top'] = config['always-on-top'] || false
+    this.values['enter-message'] = config['enter-message'] || false
+    this.values['medal-display'] = config['medal-display'] || false
+  },
+  values: {
+    'always-on-top': false,
+    'enter-message': false,
+    'medal-display': false,
+  },
+  toggle(name: string) {
+    this.values[name] = !this.values[name]
+    window.jliverAPI.set(`config.${name}`, this.values[name])
+    if (name == 'always-on-top') {
+      window.jliverAPI.send('setAlwaysOnTop', this.values[name])
+    }
+    if (name == 'medal-display') {
+      document.documentElement.style.setProperty(
+        '--medal-display',
+        this.values[name] ? 'inline-block' : 'none'
+      )
+    }
+  },
+}
+
 const appStatus = {
   async init() {
     console.log('Init config')
     const initialConfig = await window.jliverAPI.get('config', {})
 
     this.l.texts = Languages[initialConfig.language || LanguageType.zh]
-    this.alwaysOnTop = initialConfig.alwaysOnTop
-    this.base.fontSize = parseInt(window.jliverAPI.get('config.fontSize', 18))
-    this.base.opacity = window.jliverAPI.get('config.opacity', 1)
-    this.login = window.jliverAPI.get('config.loggined', false)
+    this.base.fontSize = initialConfig.fontSize || 18
+    this.base.opacity = initialConfig.opacity || 1
+    this.login = initialConfig.loggined || false
 
     window.jliverAPI.onDidChange('config.loggined', (v: boolean) => {
       this.login = v
@@ -87,7 +114,6 @@ const appStatus = {
     live: false,
     fontSize: 18,
     opacity: 1,
-    alwaysOnTop: false,
   },
   windowStatus: {
     gift: false,
@@ -139,28 +165,6 @@ const appStatus = {
         $danmuArea.removeChild($danmuArea.children[0])
       }
     },
-  },
-
-  async toggleOnTop() {
-    this.base.alwaysOnTop = !this.base.alwaysOnTop
-    window.jliverAPI.set('config.alwaysOnTop', this.base.alwaysOnTop)
-    window.jliverAPI.send('setAlwaysOnTop', this.base.alwaysOnTop)
-  },
-  get enterMessage(): boolean {
-    return window.jliverAPI.get('config.enableEnter', false)
-  },
-  set enterMessage(value) {
-    window.jliverAPI.set('config.enableEnter', value)
-  },
-  get medalDisplay(): boolean {
-    return window.jliverAPI.get('config.medalDisplay', false)
-  },
-  set medalDisplay(value) {
-    window.jliverAPI.set('config.medalDisplay', value)
-    document.documentElement.style.setProperty(
-      '--medal-display',
-      value ? 'inline-block' : 'none'
-    )
   },
   menuOpen: false,
   electronSend: (channel, ...args) => {
@@ -236,6 +240,7 @@ const appStatus = {
 }
 
 Alpine.data('appStatus', () => appStatus)
+Alpine.data('toggles', () => toggles)
 Alpine.start()
 
 const $danmuArea = document.getElementById('danmu')
