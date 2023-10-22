@@ -7,6 +7,7 @@ import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
 import ConfigStore from './config_store'
+import { MessageDanmu } from './messages'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -31,6 +32,7 @@ export default class BackendService {
   private _window_ready: boolean[] = [false, false, false]
 
   public constructor() {}
+
   public async Start(
     room: number,
     store: ConfigStore,
@@ -136,13 +138,18 @@ export default class BackendService {
   }
 
   private msgHandler(packet: PackResult) {
-    if (packet.body.cmd === 'DANMU_MSG') {
-      log.debug('Received message', packet)
+    for (const msg of packet.body) {
+      log.debug('Recieved message', { msg })
+      switch (msg.cmd) {
+        case 'DANMU_MSG': {
+          const danmu_msg = new MessageDanmu(msg)
+          this._window_manager.sendTo(
+            WindowType.WMAIN,
+            JEvent.EVENT_NEW_DANMU,
+            danmu_msg
+          )
+        }
+      }
     }
-    this._window_manager.sendTo(
-      WindowType.WMAIN,
-      JEvent.EVENT_NEW_DANMU,
-      packet
-    )
   }
 }

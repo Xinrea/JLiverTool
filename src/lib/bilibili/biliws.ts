@@ -1,5 +1,6 @@
 import { WebSocket } from 'ws'
 import pako = require('pako')
+import brotli = require('brotli')
 import JLogger from '../logger'
 
 const log = JLogger.getInstance('biliws')
@@ -17,12 +18,23 @@ export type PackResult = {
   ver: number
   op: number
   seq: number
-  body: any
+  body: any[]
 }
 
 export enum MessageOP {
   KEEP_ALIVE = 2,
+  KEEP_ALIVE_REPLY = 3,
+  SEND_MSG = 4,
+  SEND_MSG_REPLY = 5,
   AUTH = 7,
+  AUTH_REPLY = 8,
+}
+
+export enum WsBodyVer {
+  NORMAL,
+  HEARTBEAT,
+  DEFLATE,
+  BROTLI,
 }
 
 export class BiliWsMessage {
@@ -82,45 +94,89 @@ export class BiliWsMessage {
       ver: 0,
       op: 0,
       seq: 0,
-      body: null,
+      body: [],
     }
     result.packetLen = this.readInt(this._buffer, 0, 4)
     result.headerLen = this.readInt(this._buffer, 4, 2)
     result.ver = this.readInt(this._buffer, 6, 2)
     result.op = this.readInt(this._buffer, 8, 4)
     result.seq = this.readInt(this._buffer, 12, 4)
-    if (result.op === 5) {
-      result.body = []
-      if (result.ver === 0) {
-        const data = this._buffer.slice(result.headerLen, result.packetLen)
-        const body = this._text_decoder.decode(data)
-        result.body.push(JSON.parse(body))
-      } else if (result.ver === 2) {
-        const next_buffer = pako.inflate(
-          this._buffer.slice(result.headerLen, result.packetLen)
-        )
-        let offset = 0
-        while (offset < next_buffer.length) {
-          const packetLen = this.readInt(next_buffer, offset + 0, 4)
-          const headerLen = 16 // readInt(buffer,offset + 4,4)
-          const data = next_buffer.slice(offset + headerLen, offset + packetLen)
-          /**
-           *    引入pako做message解压处理，具体代码链接如下
-           *    https://github.com/nodeca/pako/blob/master/dist/pako.js
-           */
-          const body = this._text_decoder.decode(data)
-          if (body) {
-            result.body.push(JSON.parse(body))
-          }
-          offset += packetLen
-        }
+    switch (result.op) {
+      case MessageOP.AUTH_REPLY: {
+        log.debug('Received auth reply')
+        break
       }
-    } else if (result.op === 3) {
-      result.body = {
-        count: this.readInt(this._buffer, 16, 4),
+      case MessageOP.KEEP_ALIVE_REPLY: {
+        log.debug('Received keepalive reply')
+        result.body = [
+          {
+            count: this.readInt(this._buffer, 16, 4),
+          },
+        ]
+        break
+      }
+      case MessageOP.SEND_MSG_REPLY: {
+        log.debug('Received msg', {
+          length: result.packetLen - result.headerLen,
+          ver: result.ver,
+        })
+        result.body = []
+        switch (result.ver) {
+          case WsBodyVer.NORMAL: {
+            const data = this._buffer.slice(result.headerLen, result.packetLen)
+            const body = this._text_decoder.decode(data)
+            result.body.push(JSON.parse(body))
+            break
+          }
+          case WsBodyVer.DEFLATE: {
+            const next_buffer = pako.inflate(
+              this._buffer.slice(result.headerLen, result.packetLen)
+            )
+            result.body = this.parseDecompressed(next_buffer)
+            break
+          }
+          case WsBodyVer.BROTLI: {
+            const body_buffer = Buffer.from(
+              this._buffer.slice(result.headerLen, result.packetLen)
+            )
+            const decompressed_body = brotli.decompress(
+              body_buffer,
+              result.packetLen
+            )
+            result.body = this.parseDecompressed(decompressed_body)
+            break
+          }
+          default: {
+            log.error('Unknown message body ver', { ver: result.ver })
+          }
+        }
+        break
+      }
+      default: {
+        log.error('Message op known', { op: result.op })
       }
     }
     return result
+  }
+
+  private parseDecompressed(buffer: Uint8Array): any[] {
+    let bodys = []
+    let offset = 0
+    while (offset < buffer.length) {
+      const packetLen = this.readInt(buffer, offset, 4)
+      const headerLen = 16 // readInt(buffer,offset + 4,4)
+      const data = buffer.slice(offset + headerLen, offset + packetLen)
+      /**
+       *    引入pako做message解压处理，具体代码链接如下
+       *    https://github.com/nodeca/pako/blob/master/dist/pako.js
+       */
+      const body = this._text_decoder.decode(data)
+      if (body) {
+        bodys.push(JSON.parse(body))
+      }
+      offset += packetLen
+    }
+    return bodys
   }
 
   private readInt(buffer: Uint8Array, start: number, len: number): number {
@@ -146,7 +202,7 @@ export class BiliWsMessage {
 }
 
 export class BiliWebSocket {
-  private _ws_info: WsInfo
+  private readonly _ws_info: WsInfo
   private _ws: WebSocket
   private _heartbeat_task: any
   private _is_manual_close: boolean = false
@@ -186,11 +242,8 @@ export class BiliWebSocket {
       const heart_msg = new BiliWsMessage(MessageOP.KEEP_ALIVE, '')
       this._ws.send(heart_msg.GetBuffer())
       this._heartbeat_task = setInterval(() => {
-        log.debug('Sending heartbeat message', {
-          buffer: heart_msg.GetBuffer().length,
-        })
         this._ws.send(heart_msg.GetBuffer())
-      }, 30000)
+      }, 10 * 1000)
     })
 
     this._ws.on('message', (data: Buffer) => {

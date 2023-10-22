@@ -114,7 +114,6 @@ class Window {
   public send(channel: string, args: any) {
     if (this._window) {
       this._window.webContents.send(channel, args)
-      log.debug('Sending message to window', { window: this.wtype, channel })
     }
   }
 

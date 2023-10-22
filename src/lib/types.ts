@@ -6,16 +6,15 @@ export class Cookies {
   bili_jct: string
   gourl: string
 
-  public constructor() {}
-  public fromJSON(object: Object): Cookies {
+  public constructor(object: Object) {
     this.DedeUserID = object['DedeUserID']
     this.DedeUserID__ckMd5 = object['DedeUserID__ckMd5']
     this.Expires = object['Expires']
     this.SESSDATA = object['SESSDATA']
     this.bili_jct = object['bili_jct']
     this.gourl = object['gourl']
-    return this
   }
+
   public str(): string {
     // If SESSDATA contains %, then it has already been encoded.
     if (this.SESSDATA == undefined) {
@@ -43,27 +42,23 @@ export type DBCondition = {
   sid?: string
 }
 
-export type Sender = {
+export class Sender {
   uid: number
   uname: string
   face: string
-  medal_info: MedalInfo
+  medal_info: MedalInfo = new MedalInfo()
 }
 
-export type MedalInfo = {
+export class MedalInfo {
   anchor_roomid: number
   anchor_uname: string
   guard_level: number
-  icon_id: number
-  is_lighted: number
   medal_color: number
   medal_color_border: number
-  medal_color_end: number
   medal_color_start: number
+  medal_color_end: number
   medal_level: number
   medal_name: string
-  special: string
-  target_id: number
 }
 
 export type Gift = {
