@@ -29,6 +29,7 @@ function registerListener(event: JEvent) {
 
 registerListener(JEvent.EVENT_UPDATE_ROOM)
 registerListener(JEvent.EVENT_UPDATE_ONLINE)
+registerListener(JEvent.EVENT_NEW_DANMU)
 
 // watcher keeps all registered onDidChange callback in renderer process
 // and will be called when ipcMain send store-watch event

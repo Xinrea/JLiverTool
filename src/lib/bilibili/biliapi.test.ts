@@ -5,15 +5,14 @@ require('chai').should()
 
 function readTestingCookies(): Cookies {
   const rawdata = readFileSync('.cookiestest')
-  const cookies = new Cookies()
-  cookies.fromJSON(JSON.parse(rawdata.toString()))
+  const cookies = new Cookies(JSON.parse(rawdata.toString()))
   return cookies
 }
 
 describe('BiliApi', function () {
   describe('#roomInit', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.RoomInit(new Cookies(), 21484828)
+      const resp = await BiliApi.RoomInit(new Cookies({}), 21484828)
       resp.code.should.eq(0)
       resp.data.room_id.should.eq(21484828)
       resp.data.uid.should.eq(61639371)
@@ -21,7 +20,7 @@ describe('BiliApi', function () {
   })
   describe('#getRoomInfo', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.GetRoomInfo(new Cookies(), 21484828)
+      const resp = await BiliApi.GetRoomInfo(new Cookies({}), 21484828)
       resp.code.should.eq(0)
       resp.data.room_id.should.eq(21484828)
       resp.data.uid.should.eq(61639371)
@@ -29,13 +28,13 @@ describe('BiliApi', function () {
   })
   describe('#giftConfig', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.GetGiftConfig(new Cookies(), 21484828)
+      const resp = await BiliApi.GetGiftConfig(new Cookies({}), 21484828)
       resp.code.should.eq(0)
     })
   })
   describe('#getDanmuInfo', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.GetDanmuInfo(new Cookies(), 21484828)
+      const resp = await BiliApi.GetDanmuInfo(new Cookies({}), 21484828)
       resp.code.should.eq(0)
       resp.data.host_list.length.should.gt(0)
     })
@@ -43,7 +42,7 @@ describe('BiliApi', function () {
   describe('#getOnlineGoldRank', function () {
     it('🤔should get response with correct value', async function () {
       const resp = await BiliApi.GetOnlineGoldRank(
-        new Cookies(),
+        new Cookies({}),
         61639371,
         21484828
       )
@@ -52,7 +51,7 @@ describe('BiliApi', function () {
   })
   describe('#getUserInfo', function () {
     it('🤔should get response with correct value', async function () {
-      const resp = await BiliApi.GetUserInfo(new Cookies(), 475210)
+      const resp = await BiliApi.GetUserInfo(new Cookies({}), 475210)
       resp.code.should.eq(0)
       resp.data.level.should.eq(6)
       resp.data.sex.should.eq(1)

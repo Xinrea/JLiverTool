@@ -100,7 +100,8 @@ export class ConfigStore {
   }
 
   public get Cookies(): Cookies {
-    return this._store.get('config.cookies', new Cookies()) as Cookies
+    const cookiesData = this._store.get('config.cookies', {})
+    return new Cookies(cookiesData)
   }
 
   public set Cookies(cookies: Cookies) {

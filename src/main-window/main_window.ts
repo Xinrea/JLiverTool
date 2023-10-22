@@ -55,6 +55,9 @@ const appStatus = {
       this.base.title = arg.title
       this.base.live = arg.live_status == 1
     })
+    window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: any) => {
+      console.log(arg)
+    })
 
     console.log('Init smooth scroll')
     setInterval(() => {
