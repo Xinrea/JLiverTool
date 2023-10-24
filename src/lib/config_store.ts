@@ -1,8 +1,7 @@
 import { app, ipcMain } from 'electron'
 import path = require('path')
 import fs = require('fs')
-import { Cookies } from './types'
-import { WindowType } from './window_manager'
+import { Cookies, WindowType } from './types'
 import JLogger from './logger'
 import JEvent from './events'
 
@@ -103,7 +102,6 @@ export class ConfigStore {
     const cookiesData = this._store.get('config.cookies', {})
     return new Cookies(cookiesData)
   }
-
   public set Cookies(cookies: Cookies) {
     this._store.set('config.cookies', cookies)
   }
@@ -111,9 +109,15 @@ export class ConfigStore {
   public get OnTop(): boolean {
     return this._store.get('config.alwaysOnTop', false) as boolean
   }
-
   public set OnTop(b: boolean) {
     this._store.set('config.alwaysOnTop', b)
+  }
+
+  public get Room(): number {
+    return this._store.get('config.room', 0) as number
+  }
+  public set Room(room: number) {
+    this._store.set('config.room', room)
   }
 
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {

@@ -3,16 +3,9 @@ import path = require('path')
 import JLogger from './logger'
 import JEvent from './events'
 import ConfigStore from './config_store'
+import { WindowType } from './types'
 
 const log = JLogger.getInstance('window_manager')
-
-export enum WindowType {
-  WINVALID = 'invalid',
-  WMAIN = 'main',
-  WGIFT = 'gift',
-  WSUPERCHAT = 'superchat',
-  WSETTING = 'setting',
-}
 
 function WindowTypeTitle(wtype: WindowType): string {
   switch (wtype) {
@@ -85,9 +78,9 @@ class Window {
       width: setting.size[0],
       height: setting.size[1],
       minHeight: 200,
-      minWidth: 320,
+      minWidth: 380,
       transparent: true,
-      //      frame: false,
+      frame: false,
       show: false,
       title: WindowTypeTitle(wtype),
       icon: path.join(__dirname, `icons/${this.wtype}.png`),
@@ -202,12 +195,47 @@ export class WindowManager {
 
   // registerEvents initialize all ipcMain related events
   private registerEvents() {
-    ipcMain.handle('hideWindow', (_, wtype: WindowType) => {
-      this.toggleWindowShow(wtype, false)
-    })
-    ipcMain.handle('showWindow', (_, wtype: WindowType) => {
-      this.toggleWindowShow(wtype, true)
-    })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_WINDOW_HIDE],
+      (_, wtype: WindowType) => {
+        this.toggleWindowShow(wtype, false)
+      }
+    )
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_WINDOW_SHOW],
+      (_, wtype: WindowType) => {
+        this.toggleWindowShow(wtype, true)
+      }
+    )
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_WINDOW_MINIMIZE],
+      (_, wtype: WindowType) => {
+        this.minimize(wtype)
+      }
+    )
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_WINDOW_ALWAYSONTOP],
+      (_, wtype: WindowType, value: boolean) => {
+        switch (wtype) {
+          case WindowType.WMAIN: {
+            this._main_window.top = value
+            return
+          }
+          case WindowType.WGIFT: {
+            this._gift_window.top = value
+            return
+          }
+          case WindowType.WSUPERCHAT: {
+            this._superchat_window.top = value
+            return
+          }
+          case WindowType.WSETTING: {
+            this._setting_window.top = value
+            return
+          }
+        }
+      }
+    )
   }
 
   private toggleWindowShow(wtype: WindowType, show: boolean) {

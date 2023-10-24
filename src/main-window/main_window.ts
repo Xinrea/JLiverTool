@@ -11,6 +11,7 @@ import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
+import { WindowType } from '../lib/types'
 
 declare global {
   interface Window {
@@ -25,6 +26,12 @@ const toggles = {
     this.values['always-on-top'] = config['always-on-top'] || false
     this.values['enter-message'] = config['enter-message'] || false
     this.values['medal-display'] = config['medal-display'] || false
+
+    // always-on-top should be set after init
+    window.jliverAPI.window.alwaysOnTop(
+      WindowType.WMAIN,
+      this.values['always-on-top']
+    )
   },
   values: {
     'always-on-top': false,
@@ -35,7 +42,7 @@ const toggles = {
     this.values[name] = !this.values[name]
     window.jliverAPI.set(`config.${name}`, this.values[name])
     if (name == 'always-on-top') {
-      window.jliverAPI.send('setAlwaysOnTop', this.values[name])
+      window.jliverAPI.window.alwaysOnTop(WindowType.WMAIN, this.values[name])
     }
     if (name == 'medal-display') {
       document.documentElement.style.setProperty(
@@ -43,6 +50,32 @@ const toggles = {
         this.values[name] ? 'inline-block' : 'none'
       )
     }
+  },
+}
+
+const menu = {
+  open: false,
+  // get menu item id
+  click(e: any) {
+    const id = e.target.getAttribute('id')
+    if (id) {
+      switch (id) {
+        case 'gift-window': {
+          window.jliverAPI.window.show(WindowType.WGIFT)
+          break
+        }
+        case 'superchat-window': {
+          window.jliverAPI.window.show(WindowType.WSUPERCHAT)
+          break
+        }
+        case 'setting-window': {
+          window.jliverAPI.window.show(WindowType.WSETTING)
+          break
+        }
+        default:
+      }
+    }
+    this.open = false
   },
 }
 
@@ -166,12 +199,8 @@ const appStatus = {
       }
     },
   },
-  menuOpen: false,
-  electronSend: (channel, ...args) => {
-    window.jliverAPI.send(channel, ...args)
-  },
   minimize() {
-    window.jliverAPI.invoke(JEvent[JEvent.INVOKE_WINDOW_MINIMIZE])
+    window.jliverAPI.window.minimize(WindowType.WMAIN)
   },
   onReceiveNewDanmu(special, medalInfo, sender, content) {
     this.danmuPanel.doClean()
@@ -241,6 +270,7 @@ const appStatus = {
 
 Alpine.data('appStatus', () => appStatus)
 Alpine.data('toggles', () => toggles)
+Alpine.data('menu', () => menu)
 Alpine.start()
 
 const $danmuArea = document.getElementById('danmu')

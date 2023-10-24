@@ -8,12 +8,6 @@
   </head>
 
   <body x-data="appStatus">
-    <div
-      id="cover"
-      x-show="menuOpen"
-      @click="menuOpen = false"
-      x-transition
-    ></div>
     <div id="app" :style="`--global-opacity: ${base.opacity}`">
       <div
         id="title-bar"
@@ -90,8 +84,20 @@
               <path d="M6 11H18V13H6V11Z" />
             </svg>
           </div>
-          <div id="dropdown">
-            <div id="menu-button" class="title-button" @click="menuOpen = true">
+          <div id="dropdown" x-data="menu">
+            <div
+              id="cover"
+              x-show="open"
+              @click="click"
+              x-transition
+              style="z-index: 99; position: fixed; left: 0; right: 0"
+            ></div>
+            <div
+              id="menu-button"
+              class="title-button"
+              @click="open = !open"
+              style="z-index: 100"
+            >
               <svg viewBox="0 0 24 24">
                 <path
                   fill="white"
@@ -99,42 +105,42 @@
                 />
               </svg>
             </div>
-            <div id="dropdown-content" x-show="menuOpen" x-transition>
+            <div
+              id="dropdown-content"
+              x-show="open"
+              x-transition
+              style="z-index: 100"
+            >
               <a
-                id="open-gift-window"
+                id="gift-window"
                 href="#"
-                @click="electronSend('showGiftWindow');menuOpen = false"
+                @click="click"
                 x-text="l.texts.GIFT_WINDOW"
               ></a>
               <a
-                id="open-sc-window"
+                id="superchat-window"
                 href="#"
-                @click="electronSend('showSuperchatWindow');menuOpen = false"
+                @click="click"
                 x-text="l.texts.SUPERCHAT_WINDOW"
               ></a>
               <a
                 id="export-gift"
                 href="#"
-                @click="electronSend('exportGift');menuOpen = false"
+                @click="click"
                 x-text="l.texts.EXPORT_GIFT"
               ></a>
               <a
-                id="open-setting"
+                id="setting-window"
                 href="#"
-                @click="electronSend('setting');menuOpen = false"
+                @click="click"
                 x-text="l.texts.SETTING"
               ></a>
-              <a
-                id="quit"
-                href="#"
-                @click="electronSend('quit')"
-                x-text="l.texts.QUIT"
-              ></a>
+              <a id="quit" href="#" @click="click" x-text="l.texts.QUIT"></a>
             </div>
           </div>
         </div>
       </div>
-      <div id="danmuSender" x-show="login">
+      <div id="danmuSender" x-show="login" style="z-index: 90">
         <span></span>
         <span
           class="input"
@@ -163,7 +169,7 @@
         <div
           class="tooltip"
           style="height: 24px; width: 24px; cursor: pointer; margin-right: 14px"
-          @click="electronSend('openBrowser');menuOpen = false"
+          @click=""
         >
           <span class="tooltiptext" style="top: -5px">开播设置</span>
           <svg

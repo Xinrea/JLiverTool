@@ -101,3 +101,11 @@ export type EmojiContent = {
   url: string
   width: number
 }
+
+export enum WindowType {
+  WINVALID = 'invalid',
+  WMAIN = 'main',
+  WGIFT = 'gift',
+  WSUPERCHAT = 'superchat',
+  WSETTING = 'setting',
+}
