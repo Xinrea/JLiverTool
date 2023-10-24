@@ -2,7 +2,8 @@ import { ipcMain } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
-import { WindowManager, WindowType } from './window_manager'
+import { WindowManager } from './window_manager'
+import { WindowType } from './types'
 import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
@@ -33,11 +34,12 @@ export default class BackendService {
 
   public constructor() {}
 
-  public async Start(
-    room: number,
-    store: ConfigStore,
-    window_manager: WindowManager
-  ) {
+  public async Start(store: ConfigStore, window_manager: WindowManager) {
+    let room = store.Room
+    if (room === 0) {
+      room = 21484828
+      log.warn('Room not set, will use default', { room })
+    }
     log.info('Starting backend service', { room })
     this._window_manager = window_manager
     this._cookies = store.Cookies
@@ -130,10 +132,6 @@ export default class BackendService {
     })
     ipcMain.on(JEvent[JEvent.EVENT_WINDOW_READY], (_, wtype: WindowType) => {
       this._window_ready[wtype] = true
-    })
-    // only used in main window
-    ipcMain.handle(JEvent[JEvent.INVOKE_WINDOW_MINIMIZE], (_) => {
-      this._window_manager.minimize(WindowType.WMAIN)
     })
   }
 
