@@ -1,16 +1,23 @@
 import { renderContent } from '../common/content-render'
 import { createMedal } from '../common/medal'
+import { EmojiContent, MedalInfo } from '../lib/types'
 
-export function createDanmuEntry(special, medal, sender, content) {
+export function createDanmuEntry(
+  special: boolean,
+  medal: MedalInfo,
+  sender: string,
+  content: string,
+  emoji_content: EmojiContent
+) {
   const danmuEntry = document.createElement('span')
   if (special) {
     danmuEntry.className = 'danmu_entry special'
   } else {
     danmuEntry.className = 'danmu_entry'
   }
-  if (medal) {
+  if (medal.anchor_roomid) {
     danmuEntry.appendChild(
-      createMedal(medal.guardLevel, medal.name, medal.level)
+      createMedal(medal.guard_level, medal.medal_name, medal.medal_level)
     )
   }
   const danmuSender = document.createElement('span')
@@ -19,11 +26,11 @@ export function createDanmuEntry(special, medal, sender, content) {
   danmuSender.innerText = sender
   danmuEntry.appendChild(danmuSender)
   if (content) {
-    if (content.url) {
+    if (emoji_content) {
       const danmuContent = document.createElement('span')
-      const ratio = content.width / content.height
+      const ratio = emoji_content.width / emoji_content.height
       danmuContent.className = 'content emoji'
-      danmuContent.style.backgroundImage = `url(${content.url})`
+      danmuContent.style.backgroundImage = `url(${emoji_content.url})`
       danmuContent.style.width = `calc((var(--danmu-size) + 32px) * ${ratio})`
       danmuContent.style.height = 'calc(var(--danmu-size) + 32px)'
       danmuEntry.appendChild(danmuContent)
@@ -35,11 +42,11 @@ export function createDanmuEntry(special, medal, sender, content) {
 }
 
 export function createEnterEntry(medal, sender) {
-  return createDanmuEntry(false, medal, sender + ' 进入直播间', null)
+  return createDanmuEntry(false, medal, sender + ' 进入直播间', null, null)
 }
 
 export function createEffectEntry(content) {
-  return createDanmuEntry(false, null, content, null)
+  return createDanmuEntry(false, null, content, null, null)
 }
 
 export const giftCache = new Map()

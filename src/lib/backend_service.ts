@@ -30,8 +30,6 @@ export default class BackendService {
   private _gift_list_cache: Map<number, any> = new Map()
   private _gift_store: GiftStore = new GiftStore()
 
-  private _window_ready: boolean[] = [false, false, false]
-
   public constructor() {}
 
   public async Start(store: ConfigStore, window_manager: WindowManager) {
@@ -49,7 +47,7 @@ export default class BackendService {
     this._owner_uid = status_response.data.uid
     this._real_room = status_response.data.room_id
 
-    // Must update gift list before recieving any gift message
+    // Must update gift list before receiving any gift message
     await this.updateGiftList()
 
     // Setup task for updating infos
@@ -71,7 +69,7 @@ export default class BackendService {
       this._real_room
     )
     this._conn = new BiliWebSocket({
-      roomid: this._real_room,
+      room_id: this._real_room,
       uid: parseInt(this._cookies.DedeUserID),
       server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
       token: danmu_server_info.data.token,
@@ -130,14 +128,11 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_REQUEST_GIFT_DATA], (_, ...args) => {
       return this._gift_store.Get(args[0], this._real_room)
     })
-    ipcMain.on(JEvent[JEvent.EVENT_WINDOW_READY], (_, wtype: WindowType) => {
-      this._window_ready[wtype] = true
-    })
   }
 
   private msgHandler(packet: PackResult) {
     for (const msg of packet.body) {
-      log.debug('Recieved message', { msg })
+      log.debug('Received message', { msg })
       switch (msg.cmd) {
         case 'DANMU_MSG': {
           const danmu_msg = new MessageDanmu(msg)

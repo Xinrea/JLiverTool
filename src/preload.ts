@@ -15,10 +15,14 @@ export type JLiverAPI = {
     minimize: (window_type: WindowType) => void
     alwaysOnTop: (window_type: WindowType, value: boolean) => void
   }
+  app: {
+    quit: () => void
+  }
 }
 
 // listeners keeps all registered callback in renderer process
 let listeners: Map<string, Function[]> = new Map()
+
 function registerListener(event: JEvent) {
   const eventName = JEvent[event]
   console.log('registering listener', eventName)
@@ -83,6 +87,11 @@ contextBridge.exposeInMainWorld('jliverAPI', {
         window_type,
         value
       )
+    },
+  },
+  app: {
+    quit: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_APP_QUIT])
     },
   },
   //TODO this should be removed after all channel wrapped in function

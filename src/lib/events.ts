@@ -17,6 +17,7 @@ enum JEvent {
   INVOKE_STORE_GET,
   INVOKE_STORE_SET,
   INVOKE_STORE_REGISTER,
+  INVOKE_APP_QUIT,
 }
 
 export default JEvent
