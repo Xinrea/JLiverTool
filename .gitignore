@@ -8,8 +8,7 @@ dist
 *.node
 package-lock.json
 
-src/bilibili.js
-src/main.js
-src/preload.js
+src/*.js
+src/*/*.js
 
 .cookiestest
