@@ -1,10 +1,11 @@
 // Modules to control application life and create native browser window
-import { app, dialog, Tray, Menu, nativeImage } from 'electron'
+import { app, dialog, Tray, Menu, nativeImage, ipcMain } from 'electron'
 import path = require('path')
 import { WindowManager } from './lib/window_manager'
 import JLogger from './lib/logger'
 import BackendService from './lib/backend_service'
 import ConfigStore from './lib/config_store'
+import JEvent from './lib/events'
 
 const log = JLogger.getInstance('main')
 
@@ -20,12 +21,14 @@ app.whenReady().then(() => {
       label: '关于',
       type: 'normal',
       click: () => {
-        dialog.showMessageBox(null, {
-          type: 'info',
-          title: '关于',
-          message: 'JLiverTool 弹幕机 v' + app.getVersion(),
-          detail: '作者：@Xinrea',
-        })
+        dialog
+          .showMessageBox(null, {
+            type: 'info',
+            title: '关于',
+            message: 'JLiverTool 弹幕机 v' + app.getVersion(),
+            detail: '作者：@Xinrea',
+          })
+          .then((r) => {})
       },
     },
     {
@@ -84,11 +87,13 @@ app.on('ready', () => {
   const store = new ConfigStore()
   const backend_service = new BackendService()
   // initialize windows
-  const window_manager = new WindowManager(store, () => {
-    log.info('Main window closed, exiting')
-    backend_service.Stop()
+  const quitCallback = () => {
+    void backend_service.Stop()
     app.quit()
-  })
+  }
+  const window_manager = new WindowManager(store, quitCallback)
 
-  backend_service.Start(store, window_manager)
+  void backend_service.Start(store, window_manager)
+
+  ipcMain.handle(JEvent[JEvent.INVOKE_APP_QUIT], quitCallback)
 })

@@ -12,6 +12,7 @@ import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
 import { WindowType } from '../lib/types'
+import { MessageDanmu } from '../lib/messages'
 
 declare global {
   interface Window {
@@ -72,6 +73,10 @@ const menu = {
           window.jliverAPI.window.show(WindowType.WSETTING)
           break
         }
+        case 'quit': {
+          window.jliverAPI.app.quit()
+          break
+        }
         default:
       }
     }
@@ -115,8 +120,9 @@ const appStatus = {
       this.base.title = arg.title
       this.base.live = arg.live_status == 1
     })
-    window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: any) => {
+    window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: MessageDanmu) => {
       console.log(arg)
+      this.onReceiveNewDanmu(arg)
     })
 
     console.log('Init smooth scroll')
@@ -202,9 +208,15 @@ const appStatus = {
   minimize() {
     window.jliverAPI.window.minimize(WindowType.WMAIN)
   },
-  onReceiveNewDanmu(special, medalInfo, sender, content) {
+  onReceiveNewDanmu(danmu_msg: MessageDanmu) {
     this.danmuPanel.doClean()
-    const $newEntry = createDanmuEntry(special, medalInfo, sender, content)
+    const $newEntry = createDanmuEntry(
+      danmu_msg.is_special,
+      danmu_msg.sender.medal_info,
+      danmu_msg.sender.uname,
+      danmu_msg.content,
+      danmu_msg.emoji_content
+    )
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveInteract(medalInfo, sender) {

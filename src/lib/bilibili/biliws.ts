@@ -7,7 +7,7 @@ const log = JLogger.getInstance('biliws')
 
 export type WsInfo = {
   server: string
-  roomid: number
+  room_id: number
   uid: number
   token: string
 }
@@ -226,7 +226,7 @@ export class BiliWebSocket {
       // Prepare auth info
       const auth_info = {
         uid: Number(this._ws_info.uid),
-        roomid: Number(this._ws_info.roomid),
+        roomid: Number(this._ws_info.room_id),
         protover: 3,
         type: 2,
         platform: 'web',

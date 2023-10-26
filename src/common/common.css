@@ -406,7 +406,7 @@ textarea,
 }
 
 /* Tooltip 文本 */
-.tooltip .tooltiptext {
+.tooltip .tooltip-text {
     font-size: smaller;
     visibility: hidden;
     width: 80px;
@@ -429,7 +429,7 @@ textarea,
 }
 
 /* 鼠标移动上去后显示提示框 */
-.tooltip:hover .tooltiptext {
+.tooltip:hover .tooltip-text {
     visibility: visible;
 }
 
