@@ -2,14 +2,14 @@ const path = require('path')
 const webpack = require('webpack')
 
 const frontendConfig = {
-  mode: 'development',
+  mode: 'production',
   devtool: 'inline-source-map',
   entry: {
-    './src/gift-window/gift-window.min': './src/gift-window/gift-window.ts',
-    './src/superchat-window/superchat-window.min':
+    './src/gift-window/gift-window': './src/gift-window/gift-window.ts',
+    './src/superchat-window/superchat-window':
       './src/superchat-window/superchat-window.ts',
-    './src/main-window/main_window.min': './src/main-window/main_window.ts',
-    './src/setting-window/setting-window.min':
+    './src/main-window/main-window': './src/main-window/main-window.ts',
+    './src/setting-window/setting-window':
       './src/setting-window/setting-window.ts',
   },
   module: {
@@ -37,7 +37,7 @@ const frontendConfig = {
 }
 
 const preloadConfig = {
-  mode: 'development',
+  mode: 'production',
   devtool: 'inline-source-map',
   target: 'electron-preload',
   entry: {
@@ -68,7 +68,7 @@ const preloadConfig = {
 }
 
 const backendConfig = {
-  mode: 'development',
+  mode: 'production',
   devtool: 'inline-source-map',
   target: 'electron-main',
   entry: {

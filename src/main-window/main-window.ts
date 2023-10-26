@@ -6,7 +6,7 @@ import {
   createEnterEntry,
   createGuardEntry,
   giftCache,
-} from './danmu_entry'
+} from './danmu-entry'
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
