@@ -33,6 +33,10 @@ const toggles = {
       WindowType.WMAIN,
       this.values['always-on-top']
     )
+    document.documentElement.style.setProperty(
+      '--medal-display',
+      this.values['medal-display'] ? 'inline-block' : 'none'
+    )
   },
   values: {
     'always-on-top': false,
@@ -121,7 +125,6 @@ const appStatus = {
       this.base.live = arg.live_status == 1
     })
     window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: MessageDanmu) => {
-      console.log(arg)
       this.onReceiveNewDanmu(arg)
     })
 
