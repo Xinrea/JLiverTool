@@ -15,10 +15,10 @@ export function createDanmuEntry(
   } else {
     danmuEntry.className = 'danmu_entry'
   }
-  if (medal.anchor_roomid) {
-    danmuEntry.appendChild(
-      createMedal(medal.guard_level, medal.medal_name, medal.medal_level)
-    )
+
+  // might be gray medal, need to check color
+  if (medal.medal_color && medal.medal_color_border != 12632256) {
+    danmuEntry.appendChild(createMedal(medal))
   }
   const danmuSender = document.createElement('span')
   danmuSender.className = 'sender'
@@ -89,9 +89,7 @@ function doCreateGiftEntry(medal, sender, g) {
   const danmuEntry = document.createElement('span')
   danmuEntry.className = 'danmu_entry special gift'
   if (medal) {
-    danmuEntry.appendChild(
-      createMedal(medal.guardLevel, medal.name, medal.level)
-    )
+    danmuEntry.appendChild(createMedal(medal))
   }
   const danmuSender = document.createElement('span')
   danmuSender.className = 'sender'

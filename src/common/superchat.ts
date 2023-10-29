@@ -38,11 +38,7 @@ export function createSuperchatEntry({
   const scEntryHeaderLeftName = document.createElement('div')
   scEntryHeaderLeftName.classList.add('sc-entry-header-left-name')
   if (g.data.medal_info) {
-    const scEntryHeaderLeftNameMedal = createMedal(
-      g.data.medal_info.guard_level,
-      g.data.medal_info.medal_name,
-      g.data.medal_info.medal_level
-    )
+    const scEntryHeaderLeftNameMedal = createMedal(g.data.medal_info)
     scEntryHeaderLeftName.appendChild(scEntryHeaderLeftNameMedal)
   }
   const scEntryHeaderLeftNameSender = document.createElement('div')

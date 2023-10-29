@@ -33,7 +33,8 @@ export default class BackendService {
   public constructor() {}
 
   public async Start(store: ConfigStore, window_manager: WindowManager) {
-    let room = store.Room
+    // let room = store.Room
+    let room = 21452505
     if (room === 0) {
       room = 21484828
       log.warn('Room not set, will use default', { room })
