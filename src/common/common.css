@@ -99,6 +99,12 @@ textarea,
     outline: none;
 }
 
+.icon {
+    display: block;
+    width: 21px;
+    height: 21px;
+}
+
 .medal {
     margin: 0 5px 0 0;
     word-wrap: break-word;
@@ -222,8 +228,6 @@ textarea,
     justify-content: center;
     font-size: 16px;
     transition: background-color 0.5s ease-in-out;
-    color: rgba(255, 255, 255, 0.507);
-    fill: rgba(255, 255, 255, 0.507);
     -webkit-app-region: no-drag;
 }
 
@@ -232,9 +236,12 @@ textarea,
     background-color: rgba(255, 255, 255, 0.329);
 }
 
-.title-button.enabled {
-    color: white;
-    fill: white;
+.title-button .icon {
+    background-color: rgba(255, 255, 255, 0.507);
+}
+
+.title-button.enabled .icon {
+    background-color: white;
 }
 
 .confirm-box {

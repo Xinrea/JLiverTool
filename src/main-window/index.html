@@ -16,14 +16,8 @@
         <div>
           <div id="live-text">LIVE</div>
           <div>
-            <div style="height: 24px; width: 24px; margin-left: 14px">
-              <svg viewBox="0 0 24 24">
-                <path
-                  fill="white"
-                  d="M12 4C14.2091 4 16 5.79086 16 8C16 10.2091 14.2091 12 12 12C9.79086 12 8 10.2091 8 8C8 5.79086 9.79086 4 12 4ZM12 14C16.4183 14 20 15.7909 20 18L20 20L4 20L4 18C4 15.7909 7.58172 14 12 14Z"
-                ></path>
-              </svg>
-            </div>
+            <span class="icon"
+                  style="margin-left: 14px; -webkit-mask-image: url('../assets/icons/avatar.svg'); background-color: white"></span>
             <div id="online" x-text="base.live?base.online:''"></div>
           </div>
         </div>
@@ -35,11 +29,7 @@
             @click="toggle('medal-display')"
           >
             <span class="tooltip-text" x-text="l.texts.FANS_MEDAL"></span>
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M20,2H4V4L9.81,8.36C6.14,9.57 4.14,13.53 5.35,17.2C6.56,20.87 10.5,22.87 14.19,21.66C17.86,20.45 19.86,16.5 18.65,12.82C17.95,10.71 16.3,9.05 14.19,8.36L20,4V2M14.94,19.5L12,17.78L9.06,19.5L9.84,16.17L7.25,13.93L10.66,13.64L12,10.5L13.34,13.64L16.75,13.93L14.16,16.17L14.94,19.5Z"
-              />
-            </svg>
+            <span class="icon" style="-webkit-mask-image: url('../assets/icons/medal.svg')"></span>
           </div>
           <div
             id="enter-button"
@@ -48,11 +38,7 @@
             @click="toggle('enter-message')"
           >
             <span class="tooltip-text" x-text="l.texts.ENTER_INFO"></span>
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M14 12L10 8V11H2V13H10V16M22 12A10 10 0 0 1 2.46 15H4.59A8 8 0 1 0 4.59 9H2.46A10 10 0 0 1 22 12Z"
-              />
-            </svg>
+            <span class="icon" style="-webkit-mask-image: url('../assets/icons/enter.svg')"></span>
           </div>
           <div
             id="top-button"
@@ -61,29 +47,16 @@
             @click="toggle('always-on-top')"
           >
             <span class="tooltip-text" x-text="l.texts.PINNED"></span>
-            <svg viewBox="0 0 24 24">
-              <path
-                d="M16,12V4H17V2H7V4H8V12L6,14V16H11.2V22H12.8V16H18V14L16,12Z"
-              />
-            </svg>
+            <span class="icon" style="-webkit-mask-image: url('../assets/icons/pin.svg')"></span>
           </div>
           <div
             id="minimize-button"
-            class="title-button tooltip"
+            class="title-button tooltip enabled"
             x-show="!values['always-on-top']"
+            x-transition.duration.300ms
             @click="minimize"
           >
-            <svg
-              fill="white"
-              version="1.1"
-              id="Layer_1"
-              xmlns="http://www.w3.org/2000/svg"
-              xmlns:xlink="http://www.w3.org/1999/xlink"
-              viewBox="0 0 24 24"
-              xml:space="preserve"
-            >
-              <path d="M6 11H18V13H6V11Z" />
-            </svg>
+            <span class="icon" style="-webkit-mask-image: url('../assets/icons/minimize.svg')"></span>
           </div>
           <div id="dropdown" x-data="menu">
             <div
@@ -95,16 +68,11 @@
             ></div>
             <div
               id="menu-button"
-              class="title-button"
+              class="title-button enabled"
               @click="open = !open"
               style="z-index: 100"
             >
-              <svg viewBox="0 0 24 24">
-                <path
-                  fill="white"
-                  d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"
-                />
-              </svg>
+              <span class="icon" style="-webkit-mask-image: url('../assets/icons/setting.svg')"></span>
             </div>
             <div
               id="dropdown-content"
@@ -173,96 +141,8 @@
           @click=""
         >
           <span class="tooltip-text" style="top: -5px">开播设置</span>
-          <svg
-            fill="var(--font-color)"
-            viewBox="0 0 64 64"
-            xmlns="http://www.w3.org/2000/svg"
-            xmlns:xlink="http://www.w3.org/1999/xlink"
-            xml:space="preserve"
-            style="
-              fill-rule: evenodd;
-              clip-rule: evenodd;
-              stroke-linejoin: round;
-              stroke-miterlimit: 2;
-            "
-          >
-            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
-            <g
-              id="SVGRepo_tracerCarrier"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            ></g>
-            <g id="SVGRepo_iconCarrier">
-              <rect
-                id="Icons"
-                x="-896"
-                y="0"
-                width="1280"
-                height="800"
-                style="fill: none"
-              ></rect>
-              <g id="Icons1" serif:id="Icons">
-                <g id="Strike"></g>
-                <g id="H1"></g>
-                <g id="H2"></g>
-                <g id="H3"></g>
-                <g id="list-ul"></g>
-                <g id="hamburger-1"></g>
-                <g id="hamburger-2"></g>
-                <g id="list-ol"></g>
-                <g id="list-task"></g>
-                <g id="trash"></g>
-                <g id="vertical-menu"></g>
-                <g id="horizontal-menu"></g>
-                <g id="sidebar-2"></g>
-                <g id="Pen"></g>
-                <g id="Pen1" serif:id="Pen"></g>
-                <g id="clock"></g>
-                <g id="external-link">
-                  <path
-                    d="M36.026,20.058l-21.092,0c-1.65,0 -2.989,1.339 -2.989,2.989l0,25.964c0,1.65 1.339,2.989 2.989,2.989l26.024,0c1.65,0 2.989,-1.339 2.989,-2.989l0,-20.953l3.999,0l0,21.948c0,3.308 -2.686,5.994 -5.995,5.995l-28.01,0c-3.309,0 -5.995,-2.687 -5.995,-5.995l0,-27.954c0,-3.309 2.686,-5.995 5.995,-5.995l22.085,0l0,4.001Z"
-                  ></path>
-                  <path
-                    d="M55.925,25.32l-4.005,0l0,-10.481l-27.894,27.893l-2.832,-2.832l27.895,-27.895l-10.484,0l0,-4.005l17.318,0l0.002,0.001l0,17.319Z"
-                  ></path>
-                </g>
-                <g id="hr"></g>
-                <g id="info"></g>
-                <g id="warning"></g>
-                <g id="plus-circle"></g>
-                <g id="minus-circle"></g>
-                <g id="vue"></g>
-                <g id="cog"></g>
-                <g id="logo"></g>
-                <g id="radio-check"></g>
-                <g id="eye-slash"></g>
-                <g id="eye"></g>
-                <g id="toggle-off"></g>
-                <g id="shredder"></g>
-                <g
-                  id="spinner--loading--dots-"
-                  serif:id="spinner [loading, dots]"
-                ></g>
-                <g id="react"></g>
-                <g id="check-selected"></g>
-                <g id="turn-off"></g>
-                <g id="code-block"></g>
-                <g id="user"></g>
-                <g id="coffee-bean"></g>
-                <g id="coffee-beans">
-                  <g id="coffee-bean1" serif:id="coffee-bean"></g>
-                </g>
-                <g id="coffee-bean-filled"></g>
-                <g id="coffee-beans-filled">
-                  <g id="coffee-bean2" serif:id="coffee-bean"></g>
-                </g>
-                <g id="clipboard"></g>
-                <g id="clipboard-paste"></g>
-                <g id="clipboard-copy"></g>
-                <g id="Layer1"></g>
-              </g>
-            </g>
-          </svg>
+          <span class="icon"
+                style="-webkit-mask-image: url('../assets/icons/link.svg'); background-color: white"></span>
         </div>
       </div>
     </div>

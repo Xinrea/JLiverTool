@@ -8,17 +8,10 @@ import {
   giftCache,
 } from './danmu-entry'
 import Alpine from 'alpinejs'
-import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
 import { WindowType } from '../lib/types'
 import { MessageDanmu } from '../lib/messages'
-
-declare global {
-  interface Window {
-    jliverAPI: JLiverAPI
-  }
-}
 
 const toggles = {
   async init() {
@@ -101,9 +94,9 @@ const appStatus = {
     this.l.texts = Languages[initialConfig.language || LanguageType.zh]
     this.base.fontSize = initialConfig.fontSize || 18
     this.base.opacity = initialConfig.opacity || 1
-    this.login = initialConfig.loggined || false
+    this.login = initialConfig.login || false
 
-    window.jliverAPI.onDidChange('config.loggined', (v: boolean) => {
+    window.jliverAPI.onDidChange('config.login', (v: boolean) => {
       this.login = v
     })
     window.jliverAPI.onDidChange('config.opacity', (newValue: number) => {
