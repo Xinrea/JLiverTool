@@ -43,7 +43,7 @@ registerListener(JEvent.EVENT_NEW_DANMU)
 // watcher keeps all registered onDidChange callback in renderer process
 // and will be called when ipcMain send store-watch event
 let watcher: Map<string, Function[]> = new Map()
-ipcRenderer.invoke(JEvent[JEvent.INVOKE_STORE_REGISTER])
+void ipcRenderer.invoke(JEvent[JEvent.INVOKE_STORE_REGISTER])
 ipcRenderer.on(JEvent[JEvent.EVENT_STORE_WATCH], (_, key, newValue) => {
   if (watcher[key]) {
     watcher[key].forEach((callback: Function) => {
