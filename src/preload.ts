@@ -14,6 +14,7 @@ export type JLiverAPI = {
     show: (window_type: WindowType) => void
     minimize: (window_type: WindowType) => void
     alwaysOnTop: (window_type: WindowType, value: boolean) => void
+    minimizable: (window_type: WindowType, value: boolean) => void
   }
   app: {
     quit: () => void
@@ -83,7 +84,14 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     alwaysOnTop: (window_type: WindowType, value: boolean) => {
       return ipcRenderer.invoke(
-        JEvent[JEvent.INVOKE_WINDOW_ALWAYSONTOP],
+        JEvent[JEvent.INVOKE_WINDOW_ALWAYS_ON_TOP],
+        window_type,
+        value
+      )
+    },
+    minimizable: (window_type: WindowType, value: boolean) => {
+      return ipcRenderer.invoke(
+        JEvent[JEvent.INVOKE_WINDOW_MINIMIZABLE],
         window_type,
         value
       )

@@ -33,6 +33,10 @@ const toggles = {
       WindowType.WMAIN,
       this.values['always-on-top']
     )
+    window.jliverAPI.window.minimizable(
+      WindowType.WMAIN,
+      !this.values['always-on-top']
+    )
     document.documentElement.style.setProperty(
       '--medal-display',
       this.values['medal-display'] ? 'inline-block' : 'none'
@@ -48,6 +52,7 @@ const toggles = {
     window.jliverAPI.set(`config.${name}`, this.values[name])
     if (name == 'always-on-top') {
       window.jliverAPI.window.alwaysOnTop(WindowType.WMAIN, this.values[name])
+      window.jliverAPI.window.minimizable(WindowType.WMAIN, !this.values[name])
     }
     if (name == 'medal-display') {
       document.documentElement.style.setProperty(
