@@ -37,6 +37,19 @@ class Window {
     }
   }
 
+  public minimizable(): boolean {
+    if (!this._window) {
+      return false
+    }
+    return this._window.isMinimizable()
+  }
+
+  public setMinimizable(b: boolean) {
+    if (this._window) {
+      this._window.setMinimizable(b)
+    }
+  }
+
   public get top(): boolean {
     if (!this._window) {
       return false
@@ -214,7 +227,7 @@ export class WindowManager {
       }
     )
     ipcMain.handle(
-      JEvent[JEvent.INVOKE_WINDOW_ALWAYSONTOP],
+        JEvent[JEvent.INVOKE_WINDOW_ALWAYS_ON_TOP],
       (_, wtype: WindowType, value: boolean) => {
         switch (wtype) {
           case WindowType.WMAIN: {
@@ -235,6 +248,29 @@ export class WindowManager {
           }
         }
       }
+    )
+    ipcMain.handle(
+        JEvent[JEvent.INVOKE_WINDOW_MINIMIZABLE],
+        (_, win_type: WindowType, value: boolean) => {
+          switch (win_type) {
+            case WindowType.WMAIN: {
+              this._main_window.setMinimizable(value)
+              return
+            }
+            case WindowType.WGIFT: {
+              this._gift_window.setMinimizable(value)
+              return
+            }
+            case WindowType.WSUPERCHAT: {
+              this._superchat_window.setMinimizable(value)
+              return
+            }
+            case WindowType.WSETTING: {
+              this._setting_window.setMinimizable(value)
+              return
+            }
+          }
+        }
     )
   }
 
