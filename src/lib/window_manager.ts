@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { ipcMain, BrowserWindow } from 'electron'
 import path = require('path')
 import JLogger from './logger'
 import JEvent from './events'
@@ -97,6 +97,7 @@ class Window {
       show: false,
       title: WindowTypeTitle(win_type),
       icon: path.join(__dirname, `icons/${this.win_type}.png`),
+      autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
       },

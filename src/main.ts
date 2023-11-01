@@ -87,8 +87,8 @@ app.on('ready', () => {
   const store = new ConfigStore()
   const backend_service = new BackendService()
   // initialize windows
-  const quitCallback = () => {
-    void backend_service.Stop()
+  const quitCallback = async () => {
+    await backend_service.Stop()
     app.quit()
   }
   const window_manager = new WindowManager(store, quitCallback)

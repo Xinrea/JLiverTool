@@ -109,7 +109,7 @@ button:hover {
 }
 
 #dropdown-content a:hover {
-  background-color: rgba(var(--main-bg-rgb), 0.329);
+  background-color: #3d414a;
 }
 
 #statusbar {
