@@ -11,7 +11,7 @@
     <div id="app" :style="`--global-opacity: ${base.opacity}`">
       <div
         id="title-bar"
-        :style="{backgroundColor: base.live?'#fc3131be':'var(--title-bar-color)'}"
+        :style="{backgroundImage: base.live ? 'linear-gradient(90deg, rgba(237,59,107,1) 0%, rgba(247,0,92,0.88) 33%, rgba(0,0,0,0) 80%)' : 'var(--title-bar-color)'}"
       >
         <div>
           <div id="live-text">LIVE</div>
@@ -63,7 +63,7 @@
               id="cover"
               x-show="open"
               @click="click"
-              x-transition
+              x-transition.duration.300ms
               style="z-index: 99; position: fixed; left: 0; right: 0"
             ></div>
             <div
@@ -77,7 +77,8 @@
             <div
               id="dropdown-content"
               x-show="open"
-              x-transition
+              x-transition.opacity
+              x-transition.scale.10.origin.top.right.duration.300ms
               style="z-index: 100"
             >
               <a
