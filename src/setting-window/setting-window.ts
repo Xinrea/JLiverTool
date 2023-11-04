@@ -1,5 +1,7 @@
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
+import { WindowType } from '../lib/types'
+import JEvent from '../lib/events'
 
 declare global {
   interface Window {
@@ -12,6 +14,21 @@ enum QrPrompt {
   NeedConfirm = '请确认登录',
   Success = '登录成功',
 }
+
+Alpine.data('app', (): any => ({
+  init() {
+    window.jliverAPI.register(JEvent.EVENT_WINDOW_BLUR, () => {
+      this.active = false
+    })
+    window.jliverAPI.register(JEvent.EVENT_WINDOW_FOCUS, () => {
+      this.active = true
+    })
+  },
+  active: true,
+  hide() {
+    window.jliverAPI.window.hide(WindowType.WSETTING)
+  },
+}))
 
 Alpine.data('tab', (): any => ({
   init() {
