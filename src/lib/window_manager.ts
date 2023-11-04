@@ -110,6 +110,14 @@ class Window {
     if (win_type == WindowType.WMAIN) {
       this.show = true
     }
+
+    this._window.on('blur', () => {
+      this._window.webContents.send(JEvent[JEvent.EVENT_WINDOW_BLUR], {})
+    })
+    this._window.on('focus', () => {
+      this._window.webContents.send(JEvent[JEvent.EVENT_WINDOW_FOCUS], {})
+    })
+
     this._window.webContents.openDevTools()
     this.registerEvents()
   }
