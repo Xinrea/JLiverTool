@@ -15,7 +15,7 @@ enum QrPrompt {
   NeedConfirm = '请确认登录',
 }
 
-Alpine.data('app', (): any => ({
+const app = {
   init() {
     window.jliverAPI.register(JEvent.EVENT_WINDOW_BLUR, () => {
       this.active = false
@@ -28,16 +28,16 @@ Alpine.data('app', (): any => ({
   hide() {
     window.jliverAPI.window.hide(WindowType.WSETTING)
   },
-}))
+}
 
-Alpine.data('room_setting', (): any => ({
+const room_setting = {
   async init() {
-    this.settingUpdate()
-    window.jliverAPI.onDidChange('config.cookies', async (v: Cookies) => {
-      this.settingUpdate()
+    await this.settingUpdate()
+    window.jliverAPI.onDidChange('config.cookies', async () => {
+      await this.settingUpdate()
     })
-    window.jliverAPI.onDidChange('config.room', async (v: string) => {
-      this.settingUpdate()
+    window.jliverAPI.onDidChange('config.room', async () => {
+      await this.settingUpdate()
     })
   },
   room_id: '',
@@ -88,20 +88,20 @@ Alpine.data('room_setting', (): any => ({
     // confirm new room id
     window.jliverAPI.set('config.room', this.room_id)
   },
-}))
+}
 
-Alpine.data('account_setting', (): any => ({
+const account_setting = {
   async init() {
     this.login = await window.jliverAPI.get('config.login', false)
-    window.jliverAPI.onDidChange('config.login', (v: boolean) => {
+    window.jliverAPI.onDidChange('config.login', async (v: boolean) => {
       this.login = v
       if (this.login) {
-        this.updateUserInfo()
+        await this.updateUserInfo()
       }
     })
 
     if (this.login) {
-      this.updateUserInfo()
+      await this.updateUserInfo()
     }
   },
   user_info: {
@@ -134,7 +134,7 @@ Alpine.data('account_setting', (): any => ({
           this.login = true
           this.qr_dialog = false
           this.qr_prompt = ''
-          this.updateUserInfo()
+          await this.updateUserInfo()
           clearInterval(qr_status_checker)
           break
         case 1:
@@ -147,18 +147,11 @@ Alpine.data('account_setting', (): any => ({
       }
     }, 2000)
   },
-  async updateQrCode() {},
-  async accountLogout() {
-    await window.jliverAPI.invoke('logout')
-    this.userInfo = null
-    this.login = false
-    await this.updateQrCode()
-  },
-}))
+}
 
-Alpine.data('merge_setting', (): any => ({
+const merge_setting = {
   async init() {
-    this._enable = await window.jliverAPI.get('config.merge', false)
+    this['_enable'] = await window.jliverAPI.get('config.merge', false)
     const merge_rooms = await window.jliverAPI.get('config.merge_rooms', [])
     const current_room = await window.jliverAPI.get('config.room', '21484828')
     for (const room_id of merge_rooms) {
@@ -173,7 +166,7 @@ Alpine.data('merge_setting', (): any => ({
     }
     window.jliverAPI.onDidChange('config.room', (v: number) => {
       // filter out current room
-      this.room_list = this.room_list.filter((room: any) => {
+      this['room_list'] = this.room_list.filter((room: any) => {
         return room.id != v
       })
     })
@@ -190,21 +183,21 @@ Alpine.data('merge_setting', (): any => ({
     window.jliverAPI.set('config.merge', v)
   },
   async add() {
-    if (this.to_add == '') {
+    if (this['to_add'] == '') {
       this.error = true
       return
     }
     if (this.room_list.length >= 5) {
       return
     }
-    if (isNaN(Number(this.to_add))) {
+    if (isNaN(Number(this['to_add']))) {
       this.error = true
       return
     }
     // if room id is already in list
     if (
       this.room_list.find((room: any) => {
-        return room.id == parseInt(this.to_add)
+        return room.id == parseInt(this['to_add'])
       })
     ) {
       this.error = true
@@ -212,7 +205,7 @@ Alpine.data('merge_setting', (): any => ({
     }
     // check if room is same with main room
     const main_room = await window.jliverAPI.get('config.room', '21484828')
-    if (main_room == this.to_add) {
+    if (main_room == this['to_add']) {
       this.error = true
       return
     }
@@ -224,10 +217,10 @@ Alpine.data('merge_setting', (): any => ({
     }
     this.error = false
     this.room_list.push({
-      id: parseInt(this.to_add),
+      id: parseInt(this['to_add']),
       name: room_info.data.title,
     })
-    this.to_add = ''
+    this['to_add'] = ''
     window.jliverAPI.set(
       'config.merge_rooms',
       this.room_list.map((r: any) => r.id)
@@ -240,8 +233,11 @@ Alpine.data('merge_setting', (): any => ({
       this.room_list.map((r: any) => r.id)
     )
   },
-}))
-
+}
+Alpine.data('app', (): any => app)
+Alpine.data('room_setting', (): any => room_setting)
+Alpine.data('account_setting', (): any => account_setting)
+Alpine.data('merge_setting', (): any => merge_setting)
 Alpine.data('tab', (): any => ({
   active: 0,
   items: [
