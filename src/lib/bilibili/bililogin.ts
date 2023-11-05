@@ -1,4 +1,5 @@
 import * as https from 'https'
+import { Cookies } from '../types'
 
 export enum QrCodeStatus {
   NeedScan,
@@ -83,7 +84,7 @@ function cookiesToString(cookies): string {
   )
 }
 
-export function Logout(cookies) {
+export function Logout(cookies: Cookies) {
   // https://passport.bilibili.com/login/exit/v2
   return new Promise((resolve, reject) => {
     let postData = 'biliCSRF=' + cookies.bili_jct
@@ -94,7 +95,7 @@ export function Logout(cookies) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(postData),
-        cookie: cookiesToString(cookies),
+        cookie: cookies.str(),
       },
     }
     let statusReq = https.request(postOptions, (res) => {

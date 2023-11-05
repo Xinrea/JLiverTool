@@ -85,7 +85,7 @@ class Store {
     const newConfigJson = JSON.stringify(configJs)
     fs.writeFileSync(configPath, newConfigJson)
     this.webContents.forEach((wc) => {
-      wc.send('store-watch', key, value)
+      wc.send(JEvent[JEvent.EVENT_STORE_WATCH], key, value)
     })
   }
 }
@@ -118,6 +118,14 @@ export class ConfigStore {
   }
   public set Room(room: number) {
     this._store.set('config.room', room)
+  }
+
+  public get IsLogin(): boolean {
+    return this._store.get('config.login', false) as boolean
+  }
+
+  public set IsLogin(b: boolean) {
+    this._store.set('config.login', b)
   }
 
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {

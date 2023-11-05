@@ -8,6 +8,7 @@ import UserInfoResponse from './api/user/user_info'
 import SendDanmuResponse from './api/room/send_danmu'
 import UpdateRoomTitleResponse from './api/room/update_room_title'
 import StopLiveResponse from './api/room/stop_live'
+import { NavResponse } from './api/nav_response'
 
 // WARN: All these api should be checked regularly, any api change will broke this tool
 class BiliApi {
@@ -178,6 +179,18 @@ class BiliApi {
     }
     const raw_response = await fetch(url, options)
     return (await raw_response.json()) as StopLiveResponse
+  }
+
+  public static async Nav(cookies: Cookies): Promise<NavResponse> {
+    const url = 'https://api.bilibili.com/x/web-interface/nav'
+    const options = {
+      method: 'GET',
+      headers: {
+        Cookie: cookies.str(),
+      },
+    }
+    const raw_response = await fetch(url, options)
+    return (await raw_response.json()) as NavResponse
   }
 }
 

@@ -1,18 +1,18 @@
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
-import { WindowType } from '../lib/types'
+import { Cookies, WindowType } from '../lib/types'
 import JEvent from '../lib/events'
+import * as QrCode from 'qrcode'
+import UserInfoResponse from '../lib/bilibili/api/user/user_info'
 
 declare global {
-  interface Window {
+  interface window {
     jliverAPI: JLiverAPI
   }
 }
 
 enum QrPrompt {
-  NeedScan = '请使用 b 站 App 扫码登录',
   NeedConfirm = '请确认登录',
-  Success = '登录成功',
 }
 
 Alpine.data('app', (): any => ({
@@ -30,29 +30,220 @@ Alpine.data('app', (): any => ({
   },
 }))
 
-Alpine.data('tab', (): any => ({
-  init() {
-    this.roomID = window.jliverAPI.get('config.room', '')
-    this.loggined = window.jliverAPI.get('config.loggined', false)
-    window.jliverAPI.onDidChange('config.loggined', (v: boolean) => {
-      this.loggined = v
+Alpine.data('room_setting', (): any => ({
+  async init() {
+    this.settingUpdate()
+    window.jliverAPI.onDidChange('config.cookies', async (v: Cookies) => {
+      this.settingUpdate()
     })
-    if (!this.loggined) {
-      this.updateQrCode()
-    } else {
-      this.updateUserInfo()
-    }
-    window.jliverAPI.invoke('getVersion').then((ver) => {
-      this.currentVersion = ver
+    window.jliverAPI.onDidChange('config.room', async (v: string) => {
+      this.settingUpdate()
     })
   },
+  room_id: '',
+  room_info: {},
+  owned: false,
+  error: false,
+  async settingUpdate() {
+    this.room_id = await window.jliverAPI.get('config.room', '21484828')
+    this.room_info = (
+      await window.jliverAPI.room.info(parseInt(this.room_id))
+    ).data
+    const user_id = (await window.jliverAPI.get('config.cookies', {}))
+      .DedeUserID
+    if (this.room_info.uid == user_id) {
+      this.owned = true
+    }
+  },
+  async confirmRoom() {
+    const prev_room_id = await window.jliverAPI.get('config.room', '21484828')
+    if (this.room_id == '') {
+      this.error = true
+      this.room_id = prev_room_id
+      return
+    }
+    // length > 16
+    if (this.room_id.length > 16) {
+      this.error = true
+      this.room_id = prev_room_id
+      return
+    }
+    // contains non-number
+    if (isNaN(Number(this.room_id))) {
+      this.error = true
+      this.room_id = prev_room_id
+      return
+    }
+    this.error = false
+    if (this.room_id == prev_room_id) {
+      return
+    }
+    // new room id is set, check if it's valid
+    const room_info = await window.jliverAPI.room.info(parseInt(this.room_id))
+    if (room_info.code != 0) {
+      this.error = true
+      this.room_id = prev_room_id
+      return
+    }
+    // confirm new room id
+    window.jliverAPI.set('config.room', this.room_id)
+  },
+}))
+
+Alpine.data('account_setting', (): any => ({
+  async init() {
+    this.login = await window.jliverAPI.get('config.login', false)
+    window.jliverAPI.onDidChange('config.login', (v: boolean) => {
+      this.login = v
+      if (this.login) {
+        this.updateUserInfo()
+      }
+    })
+
+    if (this.login) {
+      this.updateUserInfo()
+    }
+  },
+  user_info: {
+    face: 'https://i0.hdslb.com/bfs/face/member/noface.jpg',
+  },
+  login: false,
+  qr_dialog: false,
+  qr_image: '',
+  qr_prompt: '',
+  async updateUserInfo() {
+    const cookies = await window.jliverAPI.get('config.cookies', {})
+    const updated_user_info = (await window.jliverAPI.user.info(
+      parseInt(cookies.DedeUserID)
+    )) as UserInfoResponse
+    console.log(updated_user_info)
+    this.user_info = updated_user_info.data
+  },
+  async qrLogin() {
+    const qr_info = await window.jliverAPI.qr.get()
+    this.qr_image = await QrCode.toDataURL(qr_info.url)
+    this.qr_dialog = true
+    // Setup interval to check qr status
+    const qr_status_checker = setInterval(async () => {
+      const qr_status = await window.jliverAPI.qr.update(qr_info.oauthKey)
+      switch (qr_status.status) {
+        case 2:
+          const cookies = qr_status.cookies as Cookies
+          window.jliverAPI.set('config.cookies', cookies)
+          window.jliverAPI.set('config.login', true)
+          this.login = true
+          this.qr_dialog = false
+          this.qr_prompt = ''
+          this.updateUserInfo()
+          clearInterval(qr_status_checker)
+          break
+        case 1:
+          this.qr_prompt = QrPrompt.NeedConfirm
+          break
+        case 0:
+          break
+        default:
+          break
+      }
+    }, 2000)
+  },
+  async updateQrCode() {},
+  async accountLogout() {
+    await window.jliverAPI.invoke('logout')
+    this.userInfo = null
+    this.login = false
+    await this.updateQrCode()
+  },
+}))
+
+Alpine.data('merge_setting', (): any => ({
+  async init() {
+    this._enable = await window.jliverAPI.get('config.merge', false)
+    const merge_rooms = await window.jliverAPI.get('config.merge_rooms', [])
+    const current_room = await window.jliverAPI.get('config.room', '21484828')
+    for (const room_id of merge_rooms) {
+      if (room_id == current_room) {
+        continue
+      }
+      const room_info = await window.jliverAPI.room.info(room_id)
+      this.room_list.push({
+        id: room_id,
+        name: room_info.data.title,
+      })
+    }
+    window.jliverAPI.onDidChange('config.room', (v: number) => {
+      // filter out current room
+      this.room_list = this.room_list.filter((room: any) => {
+        return room.id != v
+      })
+    })
+  },
+  _enable: false,
+  room_list: [],
+  error: false,
+  to_add: '',
+  get enable() {
+    return this._enable
+  },
+  set enable(v: boolean) {
+    this._enable = v
+    window.jliverAPI.set('config.merge', v)
+  },
+  async add() {
+    if (this.to_add == '') {
+      this.error = true
+      return
+    }
+    if (this.room_list.length >= 5) {
+      return
+    }
+    if (isNaN(Number(this.to_add))) {
+      this.error = true
+      return
+    }
+    // if room id is already in list
+    if (
+      this.room_list.find((room: any) => {
+        return room.id == parseInt(this.to_add)
+      })
+    ) {
+      this.error = true
+      return
+    }
+    // check if room is same with main room
+    const main_room = await window.jliverAPI.get('config.room', '21484828')
+    if (main_room == this.to_add) {
+      this.error = true
+      return
+    }
+    // check if room id is valid
+    const room_info = await window.jliverAPI.room.info(parseInt(this.to_add))
+    if (room_info.code != 0) {
+      this.error = true
+      return
+    }
+    this.error = false
+    this.room_list.push({
+      id: parseInt(this.to_add),
+      name: room_info.data.title,
+    })
+    this.to_add = ''
+    window.jliverAPI.set(
+      'config.merge_rooms',
+      this.room_list.map((r: any) => r.id)
+    )
+  },
+  remove(index: number) {
+    this.room_list.splice(index, 1)
+    window.jliverAPI.set(
+      'config.merge_rooms',
+      this.room_list.map((r: any) => r.id)
+    )
+  },
+}))
+
+Alpine.data('tab', (): any => ({
   active: 0,
-  loggined: false,
-  qrImage: '',
-  qrStatusChecker: null,
-  qrPrompt: QrPrompt.NeedScan,
-  userInfo: null,
-  currentVersion: '',
   items: [
     {
       id: 0,
@@ -67,93 +258,5 @@ Alpine.data('tab', (): any => ({
       text: '关于',
     },
   ],
-  get fontSize() {
-    return parseInt(window.jliverAPI.get('config.fontSize', 14))
-  },
-  set fontSize(v: number) {
-    if (v < 14) {
-      v = 14
-    }
-    if (v > 40) {
-      v = 40
-    }
-    window.jliverAPI.set('config.fontSize', v)
-  },
-  get opacity() {
-    return parseFloat(window.jliverAPI.get('config.opacity', 1))
-  },
-  set opacity(v: number) {
-    if (v < 0) {
-      v = 0
-    }
-    if (v > 1) {
-      v = 1
-    }
-    window.jliverAPI.set('config.opacity', v)
-  },
-  roomID: '',
-  confirmRoom() {
-    window.jliverAPI.send('setRoom', this.roomID)
-  },
-  get darkTheme() {
-    const themeSetting = window.jliverAPI.get('cache.theme', 'light') as string
-    if (themeSetting.includes('dark')) return true
-    return false
-  },
-  set darkTheme(v: boolean) {
-    window.jliverAPI.send('theme:switch', v ? 'dark' : 'light')
-    window.jliverAPI.set('cache.theme', v ? 'dark' : 'light')
-  },
-  async updateQrCode() {
-    let qrdata = await window.jliverAPI.invoke('getQrCode')
-    let qrcode = require('qrcode')
-    qrcode.toDataURL(qrdata.url, (err: any, url: any) => {
-      this.qrImage = url
-      if (this.qrStatusChecker) {
-        clearInterval(this.qrStatusChecker)
-      }
-      this.qrStatusChecker = setInterval(async () => {
-        let qrStatus = await window.jliverAPI.invoke(
-          'checkQrCode',
-          qrdata.oauthKey
-        )
-        switch (qrStatus.status) {
-          case 2:
-            window.jliverAPI.set('config.cookies', qrStatus.cookies)
-            window.jliverAPI.set('config.loggined', true)
-            this.loggined = true
-            this.qrPrompt = QrPrompt.Success
-            clearInterval(this.qrStatusChecker)
-            await this.updateUserInfo()
-            break
-          case 1:
-            this.qrPrompt = QrPrompt.NeedConfirm
-            break
-          case 0:
-            this.qrPrompt = QrPrompt.NeedScan
-            break
-          default:
-            break
-        }
-      }, 3000)
-    })
-  },
-  async updateUserInfo() {
-    // Update userInfo
-    let mid = window.jliverAPI.get('config.cookies', {}).DedeUserID
-    let userData = await window.jliverAPI.invoke('getUserInfo', mid)
-    this.userInfo = userData
-  },
-  async accountLogout() {
-    await window.jliverAPI.invoke('logout')
-    window.jliverAPI.set('config.loggined', false)
-    window.jliverAPI.set('config.cookies', '')
-    this.userInfo = null
-    this.loggined = false
-    await this.updateQrCode()
-  },
-  openURL(url) {
-    window.jliverAPI.send('openURL', url)
-  },
 }))
 Alpine.start()

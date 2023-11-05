@@ -83,17 +83,18 @@ app.on('window-all-closed', function () {
   app.quit()
 })
 
+let quitCallback = async () => {}
 app.on('ready', () => {
   const store = new ConfigStore()
-  const backend_service = new BackendService()
+  const window_manager = new WindowManager(store, quitCallback)
+  const backend_service = new BackendService(store, window_manager)
   // initialize windows
-  const quitCallback = async () => {
+  quitCallback = async () => {
     await backend_service.Stop()
     app.quit()
   }
-  const window_manager = new WindowManager(store, quitCallback)
 
-  void backend_service.Start(store, window_manager)
+  void backend_service.Start()
 
   ipcMain.handle(JEvent[JEvent.INVOKE_APP_QUIT], quitCallback)
 })
