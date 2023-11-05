@@ -15,7 +15,7 @@
     <span class="control-button close" @click="hide"> <span class="icon">&#xE8BB;</span> </span>
   </div>
     <div class="panel">
-      <div x-data="tab" class="tab">
+      <div class="tab" x-data="tab">
         <div class="tab-header">
           <template x-for="item in items">
             <div x-text="item.text" class="tab-item" :class="{'active': item.id == active}" @click="active = item.id">
@@ -23,39 +23,135 @@
           </template>
         </div>
         <div class="tab-content">
-          <div class="tab-title">基础设置</div>
-          <template x-if="active == 0">
-            <div style="display: flex; flex-direction: column; width: 100%">
-              <template x-if="!loggined">
-                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 12px;">
-                  <img :src="qrImage" width="200px" />
-                  <span x-text="qrPrompt"></span>
+          <div class="tab-title" x-text="items[active].text"></div>
+          <div class="tab-wrap" x-show="active == 0">
+            <div style="display: flex; flex-direction: column; width: 100%;">
+              <div class="group" x-data="account_setting">
+                <div class="dialog" x-show="qr_dialog" x-transition>
+                  <div class="dialog-content">
+                    <div class="dialog-body">
+                      <div class="dialog-title">bilibili App 扫码登录</div>
+                      <div style="display: flex; flex-direction: column; align-items: center; padding-top: 16px">
+                        <img :src="qr_image" style="width: 200px; height: 200px;"/>
+                        <span x-text="qr_prompt"></span>
+                      </div>
+                    </div>
+                    <div class="dialog-footer">
+                      <button @click="qr_dialog = false">关闭</button>
+                    </div>
+                  </div>
                 </div>
-              </template>
-              <template x-if="loggined && userInfo != null">
-                <div style="display: flex; align-items: center;">
-                  <img class="avatar" :src="'https:'+userInfo.face" width="64px" />
-                  <span x-text="userInfo.uname" style="margin: 12px;"></span>
-                  <button @click="accountLogout">退出登录</button>
-                </div>
-              </template>
-              <div class="group">
-                <div class="group-label">账号设置</div>
-                <div class="group-item">
-                  <input type="text" x-model="roomID"/>
-                  <button @click="confirmRoom">确认</button>
+                <template x-if="!login">
+                  <div style="display: flex; flex-direction: column">
+                    <div class="group-label">
+                      账号设置
+                    </div>
+                    <div class="group-item">
+                      <div class="group-desc">
+                        <span class="icon">&#xEE57;</span>
+                        <span class="desc">
+                          <span>登录账号</span>
+                          <span>登录后可以使用更多功能</span>
+                        </span>
+                      </div>
+                      <button @click="qrLogin">扫码登录</button>
+                    </div>
+                  </div>
+                </template>
+                <template x-if="login">
+                  <div style="display: flex; margin: 32px 0; align-items: center">
+                    <img :src="'https://'+user_info.face"
+                         style="cursor: pointer; height: 112px; width: 112px; border-radius: 50%;"
+                         @click="window.jliverAPI.util.openUrl('https://space.bilibili.com/'+user_info.mid).then()"/>
+                    <div style="display: flex; flex-direction: column; margin-left: 16px">
+                      <span x-text="user_info.uname" style="font-size: 26px;"></span>
+                      <span x-text="user_info.mid"></span>
+                      <span class="hyperlink" @click="window.jliverAPI.user.logout().then()">注销登录</span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+              <div class="group" :class="owned ? 'multiple':''" x-data="room_setting">
+                <div class="group-label">直播间设置</div>
+                <div class="group-items">
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE70A;</span>
+                      <span class="desc">
+                        <span>直播间号</span>
+                        <span>直播间的数字 ID，登录账号拥有该直播间才能进行更多设置</span>
+                      </span>
+                    </span>
+                    <input id="room" :class="error ? 'error':''" type="text" x-model="room_id"
+                           @focusout="confirmRoom"/>
+                  </div>
+                  <div class="group-item" x-show="owned">
+                  <span class="group-desc">
+                      <span class="icon">&#xE929;</span>
+                      <span class="desc">
+                        <span>直播间标题</span>
+                        <span>因审核原因标题修改可能有延迟或者失败</span>
+                      </span>
+                    </span>
+                    <input id="room_title" :class="error ? 'error':''" type="text" x-model="room_info.title"/>
+                  </div>
+                  <div class="group-item" x-show="owned">
+                  <span class="group-desc">
+                      <span class="icon">&#xE768;</span>
+                      <span class="desc">
+                        <span>开播/关播</span>
+                      </span>
+                    </span>
+                    <button>开始直播</button>
+                  </div>
                 </div>
               </div>
-              <div class="group">
-                <div class="group-label">房间设置</div>
-                <div class="group-item">
-                  <input id="room" type="text" x-model="roomID"/>
-                  <button @click="confirmRoom">确认</button>
+              <div class="group" :class="enable ? 'multiple':''" x-data="merge_setting">
+                <div class="group-label">弹幕聚合</div>
+                <div class="group-items">
+                  <div class="group-item">
+                  <span class="group-desc">
+                      <span class="icon">&#xEA3C;</span>
+                      <span class="desc">
+                        <span>开启聚合</span>
+                        <span>将多个直播间的弹幕集中显示，适合联动使用</span>
+                      </span>
+                    </span>
+                    <input id="merge_switch" type="checkbox" class="switch" x-model="enable"/>
+                  </div>
+                  <div class="group-item" x-show="enable">
+                    <div style="display: flex; flex-direction: column">
+                      <span class="group-desc" style="margin-bottom: 8px;">
+                        <span class="desc">
+                          <span>次直播间列表</span>
+                          <span>仅显示次直播间弹幕，最多支持 5 个</span>
+                        </span>
+                      </span>
+                      <div style="display: flex; flex-direction: row; margin-bottom: 6px; align-items: center">
+                        <input type="text" x-model="to_add" @keyup.enter="add"
+                               :class="{'error': error}"/>
+                        <button style="margin-left: 6px;" @click="add" :class="{'disable': room_list.length >= 5}"">
+                          新增
+                        </button>
+                      </div>
+                      <ul id="room_list" style="min-height: 190px; max-height: 400px; overflow: auto">
+                        <template x-for="(item, index) in room_list">
+                          <li>
+                            <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%">
+                              <span><span style="vertical-align: middle; margin-right: 6px;" :style="{color: 'var(--merge-color-' + index + ')'}">&#xEA3B;</span>[<span x-text="item.id"></span>] <span x-text="item.name"></span></span>
+                              <button style="margin-left: 6px; padding: 8px;" @click="remove(index)">&#xE74D;
+                              </button>
+                            </div>
+                          </li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </template>
-          <template x-if="active == 1">
+          </div>
+          <div class="tab-wrap" x-show="active == 1">
             <div style="display: flex; flex-direction: column;">
               <div>
                 <label>深色模式：</label><input class="mui-switch mui-switch-animbg" type="checkbox" x-model="darkTheme">
@@ -69,8 +165,8 @@
                 <input id="opacity" type="number" x-model="opacity" min="0" max="1" step="0.01" />
               </div>
             </div>
-          </template>
-          <template x-if="active == 2">
+          </div>
+          <div class="tab-wrap" x-show="active == 2">
             <div style="flex-direction: column; align-items: center;">
               <div style="margin-bottom: 12px;">JLiverTool<span x-text="currentVersion" style="margin-left: 6px;"></span></div>
               <div style="margin-bottom: 12px;">Author: Xinrea</div>
@@ -80,7 +176,7 @@
               </div>
               <div style="font-size: 12px;">*爱发电留言中提出的需求将优先考虑实现</div>
             </div>
-          </template>
+          </div>
         </div>
       </div>
     </div>
@@ -91,7 +187,6 @@
     html,
     body {
       color: white;
-      font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       height: 100%;
       padding: 1px;
     }
@@ -112,45 +207,30 @@
     }
 
     .panel {
-      height: -webkit-fill-available;
+      height: calc(100vh - 64px);
     }
 
     .tab-title {
       font-size: 28px;
-      font-weight: bold;
+      padding-bottom: 16px;
     }
 
     .tab-content {
       display: flex;
-      padding: 0 32px;
+      padding: 0 16px 0 32px;
       flex-direction: column;
       width: 100%;
       height: 100%;
       overflow: hidden;
     }
 
-    .group {
-      display: flex;
-      flex-direction: column;
-      margin-top: 16px;
-      width: -webkit-fill-available;
+    .tab-wrap {
+      overflow: auto;
+      padding-right: 16px;
     }
 
-    .group-label {
-
-    }
-
-    .group-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-      padding: 16px;
-      height: 100%;
-      background-color: rgba(56, 56, 56, 0.4);
-      border-radius: 4px;
-      box-shadow: 0 0 8px 0 rgba(0, 0, 0, 0.1);
-      overflow: hidden;
+    .group:last-child {
+      padding-bottom: 64px;
     }
 
     .title-bar {
@@ -158,6 +238,7 @@
       justify-content: space-between;
       padding-left: 16px;
       height: 48px;
+      min-height: 48px;
       border-radius: 8px 8px 0 0;
       overflow: hidden;
       -webkit-app-region: drag;
@@ -199,26 +280,6 @@
       background-color: red;
     }
 
-    input[type=number],
-    input[type=text] {
-      color: white;
-      width: auto;
-      height: 32px;
-      padding: 0 8px;
-      border-radius: 6px;
-      font-size: 14px;
-      text-align: left;
-      background-color: rgba(56, 56, 56, 0.4);
-    }
-
-    input[type=number]:hover,
-    input[type=text]:hover,
-    input[type=number]:focus,
-    input[type=text]:focus {
-      outline: none;
-      background-color: transparent;
-    }
-
     /* WinUI3 style button*/
     button {
       width: auto;
@@ -228,6 +289,7 @@
       border-radius: 3px;
       background-color: rgba(56, 56, 56, 0.5);
       color: white;
+      font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf', 微软雅黑, serif, 'Segoe Fluent Icons';
       font-size: 14px;
       transition: all 150ms ease-in-out;
     }
@@ -237,15 +299,12 @@
     }
 
     button:active {
-      background-color: rgba(56, 56, 56, 0.4);
+      opacity: 0.6;
     }
 
-
-    label {
-      width: 80px;
-      display: inline-block;
-      text-align: left;
-      margin-right: 8px;
+    button.disable {
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     .tab {
@@ -309,88 +368,6 @@
       height: 100%;
       background-color: rgb(53, 53, 53);
       padding: 20px;
-    }
-
-    .mui-switch {
-      width: 52px;
-      height: 31px;
-      position: relative;
-      border: 1px solid #dfdfdf;
-      background-color: #fdfdfd;
-      box-shadow: #dfdfdf 0 0 0 0 inset;
-      border-radius: 20px;
-      border-top-left-radius: 20px;
-      border-top-right-radius: 20px;
-      border-bottom-left-radius: 20px;
-      border-bottom-right-radius: 20px;
-      background-clip: content-box;
-      display: inline-block;
-      -webkit-appearance: none;
-      user-select: none;
-      outline: none;
-      transform: translateY(-6px);
-    }
-
-    .mui-switch:before {
-      content: '';
-      width: 29px;
-      height: 29px;
-      position: absolute;
-      top: 0px;
-      left: 0;
-      border-radius: 20px;
-      border-top-left-radius: 20px;
-      border-top-right-radius: 20px;
-      border-bottom-left-radius: 20px;
-      border-bottom-right-radius: 20px;
-      background-color: #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-    }
-
-    .mui-switch:checked {
-      border-color: #64bd63;
-      box-shadow: #64bd63 0 0 0 16px inset;
-      background-color: #64bd63;
-    }
-
-    .mui-switch:checked:before {
-      left: 21px;
-    }
-
-    .mui-switch.mui-switch-animbg {
-      transition: background-color ease 0.4s;
-    }
-
-    .mui-switch.mui-switch-animbg:before {
-      transition: left 0.3s;
-    }
-
-    .mui-switch.mui-switch-animbg:checked {
-      box-shadow: #dfdfdf 0 0 0 0 inset;
-      background-color: #64bd63;
-      transition: border-color 0.4s, background-color ease 0.4s;
-    }
-
-    .mui-switch.mui-switch-animbg:checked:before {
-      transition: left 0.3s;
-    }
-
-    .mui-switch.mui-switch-anim {
-      transition: border cubic-bezier(0, 0, 0, 1) 0.4s, box-shadow cubic-bezier(0, 0, 0, 1) 0.4s;
-    }
-
-    .mui-switch.mui-switch-anim:before {
-      transition: left 0.3s;
-    }
-
-    .mui-switch.mui-switch-anim:checked {
-      box-shadow: #64bd63 0 0 0 16px inset;
-      background-color: #64bd63;
-      transition: border ease 0.4s, box-shadow ease 0.4s, background-color ease 1.2s;
-    }
-
-    .mui-switch.mui-switch-anim:checked:before {
-      transition: left 0.3s;
     }
   </style>
 

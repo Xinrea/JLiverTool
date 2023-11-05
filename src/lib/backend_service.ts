@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { ipcMain, shell } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
@@ -9,6 +9,7 @@ import { GiftStore } from './gift_store'
 import { Cookies } from './types'
 import ConfigStore from './config_store'
 import { MessageDanmu } from './messages'
+import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -19,10 +20,10 @@ function CreateIntervalTask(f: Function, interval: number) {
 
 export default class BackendService {
   private _conn: BiliWebSocket
-  private _cookies: Cookies
   private _window_manager: WindowManager
   private _owner_uid: number
   private _real_room: number
+  private _config_store: ConfigStore
 
   private _task_update_room_info: number
   private _task_update_online_num: number
@@ -30,21 +31,36 @@ export default class BackendService {
   private _gift_list_cache: Map<number, any> = new Map()
   private _gift_store: GiftStore = new GiftStore()
 
-  public constructor() {}
+  public constructor(store: ConfigStore, window_manager: WindowManager) {
+    this._config_store = store
+    this._window_manager = window_manager
+  }
 
-  public async Start(store: ConfigStore, window_manager: WindowManager) {
-    // let room = store.Room
-    let room = 21484828
+  public async Start() {
+    let room = this._config_store.Room
     if (room === 0) {
       room = 21484828
       log.warn('Room not set, will use default', { room })
     }
     log.info('Starting backend service', { room })
-    this._window_manager = window_manager
-    this._cookies = store.Cookies
-    log.info('Loading cookies', { uid: this._cookies.DedeUserID })
 
-    const status_response = await BiliApi.RoomInit(this._cookies, room)
+    log.info('Loading cookies', { uid: this._config_store.Cookies.DedeUserID })
+
+    // Check cookies status
+    const nav_response = await BiliApi.Nav(this._config_store.Cookies)
+    if (nav_response.code !== 0 || !nav_response.data.isLogin) {
+      log.warn('Cookies is invalid, take as logout')
+      this._config_store.IsLogin = false
+      this._config_store.Cookies = new Cookies({})
+    } else {
+      this._config_store.IsLogin = true
+    }
+
+    // Init room info
+    const status_response = await BiliApi.RoomInit(
+      this._config_store.Cookies,
+      room
+    )
     this._owner_uid = status_response.data.uid
     this._real_room = status_response.data.room_id
 
@@ -66,17 +82,20 @@ export default class BackendService {
 
     // Setup websocket connection with reconnect enabled
     const danmu_server_info = await BiliApi.GetDanmuInfo(
-      this._cookies,
+      this._config_store.Cookies,
       this._real_room
     )
     this._conn = new BiliWebSocket({
       room_id: this._real_room,
-      uid: parseInt(this._cookies.DedeUserID),
+      uid: parseInt(this._config_store.Cookies.DedeUserID),
       server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
       token: danmu_server_info.data.token,
     })
     this._conn.msg_handler = this.msgHandler.bind(this)
     this._conn.Connect(true)
+
+    // everything is ready, now we start windows
+    this._window_manager.Start()
   }
 
   public async Stop() {
@@ -89,7 +108,7 @@ export default class BackendService {
   private async updateRoomInfo() {
     log.debug('Updating basic room info')
     const room_response = await BiliApi.GetRoomInfo(
-      this._cookies,
+      this._config_store.Cookies,
       this._real_room
     )
     this._window_manager.sendTo(
@@ -101,7 +120,7 @@ export default class BackendService {
 
   private async updateOnlineNum() {
     const online_response = await BiliApi.GetOnlineGoldRank(
-      this._cookies,
+      this._config_store.Cookies,
       this._owner_uid,
       this._real_room
     )
@@ -115,7 +134,7 @@ export default class BackendService {
 
   private async updateGiftList() {
     const gift_response = await BiliApi.GetGiftConfig(
-      this._cookies,
+      this._config_store.Cookies,
       this._real_room
     )
     for (const gift of gift_response.data.list) {
@@ -128,6 +147,40 @@ export default class BackendService {
     // Window request previous gift data
     ipcMain.handle(JEvent[JEvent.INVOKE_REQUEST_GIFT_DATA], (_, ...args) => {
       return this._gift_store.Get(args[0], this._real_room)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_QR_CODE], async () => {
+      return await GetNewQrCode()
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_QR_CODE_UPDATE], async (_, key) => {
+      return await CheckQrCodeStatus(key)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_LOGOUT], async () => {
+      const resp = await Logout(this._config_store.Cookies)
+      log.info('Logout', { resp })
+      this._config_store.Cookies = new Cookies({})
+      this._config_store.IsLogin = false
+    })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_GET_USER_INFO],
+      async (_, user_id: number) => {
+        const resp = await BiliApi.GetUserInfo(
+          this._config_store.Cookies,
+          user_id
+        )
+        log.debug('Get user info', { resp })
+        return resp
+      }
+    )
+    ipcMain.handle(JEvent[JEvent.INVOKE_OPEN_URL], async (_, url: string) => {
+      return shell.openExternal(url)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_ROOM_INFO], async (_, room_id) => {
+      const resp = await BiliApi.GetRoomInfo(
+        this._config_store.Cookies,
+        room_id
+      )
+      log.debug('Get room info', { resp })
+      return resp
     })
   }
 

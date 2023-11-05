@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { WindowType } from './lib/types'
 import JEvent from './lib/events'
+import RoomInitResponse from './lib/bilibili/api/room/room_init'
+import GetInfoResponse from './lib/bilibili/api/room/get_info'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -18,6 +20,20 @@ export type JLiverAPI = {
   }
   app: {
     quit: () => void
+  }
+  qr: {
+    get: () => Promise<any>
+    update: (key: string) => Promise<any>
+  }
+  user: {
+    logout: () => Promise<any>
+    info: (user_id: number) => Promise<any>
+  }
+  room: {
+    info: (room_id: number) => Promise<GetInfoResponse>
+  }
+  util: {
+    openUrl: (url: string) => Promise<any>
   }
 }
 
@@ -41,6 +57,7 @@ registerListener(JEvent.EVENT_UPDATE_ONLINE)
 registerListener(JEvent.EVENT_NEW_DANMU)
 registerListener(JEvent.EVENT_WINDOW_BLUR)
 registerListener(JEvent.EVENT_WINDOW_FOCUS)
+registerListener(JEvent.EVENT_STORE_WATCH)
 
 // watcher keeps all registered onDidChange callback in renderer process
 // and will be called when ipcMain send store-watch event
@@ -115,5 +132,31 @@ contextBridge.exposeInMainWorld('jliverAPI', {
       listeners[JEvent[channel]] = []
     }
     listeners[JEvent[channel]].push(callback)
+  },
+  qr: {
+    get: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_QR_CODE])
+    },
+    update: (key: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_QR_CODE_UPDATE], key)
+    },
+  },
+  user: {
+    logout: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_LOGOUT])
+    },
+    info: (user_id: number) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_USER_INFO], user_id)
+    },
+  },
+  room: {
+    info: (room_id: number) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_ROOM_INFO], room_id)
+    },
+  },
+  util: {
+    openUrl: (url: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_OPEN_URL], url)
+    },
   },
 })

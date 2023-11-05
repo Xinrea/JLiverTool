@@ -154,25 +154,36 @@ class Window {
 }
 
 export class WindowManager {
-  private readonly _main_window: Window
-  private readonly _gift_window: Window
-  private readonly _superchat_window: Window
-  private readonly _setting_window: Window
+  private _main_window: Window
+  private _gift_window: Window
+  private _superchat_window: Window
+  private _setting_window: Window
+  private readonly _main_close_callback: Function
+  private readonly _config_store: ConfigStore
 
   public constructor(store: ConfigStore, mainClosedCallback: Function) {
-    this._main_window = new Window(null, WindowType.WMAIN, store)
-    this._main_window.setClosedCallback(mainClosedCallback)
+    this._config_store = store
+    this._main_close_callback = mainClosedCallback
+  }
+
+  public Start() {
+    this._main_window = new Window(null, WindowType.WMAIN, this._config_store)
+    this._main_window.setClosedCallback(this._main_close_callback)
     // window should be created and hide at start, cuz gift data stream need to be processed in window render process
-    this._gift_window = new Window(this._main_window, WindowType.WGIFT, store)
+    this._gift_window = new Window(
+      this._main_window,
+      WindowType.WGIFT,
+      this._config_store
+    )
     this._superchat_window = new Window(
       this._main_window,
       WindowType.WSUPERCHAT,
-      store
+      this._config_store
     )
     this._setting_window = new Window(
       this._main_window,
       WindowType.WSETTING,
-      store
+      this._config_store
     )
 
     this.registerEvents()
