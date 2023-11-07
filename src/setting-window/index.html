@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html>
-  <title>设置</title>
-
+<html lang="zh">
   <head>
     <link rel="stylesheet" href="../common/common.css" />
+    <title>setting</title>
   </head>
-
   <body>
   <div id="app" x-data="app" :class="active ? 'active':''">
-  <div class="title-bar">
-    <div class="title">
-      <span class="icon">&#xE713;</span>
-      <span style="margin-left: 8px;">设置</span></div>
-    <span class="control-button close" @click="hide"> <span class="icon">&#xE8BB;</span> </span>
-  </div>
+    <div class="title-bar">
+      <div class="title">
+        <span class="icon">&#xE713;</span>
+        <span style="margin-left: 8px;">设置</span>
+      </div>
+      <span class="control-button close" @click="hide"> <span class="icon">&#xE8BB;</span> </span>
+    </div>
     <div class="panel">
       <div class="tab" x-data="tab">
         <div class="tab-header">
@@ -211,34 +210,33 @@
                 </div>
               </div>
             </div>
-            </div>
-            <div class="tab-wrap" x-show="active == 2">
-              <div style="display: flex; flex-direction: column; width: 100%;" x-data="about">
-                <div class="group">
-                  <div style="display: flex; flex-direction: row; align-items: center; margin: 32px 0; justify-content: space-between">
-                    <div style="display: flex; flex-direction: row; align-items: center;">
-                        <img src="../assets/icons/main.png" height="102" width="102"/>
-                        <div style="display: flex; flex-direction: column; margin-left: 16px">
-                          <div>JLiverTool</div>
-                          <div style="font-size: 14px" x-text="version"></div>
-                          <span class="hyperlink" style="font-size: 14px">检查更新</span>
-                          <span class="hyperlink" style="font-size: 14px">GitHub</span>
-                        </div>
+          </div>
+          <div class="tab-wrap" x-show="active == 2">
+            <div style="display: flex; flex-direction: column; width: 100%;" x-data="about">
+              <div class="group">
+                <div style="display: flex; flex-direction: row; align-items: center; margin: 32px 0; justify-content: space-between">
+                  <div style="display: flex; flex-direction: row; align-items: center;">
+                      <img src="../assets/icons/main.png" height="102" width="102"/>
+                      <div style="display: flex; flex-direction: column; margin-left: 16px">
+                        <div>JLiverTool</div>
+                        <div style="font-size: 14px" x-text="version"></div>
+                        <span class="hyperlink" style="font-size: 14px">检查更新</span>
+                        <span class="hyperlink" style="font-size: 14px">GitHub</span>
                       </div>
-                  </div>
+                    </div>
                 </div>
-                <div class="group">
-                  <div class="group-label">其他信息</div>
-                  <div class="group-item">
-                    <div style="flex-direction: column; width: 100%">
+              </div>
+              <div class="group">
+                <div class="group-label">其他信息</div>
+                <div class="group-item">
+                  <div style="flex-direction: column; width: 100%">
                     <span class="group-desc" style="margin-bottom: 16px;">
-                        <span class="desc">
-                          <span>最近日志</span>
-                        </span>
+                      <span class="desc">
+                        <span>最近日志</span>
+                      </span>
                     </span>
                     <textarea x-model="logs.join('\n')" style="height: 200px; resize: none; background-color: #202020; border: rgba(255, 255, 255, 0.3) 1px solid; color: white; font-size: 14px; outline: none; padding: 8px;"></textarea>
                     <span class="hyperlink">打开日志文件</span>
-                    </div>
                   </div>
                 </div>
               </div>
