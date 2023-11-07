@@ -34,6 +34,8 @@ export type JLiverAPI = {
   }
   util: {
     openUrl: (url: string) => Promise<any>
+    fonts: () => Promise<any>
+    version: () => Promise<string>
   }
 }
 
@@ -157,6 +159,12 @@ contextBridge.exposeInMainWorld('jliverAPI', {
   util: {
     openUrl: (url: string) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_OPEN_URL], url)
+    },
+    fonts() {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_FONT_LIST])
+    },
+    version() {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_VERSION])
     },
   },
 })
