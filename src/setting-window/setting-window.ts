@@ -234,10 +234,60 @@ const merge_setting = {
     )
   },
 }
+
+const danmu_style_setting = {
+  async init() {
+    // get all fonts in web
+    this.font_list = await window.jliverAPI.util.fonts()
+    this._font_size = await window.jliverAPI.get('config.font_size', 16)
+    this._font = await window.jliverAPI.get('config.font', 'system-ui')
+  },
+  font_list: [],
+  _font: 'system-ui',
+  _font_size: 16,
+  get font_size() {
+    return this._font_size
+  },
+  set font_size(v: number) {
+    this._font_size = v
+    window.jliverAPI.set('config.font_size', v)
+  },
+  get font() {
+    return this._font
+  },
+  set font(v: string) {
+    this._font = v
+    window.jliverAPI.set('config.font', v)
+  },
+}
+
+const window_setting = {
+  async init() {
+    this._opacity = await window.jliverAPI.get('config.opacity', 1)
+  },
+  _opacity: 1,
+  get opacity() {
+    return this._opacity
+  },
+  set opacity(v: number) {
+    this._opacity = v
+    window.jliverAPI.set('config.opacity', v)
+  },
+}
+
+const about = {
+  version: '-',
+  async init() {
+    this.version = await window.jliverAPI.util.version()
+  },
+}
 Alpine.data('app', (): any => app)
 Alpine.data('room_setting', (): any => room_setting)
 Alpine.data('account_setting', (): any => account_setting)
 Alpine.data('merge_setting', (): any => merge_setting)
+Alpine.data('danmu_style_setting', (): any => danmu_style_setting)
+Alpine.data('window_setting', (): any => window_setting)
+Alpine.data('about', (): any => about)
 Alpine.data('tab', (): any => ({
   active: 0,
   items: [

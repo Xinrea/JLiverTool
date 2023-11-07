@@ -219,6 +219,24 @@ input[type=text].error {
     border-bottom: rgba(122, 4, 35, 0.64) 2px inset;
 }
 
+input[type=range] {
+    -webkit-appearance: none;
+    height: 4px;
+    background-color: rgb(153, 153, 153);
+    border-radius: 2px;
+    transition: all 0.1s ease-in-out;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background-color: #3f5370;
+    border-radius: 50%;
+    border: rgb(68, 68, 68) 4px solid;
+    transition: all 0.1s ease-in-out;
+}
+
 label {
     display: flex;
     align-items: center;
@@ -300,6 +318,32 @@ li::before {
     border-radius: 6px;
     transform: translateX(-8px);
 }
+
+select {
+    color: white;
+    width: auto;
+    height: 30px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 14px;
+    text-align: left;
+    background-color: rgba(56, 56, 56, 0.4);
+    border: rgba(56, 56, 56, 0.8) 1px solid;
+    transition: all 0.2s ease-in-out;
+}
+
+select:hover {
+    background-color: rgba(56, 56, 56, 0.8);
+}
+
+select:active {
+    background-color: transparent;
+}
+
+option {
+    background-color: rgb(42, 42, 42);
+}
+
 
 .dialog {
     position: fixed;

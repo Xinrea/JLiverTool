@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { app, ipcMain, shell } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
@@ -10,6 +10,7 @@ import { Cookies } from './types'
 import ConfigStore from './config_store'
 import { MessageDanmu } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
+import { getFonts } from 'font-list'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -181,6 +182,14 @@ export default class BackendService {
       )
       log.debug('Get room info', { resp })
       return resp
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_FONT_LIST], async () => {
+      const font_list = await getFonts({ disableQuoting: true })
+      log.debug('Get font list', { font_list })
+      return font_list
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_VERSION], async () => {
+      return app.getVersion()
     })
   }
 

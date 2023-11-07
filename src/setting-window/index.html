@@ -139,7 +139,7 @@
                           <li>
                             <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%">
                               <span><span style="vertical-align: middle; margin-right: 6px;" :style="{color: 'var(--merge-color-' + index + ')'}">&#xEA3B;</span>[<span x-text="item.id"></span>] <span x-text="item.name"></span></span>
-                              <button style="margin-left: 6px; padding: 8px;" @click="remove(index)">&#xE74D;
+                              <button style="margin-left:12px; padding: 8px;" @click="remove(index)">&#xE74D;
                               </button>
                             </div>
                           </li>
@@ -152,29 +152,92 @@
             </div>
           </div>
           <div class="tab-wrap" x-show="active == 1">
-            <div style="display: flex; flex-direction: column;">
-              <div>
-                <label>深色模式：</label><input class="mui-switch mui-switch-animbg" type="checkbox" x-model="darkTheme">
-              </div>
-              <div style="margin-bottom: 8px;">
-                <label for="font_size">字体大小：</label>
-                <input id="font_size" type="number" x-model="fontSize" min="14" max="40" />
-              </div>
-              <div>
-                <label for="opacity">透明度：</label>
-                <input id="opacity" type="number" x-model="opacity" min="0" max="1" step="0.01" />
+            <div style="display: flex; flex-direction: column; width: 100%;">
+            <div class="group multiple" x-data="danmu_style_setting">
+              <div class="group-label">弹幕设置</div>
+              <div class="group-items">
+                <div class="group-item">
+                    <span class="group-desc">
+                        <span class="icon">&#xE8D2;</span>
+                        <span class="desc">
+                          <span>字体</span>
+                        </span>
+                      </span>
+                  <select id="font" class="select" x-model="font">
+                    <template x-for="item in font_list">
+                      <option x-text="item"></option>
+                    </template>
+                  </select>
+                </div>
+                <div class="group-item">
+                  <span class="group-desc">
+                      <span class="icon">&#xE8E9;</span>
+                      <span class="desc">
+                        <span>字体大小</span>
+                        <span>范围 8px ~ 64px</span>
+                      </span>
+                    </span>
+                  <div style="display: flex; flex-direction: row; align-items: center; font-size: 14px">
+                    <span style="margin-right: 6px" x-text="font_size"></span>
+                    <input type="range" min="8" max="64" x-model="font_size"/>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="tab-wrap" x-show="active == 2">
-            <div style="flex-direction: column; align-items: center;">
-              <div style="margin-bottom: 12px;">JLiverTool<span x-text="currentVersion" style="margin-left: 6px;"></span></div>
-              <div style="margin-bottom: 12px;">Author: Xinrea</div>
-              <div style="margin-bottom: 12px;">
-                <button @click="openURL('https://space.bilibili.com/475210')">哔哩哔哩</button>
-                <button @click="openURL('https://afdian.net/a/Xinrea')">爱发电</button>
+            <div class="group" x-data="window_setting">
+              <div class="group-label">窗口设置</div>
+              <div class="group-item">
+                  <span class="group-desc">
+                      <span class="icon">&#xF5A1;</span>
+                      <span class="desc">
+                        <span>透明度</span>
+                        <span>除设置窗口外，其他窗口的透明度</span>
+                      </span>
+                  </span>
+                <div style="display: flex; flex-direction: row; align-items: center; font-size: 14px">
+                  <span style="margin-right: 6px" x-text="Number(opacity).toFixed(2)"></span>
+                  <input type="range" x-model="opacity" min="0" max="1" step="0.01"/>
+                </div>
               </div>
-              <div style="font-size: 12px;">*爱发电留言中提出的需求将优先考虑实现</div>
+            </div>
+              <div class="group">
+                <div class="group-label">高级设置</div>
+                <div class="group-item">
+                  <span class="group-desc">
+                      <span class="desc">
+                        <span>自定义样式</span>
+                      </span>
+                    </span>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div class="tab-wrap" x-show="active == 2">
+              <div style="display: flex; flex-direction: column; width: 100%;" x-data="about">
+                <div class="group">
+                  <div style="display: flex; flex-direction: row; align-items: center; margin: 32px 0; justify-content: space-between">
+                    <div style="display: flex; flex-direction: row; align-items: center;">
+                        <img src="../assets/icons/main.png" height="102" width="102"/>
+                        <div style="display: flex; flex-direction: column; margin-left: 16px">
+                          <div>JLiverTool</div>
+                          <div style="font-size: 14px" x-text="version"></div>
+                          <span class="hyperlink" style="font-size: 14px">检查更新</span>
+                          <span class="hyperlink" style="font-size: 14px">GitHub</span>
+                        </div>
+                      </div>
+                  </div>
+                </div>
+                <div class="group">
+                  <div class="group-label">其他信息</div>
+                  <div class="group-item">
+                  <span class="group-desc">
+                      <span class="desc">
+                        <span>日志</span>
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -317,6 +380,8 @@
 
     .tab-header {
       width: 20%;
+      min-width: 100px;
+      max-width: 160px;
       height: 100%;
       display: flex;
       flex-direction: column;
