@@ -159,9 +159,17 @@ const merge_setting = {
         continue
       }
       const room_info = await window.jliverAPI.room.info(room_id)
+      if (room_info.code != 0) {
+        continue
+      }
+
+      const user_info = await window.jliverAPI.user.info(room_info.data.uid)
+      if (user_info.code != 0) {
+        continue
+      }
       this.room_list.push({
         id: room_id,
-        name: room_info.data.title,
+        name: `[${user_info.data.uname}]${room_info.data.title}`,
       })
     }
     window.jliverAPI.onDidChange('config.room', (v: number) => {
@@ -215,10 +223,16 @@ const merge_setting = {
       this.error = true
       return
     }
+
+    const user_info = await window.jliverAPI.user.info(room_info.data.uid)
+    if (user_info.code != 0) {
+      this.error = true
+      return
+    }
     this.error = false
     this.room_list.push({
       id: parseInt(this['to_add']),
-      name: room_info.data.title,
+      name: `[${user_info.data.uname}]${room_info.data.title}`,
     })
     this['to_add'] = ''
     window.jliverAPI.set(
@@ -277,8 +291,17 @@ const window_setting = {
 
 const about = {
   version: '-',
+  logs: [],
   async init() {
     this.version = await window.jliverAPI.util.version()
+    window.jliverAPI.register(JEvent.EVENT_LOG, (msg: string) => {
+      if (this.logs.length >= 100) {
+        // remove last
+        this.logs.pop()
+      }
+      // push to front
+      this.logs.unshift(msg)
+    })
   },
 }
 Alpine.data('app', (): any => app)

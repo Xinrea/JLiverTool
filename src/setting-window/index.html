@@ -230,11 +230,15 @@
                 <div class="group">
                   <div class="group-label">其他信息</div>
                   <div class="group-item">
-                  <span class="group-desc">
-                      <span class="desc">
-                        <span>日志</span>
-                      </span>
+                    <div style="flex-direction: column; width: 100%">
+                    <span class="group-desc" style="margin-bottom: 16px;">
+                        <span class="desc">
+                          <span>最近日志</span>
+                        </span>
                     </span>
+                    <textarea x-model="logs.join('\n')" style="height: 200px; resize: none; background-color: #202020; border: rgba(255, 255, 255, 0.3) 1px solid; color: white; font-size: 14px; outline: none; padding: 8px;"></textarea>
+                    <span class="hyperlink">打开日志文件</span>
+                    </div>
                   </div>
                 </div>
               </div>

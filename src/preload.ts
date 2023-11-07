@@ -3,6 +3,7 @@ import { WindowType } from './lib/types'
 import JEvent from './lib/events'
 import RoomInitResponse from './lib/bilibili/api/room/room_init'
 import GetInfoResponse from './lib/bilibili/api/room/get_info'
+import UserInfoResponse from './lib/bilibili/api/user/user_info'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -27,7 +28,7 @@ export type JLiverAPI = {
   }
   user: {
     logout: () => Promise<any>
-    info: (user_id: number) => Promise<any>
+    info: (user_id: number) => Promise<UserInfoResponse>
   }
   room: {
     info: (room_id: number) => Promise<GetInfoResponse>
@@ -60,6 +61,7 @@ registerListener(JEvent.EVENT_NEW_DANMU)
 registerListener(JEvent.EVENT_WINDOW_BLUR)
 registerListener(JEvent.EVENT_WINDOW_FOCUS)
 registerListener(JEvent.EVENT_STORE_WATCH)
+registerListener(JEvent.EVENT_LOG)
 
 // watcher keeps all registered onDidChange callback in renderer process
 // and will be called when ipcMain send store-watch event
