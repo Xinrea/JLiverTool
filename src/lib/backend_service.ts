@@ -103,6 +103,7 @@ export default class BackendService {
     log.info('Stopping backend service')
     clearInterval(this._task_update_room_info)
     clearInterval(this._task_update_online_num)
+    ipcMain.removeAllListeners()
     this._conn.Disconnect()
   }
 
@@ -180,7 +181,7 @@ export default class BackendService {
         this._config_store.Cookies,
         room_id
       )
-      log.debug('Get room info', { resp })
+      log.debug('Get room info', { room: room_id, resp })
       return resp
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_FONT_LIST], async () => {
@@ -190,6 +191,9 @@ export default class BackendService {
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_VERSION], async () => {
       return app.getVersion()
+    })
+    ipcMain.on(JEvent[JEvent.EVENT_LOG], (msg) => {
+      this._window_manager.sendTo(WindowType.WSETTING, JEvent.EVENT_LOG, msg)
     })
   }
 
