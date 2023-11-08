@@ -6,6 +6,7 @@ import ConfigStore from './config_store'
 import { WindowType } from './types'
 
 const log = JLogger.getInstance('window_manager')
+const dev = process.env.DEBUG === 'true'
 
 function WindowTypeTitle(win_type: WindowType): string {
   switch (win_type) {
@@ -93,7 +94,7 @@ class Window {
       minHeight: 200,
       minWidth: 380,
       transparent: true,
-      frame: false,
+      frame: dev,
       show: false,
       title: WindowTypeTitle(win_type),
       icon: path.join(__dirname, `icons/${this.win_type}.png`),

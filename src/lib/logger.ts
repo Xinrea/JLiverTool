@@ -10,7 +10,6 @@ import {
 // @ts-ignore
 import fileOutput from '@jalik/logger/dist/outputs/fileOutput.js'
 import path = require('path')
-import { LogEventContext } from '@jalik/logger/dist/event'
 import JEvent from './events'
 
 // Initialize logger
