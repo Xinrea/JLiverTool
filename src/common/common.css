@@ -404,6 +404,7 @@ option {
 .hyperlink {
     cursor: pointer;
     padding: 2px 0;
+    width: fit-content;
     box-sizing: border-box;
     border-radius: 6px;
     color: #435672;

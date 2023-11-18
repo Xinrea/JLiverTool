@@ -35,8 +35,10 @@ export type JLiverAPI = {
   }
   util: {
     openUrl: (url: string) => Promise<any>
+    openLogDir: () => Promise<any>
     fonts: () => Promise<any>
     version: () => Promise<string>
+    latestRelease: () => Promise<any>
   }
 }
 
@@ -162,11 +164,17 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     openUrl: (url: string) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_OPEN_URL], url)
     },
+    openLogDir: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_OPEN_LOG_DIR])
+    },
     fonts() {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_FONT_LIST])
     },
     version() {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_VERSION])
+    },
+    latestRelease() {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_LATEST_RELEASE])
     },
   },
 })

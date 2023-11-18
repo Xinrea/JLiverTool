@@ -291,9 +291,11 @@ const window_setting = {
 
 const about = {
   version: '-',
+  latest_version: '-',
   logs: [],
   async init() {
     this.version = await window.jliverAPI.util.version()
+    this.latest_version = (await window.jliverAPI.util.latestRelease()).tag_name
     window.jliverAPI.register(JEvent.EVENT_LOG, (msg: string) => {
       if (this.logs.length >= 100) {
         // remove last
