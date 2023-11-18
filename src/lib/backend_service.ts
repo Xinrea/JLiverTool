@@ -11,6 +11,7 @@ import ConfigStore from './config_store'
 import { MessageDanmu } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
 import { getFonts } from 'font-list'
+import GithubApi from './github_api'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -194,6 +195,14 @@ export default class BackendService {
     })
     ipcMain.on(JEvent[JEvent.EVENT_LOG], (msg) => {
       this._window_manager.sendTo(WindowType.WSETTING, JEvent.EVENT_LOG, msg)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_OPEN_LOG_DIR], async () => {
+      return shell.openPath(JLogger.getLogPath())
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_LATEST_RELEASE], async () => {
+      const resp = await GithubApi.GetLatestRelease()
+      log.debug('Get latest release', { resp })
+      return resp
     })
   }
 

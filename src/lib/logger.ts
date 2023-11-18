@@ -42,6 +42,10 @@ class JLogger {
       ],
     })
   }
+
+  public static getLogPath(): string {
+    return logPath
+  }
 }
 
 function eventOutput() {

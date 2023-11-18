@@ -218,10 +218,9 @@
                   <div style="display: flex; flex-direction: row; align-items: center;">
                       <img src="../assets/icons/main.png" height="102" width="102"/>
                       <div style="display: flex; flex-direction: column; margin-left: 16px">
-                        <div>JLiverTool</div>
-                        <div style="font-size: 14px" x-text="version"></div>
-                        <span class="hyperlink" style="font-size: 14px">检查更新</span>
-                        <span class="hyperlink" style="font-size: 14px">GitHub</span>
+                        <div style="font-size: 26px">JLiverTool</div>
+                        <div style="font-size: 16px" x-text="'v'+version"></div>
+                        <span class="hyperlink" style="font-size: 16px" @click="window.jliverAPI.util.openUrl('https://github.com/Xinrea/JLiverTool/releases')" x-text="'最新版本：'+latest_version"></span>
                       </div>
                     </div>
                 </div>
@@ -235,8 +234,9 @@
                         <span>最近日志</span>
                       </span>
                     </span>
-                    <textarea x-model="logs.join('\n')" style="height: 200px; resize: none; background-color: #202020; border: rgba(255, 255, 255, 0.3) 1px solid; color: white; font-size: 14px; outline: none; padding: 8px;"></textarea>
-                    <span class="hyperlink">打开日志文件</span>
+                    <textarea style="height: 200px; resize: none; background-color: #202020; border: rgba(255, 255, 255, 0.3) 1px solid; color: white; font-size: 14px; outline: none; padding: 8px;"
+                              x-model="logs.join('\n')"></textarea>
+                    <div class="hyperlink" style="margin-top: 12px; text-align: end; font-size: 14px; width: fit-content;" @click="window.jliverAPI.util.openLogDir">打开日志文件夹</div>
                   </div>
                 </div>
               </div>
