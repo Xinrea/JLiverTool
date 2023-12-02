@@ -51,6 +51,12 @@ class Window {
     }
   }
 
+  public setIgnoreMouseEvents(b: boolean) {
+    if (this._window) {
+      this._window.setIgnoreMouseEvents(b)
+    }
+  }
+
   public get top(): boolean {
     if (!this._window) {
       return false
@@ -84,12 +90,14 @@ class Window {
     this._store = store
     const setting = store.GetWindowCachedSetting(win_type)
     log.debug('Creating window', { window: this.win_type, setting: setting })
+    let should_frame = false
     let should_transparent = true
     if (dev && process.platform === 'darwin') {
       log.debug(
         'Running in dev mode on MacOS, window transparent set to false for frame, or window drag will not work'
       )
       should_transparent = false
+      should_frame = true
     }
     // if not set position, electron will put window in the middle, that's what we need,
     // so we first initialize window and set position later
@@ -101,7 +109,7 @@ class Window {
       minHeight: 200,
       minWidth: 380,
       transparent: should_transparent,
-      frame: dev,
+      frame: should_frame,
       show: false,
       title: WindowTypeTitle(win_type),
       icon: path.join(__dirname, `icons/${this.win_type}.png`),
@@ -240,13 +248,13 @@ export class WindowManager {
     ipcMain.handle(
       JEvent[JEvent.INVOKE_WINDOW_HIDE],
       (_, win_type: WindowType) => {
-        this.toggleWindowShow(win_type, false)
+        this.setWindowShow(win_type, false)
       }
     )
     ipcMain.handle(
       JEvent[JEvent.INVOKE_WINDOW_SHOW],
       (_, win_type: WindowType) => {
-        this.toggleWindowShow(win_type, true)
+        this.setWindowShow(win_type, true)
       }
     )
     ipcMain.handle(
@@ -303,7 +311,7 @@ export class WindowManager {
     )
   }
 
-  private toggleWindowShow(win_type: WindowType, show: boolean) {
+  public setWindowShow(win_type: WindowType, show: boolean) {
     switch (win_type) {
       case WindowType.WMAIN: {
         this._main_window.show = show
@@ -319,6 +327,27 @@ export class WindowManager {
       }
       case WindowType.WSETTING: {
         this._setting_window.show = show
+        return
+      }
+    }
+  }
+
+  public setWindowClickThrough(win_type: WindowType, click_through: boolean) {
+    switch (win_type) {
+      case WindowType.WMAIN: {
+        this._main_window.setIgnoreMouseEvents(click_through)
+        return
+      }
+      case WindowType.WGIFT: {
+        this._gift_window.setIgnoreMouseEvents(click_through)
+        return
+      }
+      case WindowType.WSUPERCHAT: {
+        this._superchat_window.setIgnoreMouseEvents(click_through)
+        return
+      }
+      case WindowType.WSETTING: {
+        this._setting_window.setIgnoreMouseEvents(click_through)
         return
       }
     }
