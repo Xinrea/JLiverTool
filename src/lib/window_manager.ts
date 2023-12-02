@@ -84,6 +84,13 @@ class Window {
     this._store = store
     const setting = store.GetWindowCachedSetting(win_type)
     log.debug('Creating window', { window: this.win_type, setting: setting })
+    let should_transparent = true
+    if (dev && process.platform === 'darwin') {
+      log.debug(
+        'Running in dev mode on MacOS, window transparent set to false for frame, or window drag will not work'
+      )
+      should_transparent = false
+    }
     // if not set position, electron will put window in the middle, that's what we need,
     // so we first initialize window and set position later
     // window created with show=false, cuz we need to adjust its position later
@@ -93,12 +100,11 @@ class Window {
       height: setting.size[1],
       minHeight: 200,
       minWidth: 380,
-      transparent: true,
+      transparent: should_transparent,
       frame: dev,
       show: false,
       title: WindowTypeTitle(win_type),
       icon: path.join(__dirname, `icons/${this.win_type}.png`),
-      autoHideMenuBar: true,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
       },
@@ -119,7 +125,9 @@ class Window {
       this._window.webContents.send(JEvent[JEvent.EVENT_WINDOW_FOCUS], {})
     })
 
-    this._window.webContents.openDevTools()
+    if (dev) {
+      this._window.webContents.openDevTools()
+    }
     this.registerEvents()
   }
 
