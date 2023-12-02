@@ -19,13 +19,15 @@ DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [400, 300]
 
 class Store {
-  private webContents: Electron.WebContents[]
-  private configPath: string
+  private web_contents: Electron.WebContents[]
+  private config_path: string
+  private registered_callbacks: Map<string, Function[]>
   constructor() {
-    this.configPath = path.join(app.getPath('userData'), 'config.json')
-    this.webContents = []
+    this.config_path = path.join(app.getPath('userData'), 'config.json')
+    this.web_contents = []
+    this.registered_callbacks = new Map()
     this.initConfigHandlers()
-    log.debug('Config store initialized', { path: this.configPath })
+    log.debug('Config store initialized', { path: this.config_path })
   }
 
   private initConfigHandlers() {
@@ -43,15 +45,15 @@ class Store {
     // so store-register must be called in preload.ts
     ipcMain.handle(JEvent[JEvent.INVOKE_STORE_REGISTER], (event) => {
       log.debug('store-register called', { sender: event.sender.getTitle() })
-      this.webContents.push(event.sender)
+      this.web_contents.push(event.sender)
     })
   }
 
   get(key: string, default_value: any = null) {
-    if (!fs.existsSync(this.configPath)) {
-      fs.writeFileSync(this.configPath, '{}')
+    if (!fs.existsSync(this.config_path)) {
+      fs.writeFileSync(this.config_path, '{}')
     }
-    const configJson = fs.readFileSync(this.configPath, 'utf8')
+    const configJson = fs.readFileSync(this.config_path, 'utf8')
     let configJs = JSON.parse(configJson)
     const keys = key.split('.')
     let cur = configJs
@@ -84,9 +86,21 @@ class Store {
     cur[keys[keys.length - 1]] = value
     const newConfigJson = JSON.stringify(configJs)
     fs.writeFileSync(configPath, newConfigJson)
-    this.webContents.forEach((wc) => {
+    this.web_contents.forEach((wc) => {
       wc.send(JEvent[JEvent.EVENT_STORE_WATCH], key, value)
     })
+    if (this.registered_callbacks.has(key)) {
+      this.registered_callbacks.get(key).forEach((callback) => {
+        callback(value)
+      })
+    }
+  }
+
+  onDidChange(key: string, callback: Function) {
+    if (!this.registered_callbacks.has(key)) {
+      this.registered_callbacks.set(key, [])
+    }
+    this.registered_callbacks.get(key).push(callback)
   }
 }
 
@@ -140,6 +154,10 @@ export class ConfigStore {
   }
   public UpdateWindowCachedSetting(wtype: WindowType, setting: WindowSetting) {
     this._store.set(`config.window.${wtype}`, setting)
+  }
+
+  public onDidChange(key: string, callback: Function) {
+    this._store.onDidChange(key, callback)
   }
 }
 

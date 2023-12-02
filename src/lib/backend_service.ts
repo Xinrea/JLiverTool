@@ -59,12 +59,7 @@ export default class BackendService {
     }
 
     // Init room info
-    const status_response = await BiliApi.RoomInit(
-      this._config_store.Cookies,
-      room
-    )
-    this._owner_uid = status_response.data.uid
-    this._real_room = status_response.data.room_id
+    await this.initRoomInfo(room)
 
     // Must update gift list before receiving any gift message
     await this.updateGiftList()
@@ -83,27 +78,28 @@ export default class BackendService {
     this.initEvents()
 
     // Setup websocket connection with reconnect enabled
-    const danmu_server_info = await BiliApi.GetDanmuInfo(
-      this._config_store.Cookies,
-      this._real_room
-    )
-    this._conn = new BiliWebSocket({
-      room_id: this._real_room,
-      uid: parseInt(this._config_store.Cookies.DedeUserID),
-      server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
-      token: danmu_server_info.data.token,
-    })
-    this._conn.msg_handler = this.msgHandler.bind(this)
-    this._conn.Connect(true)
+    await this.setupWebSocket()
 
     // everything is ready, now we start windows
     this._window_manager.Start()
+
+    // handle room change
+    this._config_store.onDidChange('config.room', async (room) => {
+      log.info('Room changed', { room })
+      await this.initRoomInfo(room)
+      this.updateRoomInfo()
+      this.updateOnlineNum()
+      this.updateGiftList()
+      // release old connection and setup new one
+      await this.releaseWebSocket()
+      await this.setupWebSocket()
+    })
   }
 
   public async Stop() {
     log.info('Stopping backend service')
     ipcMain.removeAllListeners()
-    this._conn.Disconnect()
+    this.releaseWebSocket()
     clearInterval(this._task_update_room_info)
     clearInterval(this._task_update_online_num)
   }
@@ -119,6 +115,36 @@ export default class BackendService {
       JEvent.EVENT_UPDATE_ROOM,
       room_response.data
     )
+  }
+
+  private async initRoomInfo(room: number) {
+    const status_response = await BiliApi.RoomInit(
+      this._config_store.Cookies,
+      room
+    )
+    this._owner_uid = status_response.data.uid
+    this._real_room = status_response.data.room_id
+  }
+
+  private async setupWebSocket() {
+    const danmu_server_info = await BiliApi.GetDanmuInfo(
+      this._config_store.Cookies,
+      this._real_room
+    )
+    this._conn = new BiliWebSocket({
+      room_id: this._real_room,
+      uid: parseInt(this._config_store.Cookies.DedeUserID),
+      server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
+      token: danmu_server_info.data.token,
+    })
+    this._conn.msg_handler = this.msgHandler.bind(this)
+    this._conn.Connect(true)
+    log.debug('Websocket connected', { room: this._real_room })
+  }
+
+  private async releaseWebSocket() {
+    this._conn.Disconnect()
+    log.debug('Websocket released', { room: this._real_room })
   }
 
   private async updateOnlineNum() {
