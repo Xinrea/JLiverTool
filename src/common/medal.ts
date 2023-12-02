@@ -7,7 +7,7 @@ function cth(dColor: number) {
 export function createMedal(medal_info: MedalInfo): HTMLElement {
   let medal = document.createElement('div')
   medal.className = 'medal'
-  medal.style.backgroundImage = `${cth(medal_info.medal_color_border)}`
+  medal.style.borderColor = `${cth(medal_info.medal_color_border)}`
   let medalLabel = document.createElement('div')
   medalLabel.className = 'medal_label'
   medalLabel.style.backgroundImage = `linear-gradient(45deg, ${cth(
