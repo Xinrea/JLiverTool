@@ -102,10 +102,10 @@ export default class BackendService {
 
   public async Stop() {
     log.info('Stopping backend service')
-    clearInterval(this._task_update_room_info)
-    clearInterval(this._task_update_online_num)
     ipcMain.removeAllListeners()
     this._conn.Disconnect()
+    clearInterval(this._task_update_room_info)
+    clearInterval(this._task_update_online_num)
   }
 
   private async updateRoomInfo() {
