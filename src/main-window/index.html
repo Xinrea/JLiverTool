@@ -11,13 +11,19 @@
     <div id="app" :style="`--global-opacity: ${base.opacity}`">
       <div
         id="title-bar"
-        :style="{backgroundImage: base.live ? 'linear-gradient(90deg, rgba(237,59,107,1) 0%, rgba(247,0,92,0.88) 33%, rgba(0,0,0,0) 80%)' : 'var(--title-bar-color)'}"
+        :style="{backgroundColor: base.live ? 'rgba(237,59,107,1)' : 'var(--title-bar-color)'}"
       >
         <div>
           <div id="live-text">LIVE</div>
           <div>
-            <span class="icon"
-                  style="margin-left: 14px; -webkit-mask-image: url('../assets/icons/avatar.svg'); background-color: white"></span>
+            <span
+              class="icon"
+              style="
+                margin-left: 14px;
+                -webkit-mask-image: url('../assets/icons/avatar.svg');
+                background-color: white;
+              "
+            ></span>
             <div id="online" x-text="base.live?base.online:''"></div>
           </div>
         </div>
@@ -29,7 +35,10 @@
             @click="toggle('medal-display')"
           >
             <span class="tooltip-text" x-text="l.texts.FANS_MEDAL"></span>
-            <span class="icon" style="-webkit-mask-image: url('../assets/icons/medal.svg')"></span>
+            <span
+              class="icon"
+              style="-webkit-mask-image: url('../assets/icons/medal.svg')"
+            ></span>
           </div>
           <div
             id="enter-button"
@@ -38,7 +47,10 @@
             @click="toggle('enter-message')"
           >
             <span class="tooltip-text" x-text="l.texts.ENTER_INFO"></span>
-            <span class="icon" style="-webkit-mask-image: url('../assets/icons/enter.svg')"></span>
+            <span
+              class="icon"
+              style="-webkit-mask-image: url('../assets/icons/enter.svg')"
+            ></span>
           </div>
           <div
             id="top-button"
@@ -47,7 +59,10 @@
             @click="toggle('always-on-top')"
           >
             <span class="tooltip-text" x-text="l.texts.PINNED"></span>
-            <span class="icon" style="-webkit-mask-image: url('../assets/icons/pin.svg')"></span>
+            <span
+              class="icon"
+              style="-webkit-mask-image: url('../assets/icons/pin.svg')"
+            ></span>
           </div>
           <div
             id="minimize-button"
@@ -56,7 +71,10 @@
             x-transition.duration.300ms
             @click="minimize"
           >
-            <span class="icon" style="-webkit-mask-image: url('../assets/icons/minimize.svg')"></span>
+            <span
+              class="icon"
+              style="-webkit-mask-image: url('../assets/icons/minimize.svg')"
+            ></span>
           </div>
           <div id="dropdown" x-data="menu">
             <div
@@ -72,7 +90,10 @@
               @click="open = !open"
               style="z-index: 100"
             >
-              <span class="icon" style="-webkit-mask-image: url('../assets/icons/setting.svg')"></span>
+              <span
+                class="icon"
+                style="-webkit-mask-image: url('../assets/icons/setting.svg')"
+              ></span>
             </div>
             <div
               id="dropdown-content"
@@ -142,8 +163,13 @@
           @click=""
         >
           <span class="tooltip-text" style="top: -5px">开播设置</span>
-          <span class="icon"
-                style="-webkit-mask-image: url('../assets/icons/link.svg'); background-color: white"></span>
+          <span
+            class="icon"
+            style="
+              -webkit-mask-image: url('../assets/icons/link.svg');
+              background-color: white;
+            "
+          ></span>
         </div>
       </div>
     </div>
