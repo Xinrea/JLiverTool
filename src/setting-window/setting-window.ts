@@ -1,6 +1,12 @@
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
-import { Cookies, WindowType } from '../lib/types'
+import {
+  Cookies,
+  DefaultRoomID,
+  RoomID,
+  WindowType,
+  typecast,
+} from '../lib/types'
 import JEvent from '../lib/events'
 import * as QrCode from 'qrcode'
 import UserInfoResponse from '../lib/bilibili/api/user/user_info'
@@ -45,48 +51,52 @@ const room_setting = {
   owned: false,
   error: false,
   async settingUpdate() {
-    this.room_id = await window.jliverAPI.get('config.room', '21484828')
-    this.room_info = (
-      await window.jliverAPI.room.info(parseInt(this.room_id))
-    ).data
+    const room = typecast(RoomID, await window.jliverAPI.config.room())
     const user_id = (await window.jliverAPI.get('config.cookies', {}))
       .DedeUserID
-    if (this.room_info.uid == user_id) {
+    if (room.getOwnerID() == user_id) {
       this.owned = true
     }
+    this.room_id = room.getID()
   },
   async confirmRoom() {
-    const prev_room_id = await window.jliverAPI.get('config.room', '21484828')
+    const prev_room = typecast(RoomID, await window.jliverAPI.config.room())
     if (this.room_id == '') {
       this.error = true
-      this.room_id = prev_room_id
+      this.room_id = prev_room.getID()
       return
     }
     // length > 16
     if (this.room_id.length > 16) {
       this.error = true
-      this.room_id = prev_room_id
+      this.room_id = prev_room.getID()
       return
     }
     // contains non-number
     if (isNaN(Number(this.room_id))) {
       this.error = true
-      this.room_id = prev_room_id
+      this.room_id = prev_room.getID()
       return
     }
     this.error = false
-    if (this.room_id == prev_room_id) {
+    if (prev_room.same(parseInt(this.room_id))) {
       return
     }
     // new room id is set, check if it's valid
     const room_info = await window.jliverAPI.room.info(parseInt(this.room_id))
     if (room_info.code != 0) {
       this.error = true
-      this.room_id = prev_room_id
+      this.room_id = prev_room.getID()
       return
     }
     // confirm new room id
-    window.jliverAPI.set('config.room', this.room_id)
+    window.jliverAPI.backend.updateRoom(
+      new RoomID(
+        room_info.data.short_id,
+        room_info.data.room_id,
+        room_info.data.uid
+      )
+    )
   },
 }
 
@@ -152,13 +162,17 @@ const account_setting = {
 const merge_setting = {
   async init() {
     this['_enable'] = await window.jliverAPI.get('config.merge', false)
-    const merge_rooms = await window.jliverAPI.get('config.merge_rooms', [])
-    const current_room = await window.jliverAPI.get('config.room', '21484828')
-    for (const room_id of merge_rooms) {
-      if (room_id == current_room) {
+    const merge_rooms = (await window.jliverAPI.get(
+      'config.merge_rooms',
+      []
+    )) as RoomID[]
+    const current_room = typecast(RoomID, await window.jliverAPI.config.room())
+    for (let room_id of merge_rooms) {
+      room_id = typecast(RoomID, room_id)
+      if (current_room.equals(room_id)) {
         continue
       }
-      const room_info = await window.jliverAPI.room.info(room_id)
+      const room_info = await window.jliverAPI.room.info(room_id.getID())
       if (room_info.code != 0) {
         continue
       }
@@ -168,14 +182,14 @@ const merge_setting = {
         continue
       }
       this.room_list.push({
-        id: room_id,
+        id: room_id.getID(),
         name: `[${user_info.data.uname}]${room_info.data.title}`,
       })
     }
-    window.jliverAPI.onDidChange('config.room', (v: number) => {
+    window.jliverAPI.onDidChange('config.room', (v: RoomID) => {
       // filter out current room
-      this['room_list'] = this.room_list.filter((room: any) => {
-        return room.id != v
+      this['room_list'] = this.room_list.filter((room: RoomID) => {
+        return room !== v
       })
     })
   },
@@ -212,7 +226,7 @@ const merge_setting = {
       return
     }
     // check if room is same with main room
-    const main_room = await window.jliverAPI.get('config.room', '21484828')
+    const main_room = await window.jliverAPI.get('config.room', DefaultRoomID)
     if (main_room == this['to_add']) {
       this.error = true
       return

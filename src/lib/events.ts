@@ -32,6 +32,7 @@ enum JEvent {
   INVOKE_GET_VERSION,
   INVOKE_OPEN_LOG_DIR,
   INVOKE_GET_LATEST_RELEASE,
+  INVOKE_UPDATE_ROOM,
 }
 
 export default JEvent

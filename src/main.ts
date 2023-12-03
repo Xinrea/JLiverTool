@@ -8,6 +8,8 @@ import ConfigStore from './lib/config_store'
 import JEvent from './lib/events'
 import { WindowType } from './lib/types'
 
+require('source-map-support').install()
+
 const log = JLogger.getInstance('main')
 
 let tray = null

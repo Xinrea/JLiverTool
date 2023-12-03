@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { WindowType } from './lib/types'
+import { DefaultRoomID, RoomID, WindowType, typecast } from './lib/types'
 import JEvent from './lib/events'
 import RoomInitResponse from './lib/bilibili/api/room/room_init'
 import GetInfoResponse from './lib/bilibili/api/room/get_info'
@@ -32,6 +32,12 @@ export type JLiverAPI = {
   }
   room: {
     info: (room_id: number) => Promise<GetInfoResponse>
+  }
+  config: {
+    room: () => Promise<RoomID>
+  }
+  backend: {
+    updateRoom: (room: RoomID) => Promise<void>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -158,6 +164,29 @@ contextBridge.exposeInMainWorld('jliverAPI', {
   room: {
     info: (room_id: number) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_ROOM_INFO], room_id)
+    },
+  },
+  backend: {
+    updateRoom: (room: RoomID) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_UPDATE_ROOM], room)
+    },
+  },
+  config: {
+    room: async () => {
+      const room = await ipcRenderer.invoke(
+        JEvent[JEvent.INVOKE_STORE_GET],
+        'config.room',
+        DefaultRoomID
+      )
+      if (
+        !room.hasOwnProperty('short_id') ||
+        !room.hasOwnProperty('room_id') ||
+        !room.hasOwnProperty('owner_uid')
+      ) {
+        return DefaultRoomID
+      }
+      // using this way to keep object function
+      return typecast(RoomID, room)
     },
   },
   util: {

@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron'
 import path = require('path')
 import fs = require('fs')
-import { Cookies, WindowType } from './types'
+import { Cookies, DefaultRoomID, RoomID, WindowType } from './types'
 import JLogger from './logger'
 import JEvent from './events'
 
@@ -127,10 +127,15 @@ export class ConfigStore {
     this._store.set('config.alwaysOnTop', b)
   }
 
-  public get Room(): number {
-    return this._store.get('config.room', 0) as number
+  public get Room(): RoomID {
+    const room = this._store.get('config.room', DefaultRoomID) as RoomID
+    // it might be another type in old version, need to check it here
+    if (!room.hasOwnProperty('short_id') || !room.hasOwnProperty('room_id')) {
+      return DefaultRoomID
+    }
+    return room
   }
-  public set Room(room: number) {
+  public set Room(room: RoomID) {
     this._store.set('config.room', room)
   }
 

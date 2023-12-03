@@ -1,4 +1,4 @@
-import { Cookies } from '../types'
+import { Cookies, RoomID } from '../types'
 import GetInfoResponse from './api/room/get_info'
 import RoomInitResponse from './api/room/room_init'
 import GiftConfigResponse from './api/room/gift_config'
@@ -14,9 +14,9 @@ import { NavResponse } from './api/nav_response'
 class BiliApi {
   public static async RoomInit(
     cookies: Cookies,
-    room: number
+    room: RoomID
   ): Promise<RoomInitResponse> {
-    const url = `https://api.live.bilibili.com/room/v1/Room/room_init?id=${room}`
+    const url = `https://api.live.bilibili.com/room/v1/Room/room_init?id=${room.getRealID()}`
     const options = {
       method: 'GET',
       headers: {
@@ -29,9 +29,9 @@ class BiliApi {
 
   public static async GetRoomInfo(
     cookies: Cookies,
-    real_room: number
+    room: RoomID
   ): Promise<GetInfoResponse> {
-    const url = `https://api.live.bilibili.com/room/v1/Room/get_info?id=${real_room}`
+    const url = `https://api.live.bilibili.com/room/v1/Room/get_info?id=${room.getRealID()}`
     const options = {
       method: 'GET',
       headers: {
@@ -44,9 +44,9 @@ class BiliApi {
 
   public static async GetGiftConfig(
     cookies: Cookies,
-    real_room: number
+    room: RoomID
   ): Promise<GiftConfigResponse> {
-    const url = `https://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${real_room}`
+    const url = `https://api.live.bilibili.com/xlive/web-room/v1/giftPanel/giftConfig?platform=pc&room_id=${room.getRealID()}`
     const options = {
       method: 'GET',
       headers: {
@@ -59,9 +59,9 @@ class BiliApi {
 
   public static async GetDanmuInfo(
     cookies: Cookies,
-    real_room: number
+    room: RoomID
   ): Promise<GetDanmuInfoResponse> {
-    const url = `https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${real_room}`
+    const url = `https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${room.getRealID()}`
     const options = {
       method: 'GET',
       headers: {
@@ -74,10 +74,9 @@ class BiliApi {
 
   public static async GetOnlineGoldRank(
     cookies: Cookies,
-    owner_id: number,
-    real_room: number
+    room: RoomID
   ): Promise<GetOnlineGoldRankResponse> {
-    const url = `https://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${owner_id}&roomId=${real_room}&page=1&pageSize=1`
+    const url = `https://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${room.getOwnerID()}&roomId=${room.getRealID()}&page=1&pageSize=1`
     const options = {
       method: 'GET',
       headers: {
@@ -106,7 +105,7 @@ class BiliApi {
   /** Valid cookies must be provided to send danmu. */
   public static async SendDanmu(
     cookies: Cookies,
-    real_room: number,
+    room: RoomID,
     content: string
   ): Promise<SendDanmuResponse> {
     // Build form of danmu message
@@ -118,7 +117,7 @@ class BiliApi {
     params.append('fontsize', '25')
     params.append('room_type', '0')
     params.append('rnd', Math.floor(Date.now() / 1000).toString())
-    params.append('roomid', real_room.toString())
+    params.append('roomid', room.getRealID().toString())
     params.append('csrf', cookies.bili_jct)
     params.append('csrf_token', cookies.bili_jct)
 
@@ -136,13 +135,13 @@ class BiliApi {
 
   public static async UpdateRoomTitle(
     cookies: Cookies,
-    real_room: number,
+    room: RoomID,
     title: string
   ): Promise<UpdateRoomTitleResponse> {
     // Build form of room title updating
     const params = new URLSearchParams()
     params.append('platform', 'pc')
-    params.append('room_id', real_room.toString())
+    params.append('room_id', room.getRealID().toString())
     params.append('title', title)
     params.append('csrf', cookies.bili_jct)
     params.append('csrf_token', cookies.bili_jct)
@@ -161,11 +160,11 @@ class BiliApi {
 
   public static async StopRoomLive(
     cookies: Cookies,
-    real_room: number
+    room: RoomID
   ): Promise<StopLiveResponse> {
     // Build form of room title updating
     const params = new URLSearchParams()
-    params.append('room_id', real_room.toString())
+    params.append('room_id', room.getRealID().toString())
     params.append('csrf', cookies.bili_jct)
     params.append('csrf_token', cookies.bili_jct)
 
