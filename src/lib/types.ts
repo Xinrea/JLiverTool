@@ -1,3 +1,7 @@
+export function typecast(Class, obj) {
+  let t = new Class()
+  return Object.assign(t, obj)
+}
 export class Cookies {
   DedeUserID: string
   DedeUserID__ckMd5: string
@@ -36,6 +40,43 @@ export class Cookies {
     )
   }
 }
+
+export class RoomID {
+  // user may using short_id as room_id
+  private short_id: number
+  private room_id: number
+  private owner_uid: number
+  public constructor(short_id: number, room_id: number, owner_uid: number) {
+    this.short_id = short_id
+    this.room_id = room_id
+    this.owner_uid = owner_uid
+  }
+
+  public same(room_id: number): boolean {
+    return this.short_id === room_id || this.room_id === room_id
+  }
+
+  public equals(room: RoomID): boolean {
+    return this.short_id === room.short_id && this.room_id === room.room_id
+  }
+
+  public getID(): number {
+    if (this.short_id !== 0) {
+      return this.short_id
+    }
+    return this.room_id
+  }
+
+  public getRealID(): number {
+    return this.room_id
+  }
+
+  public getOwnerID(): number {
+    return this.owner_uid
+  }
+}
+
+export let DefaultRoomID = new RoomID(0, 21484828, 61639371)
 
 export type DBCondition = {
   room?: number

@@ -102,6 +102,7 @@
     "qrcode": "^1.5.3",
     "querystring": "^0.2.1",
     "semver": "^7.5.4",
+    "source-map-support": "^0.5.21",
     "uuid": "^8.3.2",
     "ws": "^8.14.2",
     "yaml": "^2.2.1"
