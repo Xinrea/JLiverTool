@@ -22,9 +22,8 @@ function CreateIntervalTask(f: Function, interval: number) {
 
 export default class BackendService {
   private _primary_conn: BiliWebSocket
-  private _side_conns: BiliWebSocket[]
+  private _side_conns: Map<RoomID, BiliWebSocket> = new Map()
   private _window_manager: WindowManager
-  private _owner_uid: number
   private _room: RoomID
   private _config_store: ConfigStore
 
@@ -104,6 +103,31 @@ export default class BackendService {
     await this.setupWebSocket()
   }
 
+  private async updateMergeRooms(rooms: RoomID[]) {
+    log.info('Updating merge rooms', { rooms })
+    // release connections not in rooms
+    for (const [room, conn] of this._side_conns) {
+      if (!rooms.includes(room)) {
+        conn.Disconnect()
+        this._side_conns.delete(room)
+      }
+    }
+    // setup new connections
+    for (const room of rooms) {
+      if (!this._side_conns.has(room)) {
+        const conn = new BiliWebSocket({
+          room_id: room.getRealID(),
+          uid: parseInt(this._config_store.Cookies.DedeUserID),
+          server: `wss://broadcastlv.chat.bilibili.com:2245/sub`,
+          token: '',
+        })
+        conn.msg_handler = this.msgHandler.bind(this)
+        conn.Connect(true)
+        this._side_conns.set(room, conn)
+      }
+    }
+  }
+
   private async updateRoomInfo() {
     log.debug('Updating basic room info')
     const room_response = await BiliApi.GetRoomInfo(
@@ -122,7 +146,6 @@ export default class BackendService {
       this._config_store.Cookies,
       room
     )
-    this._owner_uid = status_response.data.uid
     if (this._room.getRealID() !== status_response.data.room_id) {
       log.warn("Real room id doesn't match room id, updated", {
         room: this._room,
@@ -256,6 +279,12 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_UPDATE_ROOM], (_, new_room: RoomID) => {
       this.roomChange(typecast(RoomID, new_room))
     })
+    this._config_store.onDidChange(
+      'config.merge_rooms',
+      async (rooms: RoomID[]) => {
+        await this.updateMergeRooms(rooms)
+      }
+    )
   }
 
   private msgHandler(packet: PackResult) {

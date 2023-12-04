@@ -167,12 +167,12 @@ const merge_setting = {
       []
     )) as RoomID[]
     const current_room = typecast(RoomID, await window.jliverAPI.config.room())
-    for (let room_id of merge_rooms) {
-      room_id = typecast(RoomID, room_id)
-      if (current_room.equals(room_id)) {
+    for (let room of merge_rooms) {
+      room = typecast(RoomID, room)
+      if (current_room.equals(room)) {
         continue
       }
-      const room_info = await window.jliverAPI.room.info(room_id.getID())
+      const room_info = await window.jliverAPI.room.info(room.getID())
       if (room_info.code != 0) {
         continue
       }
@@ -182,7 +182,7 @@ const merge_setting = {
         continue
       }
       this.room_list.push({
-        id: room_id.getID(),
+        room: room,
         name: `[${user_info.data.uname}]${room_info.data.title}`,
       })
     }
@@ -245,21 +245,22 @@ const merge_setting = {
     }
     this.error = false
     this.room_list.push({
-      id: parseInt(this['to_add']),
+      room: new RoomID(
+        room_info.data.short_id,
+        room_info.data.room_id,
+        room_info.data.uid
+      ),
       name: `[${user_info.data.uname}]${room_info.data.title}`,
     })
     this['to_add'] = ''
-    window.jliverAPI.set(
-      'config.merge_rooms',
-      this.room_list.map((r: any) => r.id)
-    )
+    // maximum 5 rooms, so update full list every time is fine
+    const updated_merge_rooms = this.room_list.map((r: any) => ({ ...r.room }))
+    window.jliverAPI.set('config.merge_rooms', updated_merge_rooms)
   },
   remove(index: number) {
     this.room_list.splice(index, 1)
-    window.jliverAPI.set(
-      'config.merge_rooms',
-      this.room_list.map((r: any) => r.id)
-    )
+    const updated_merge_rooms = this.room_list.map((r: any) => ({ ...r.room }))
+    window.jliverAPI.set('config.merge_rooms', updated_merge_rooms)
   },
 }
 
