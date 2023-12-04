@@ -1,7 +1,7 @@
 import { app, ipcMain } from 'electron'
 import path = require('path')
 import fs = require('fs')
-import { Cookies, DefaultRoomID, RoomID, WindowType } from './types'
+import { Cookies, DefaultRoomID, RoomID, WindowType, typecast } from './types'
 import JLogger from './logger'
 import JEvent from './events'
 
@@ -133,7 +133,7 @@ export class ConfigStore {
     if (!room.hasOwnProperty('short_id') || !room.hasOwnProperty('room_id')) {
       return DefaultRoomID
     }
-    return room
+    return typecast(RoomID, room)
   }
   public set Room(room: RoomID) {
     this._store.set('config.room', room)
