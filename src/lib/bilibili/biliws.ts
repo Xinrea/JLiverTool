@@ -277,6 +277,5 @@ export class BiliWebSocket {
       this._ws.close()
       this._ws = null
     }
-    this._is_manual_close = false
   }
 }

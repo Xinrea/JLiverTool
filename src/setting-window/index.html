@@ -137,7 +137,7 @@
                         <template x-for="(item, index) in room_list">
                           <li>
                             <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%">
-                              <span><span style="vertical-align: middle; margin-right: 6px;" :style="{color: 'var(--merge-color-' + index + ')'}">&#xEA3B;</span>[<span x-text="item.id"></span>] <span x-text="item.name"></span></span>
+                              <span><span style="vertical-align: middle; margin-right: 6px;" :style="{color: 'var(--merge-color-' + index + ')'}">&#xEA3B;</span>[<span x-text="item.room.getID()"></span>] <span x-text="item.name"></span></span>
                               <button style="margin-left:12px; padding: 8px;" @click="remove(index)">&#xE74D;
                               </button>
                             </div>
