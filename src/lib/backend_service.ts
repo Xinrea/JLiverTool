@@ -79,6 +79,9 @@ export default class BackendService {
     // Setup websocket connection with reconnect enabled
     await this.setupWebSocket()
 
+    // Init merge rooms
+    await this.initMergeRooms()
+
     // everything is ready, now we start windows
     this._window_manager.Start()
   }
@@ -103,6 +106,17 @@ export default class BackendService {
     await this.setupWebSocket()
   }
 
+  private async initMergeRooms() {
+    log.info('Initializing merge rooms', {
+      enabled: this._config_store.IsMergeEnabled,
+      rooms: this._config_store.MergeRooms,
+    })
+    if (!this._config_store.IsMergeEnabled) {
+      return
+    }
+    this.updateMergeRooms(this._config_store.MergeRooms)
+  }
+
   private async updateMergeRooms(rooms: RoomID[]) {
     log.info('Updating merge rooms', { rooms })
     // release connections not in rooms
@@ -115,11 +129,15 @@ export default class BackendService {
     // setup new connections
     for (const room of rooms) {
       if (!this._side_conns.has(room)) {
+        const danmu_server_info = await BiliApi.GetDanmuInfo(
+          this._config_store.Cookies,
+          room
+        )
         const conn = new BiliWebSocket({
           room_id: room.getRealID(),
           uid: parseInt(this._config_store.Cookies.DedeUserID),
-          server: `wss://broadcastlv.chat.bilibili.com:2245/sub`,
-          token: '',
+          server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
+          token: danmu_server_info.data.token,
         })
         conn.msg_handler = this.msgHandler.bind(this)
         conn.Connect(true)
@@ -196,7 +214,9 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
-    log.debug('Updating online number', { online: online_response.data })
+    log.debug('Updating online number', {
+      online: online_response.data.onlineNum,
+    })
     this._window_manager.sendTo(
       WindowType.WMAIN,
       JEvent.EVENT_UPDATE_ONLINE,
@@ -253,13 +273,13 @@ export default class BackendService {
           this._config_store.Cookies,
           new RoomID(0, room, 0)
         )
-        log.debug('Get room info', { room: room, resp })
+        log.debug('Get room info', { room: room })
         return resp
       }
     )
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_FONT_LIST], async () => {
       const font_list = await getFonts({ disableQuoting: true })
-      log.debug('Get font list', { font_list })
+      log.info('Get font list', { size: font_list.length })
       return font_list
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_VERSION], async () => {
@@ -273,7 +293,7 @@ export default class BackendService {
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_LATEST_RELEASE], async () => {
       const resp = await GithubApi.GetLatestRelease()
-      log.debug('Get latest release', { resp })
+      log.info('Get latest release')
       return resp
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_UPDATE_ROOM], (_, new_room: RoomID) => {

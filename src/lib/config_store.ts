@@ -147,6 +147,19 @@ export class ConfigStore {
     this._store.set('config.login', b)
   }
 
+  public set IsMergeEnabled(b: boolean) {
+    this._store.set('config.merge', b)
+  }
+
+  public get IsMergeEnabled(): boolean {
+    return this._store.get('config.merge', false) as boolean
+  }
+
+  public get MergeRooms(): RoomID[] {
+    const rooms = this._store.get('config.merge_rooms', []) as RoomID[]
+    return rooms.map((room) => typecast(RoomID, room))
+  }
+
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {
     let setting = this._store.get(`config.window.${wtype}`, {
       pos: null,
