@@ -161,7 +161,7 @@ const account_setting = {
 
 const merge_setting = {
   async init() {
-    this['_enable'] = await window.jliverAPI.get('config.merge', false)
+    this._enable = await window.jliverAPI.get('config.merge', false)
     const merge_rooms = (await window.jliverAPI.get(
       'config.merge_rooms',
       []
