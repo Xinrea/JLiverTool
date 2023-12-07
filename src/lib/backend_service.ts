@@ -139,7 +139,7 @@ export default class BackendService {
           server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
           token: danmu_server_info.data.token,
         })
-        conn.msg_handler = this.msgHandler.bind(this)
+        conn.msg_handler = this.sideMsgHandler.bind(this)
         conn.Connect(true)
         this._side_conns.set(room, conn)
       }
@@ -307,11 +307,28 @@ export default class BackendService {
     )
   }
 
+  // msg handler for primary connection
   private msgHandler(packet: PackResult) {
     for (const msg of packet.body) {
       switch (msg.cmd) {
         case 'DANMU_MSG': {
           const danmu_msg = new MessageDanmu(msg)
+          this._window_manager.sendTo(
+            WindowType.WMAIN,
+            JEvent.EVENT_NEW_DANMU,
+            danmu_msg
+          )
+        }
+      }
+    }
+  }
+
+  // msg handler for side connections
+  private sideMsgHandler(packet: PackResult) {
+    for (const msg of packet.body) {
+      switch (msg.cmd) {
+        case 'DANMU_MSG': {
+          const danmu_msg = new MessageDanmu(msg, true)
           this._window_manager.sendTo(
             WindowType.WMAIN,
             JEvent.EVENT_NEW_DANMU,

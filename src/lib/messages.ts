@@ -6,9 +6,11 @@ export class MessageDanmu {
   is_generated: boolean = false
   is_special: boolean = false
   emoji_content: EmojiContent = null
+  is_side: boolean = false
 
-  constructor(body: any) {
+  constructor(body: any, is_side: boolean = false) {
     // basic info
+    this.is_side = is_side
     this.sender.uid = body.info[2][0]
     this.sender.uname = body.info[2][1]
     // TODO maybe need the backend service to offer a face cache

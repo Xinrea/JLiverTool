@@ -81,7 +81,8 @@ button:hover {
 }
 
 #dropdown-content {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   top: 26px;
   right: 24px;
   flex-direction: column;
@@ -233,6 +234,56 @@ button:hover {
 
 .danmu_entry.gift {
   border: 2px solid #f7b500;
+}
+/* display a dot before danmu_entry if side */
+.danmu_entry.side0::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--merge-color-0);
+  margin-right: 8px;
+}
+
+.danmu_entry.side1::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--merge-color-1);
+  margin-right: 8px;
+}
+
+.danmu_entry.side2::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--merge-color-2);
+  margin-right: 8px;
+}
+
+.danmu_entry.side3::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--merge-color-3);
+  margin-right: 8px;
+}
+
+.danmu_entry.side4::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--merge-color-4);
+  margin-right: 8px;
 }
 
 .emoji {
