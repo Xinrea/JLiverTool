@@ -12,8 +12,9 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: 16.15.0
+        node-version: 20.8.0
         cache: 'npm'
+    - run: python3 -m pip install setuptools
     - run: npm install
     - run: npm run build
     - uses: ncipollo/release-action@v1
