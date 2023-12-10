@@ -8,14 +8,14 @@ export enum QrCodeStatus {
 
 export function GetNewQrCode() {
     return new Promise((resolve, reject) => {
-        https.get('https://passport.bilibili.com/qrcode/getLoginUrl', res => {
+        https.get('https://passport.bilibili.com/x/passport-login/web/qrcode/generate', res => {
             res.on('data', chunk => {
                 let resp = JSON.parse(chunk.toString())
                 // QrCode image is generated from resp['data']['url']
                 // oauthKey is used to check QrCode status
                 resolve({
                     url: resp['data']['url'],
-                    oauthKey: resp['data']['oauthKey']
+                    oauthKey: resp['data']['qrcode_key']
                 })
             })
             res.on('error', err => {
@@ -27,15 +27,10 @@ export function GetNewQrCode() {
 
 export function CheckQrCodeStatus(oauthKey: string) {
     return new Promise((resolve, reject) => {
-        let postData = 'oauthKey=' + oauthKey
         let postOptions = {
             hostname: 'passport.bilibili.com',
-            path: '/qrcode/getLoginInfo',
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Content-Length': Buffer.byteLength(postData)
-            }
+            path:  '/x/passport-login/web/qrcode/poll?qrcode_key=' + oauthKey,
+            method: 'GET'
         }
         let statusReq = https.request(postOptions, res => {
             let dd = ''
@@ -44,8 +39,7 @@ export function CheckQrCodeStatus(oauthKey: string) {
             })
             res.on('end', () => {
                 let resp = JSON.parse(dd)
-                // {"status":false,"data":-4,"message":"Can't scan~"}
-                if (resp['status'] === true) {
+                if (resp['data']['code'] === 0) {
                     let querystring = require('querystring')
                     let url = resp['data']['url']
                     let params = querystring.parse(url.split('?')[1])
@@ -54,11 +48,11 @@ export function CheckQrCodeStatus(oauthKey: string) {
                         cookies: params,
                     })
                 } else {
-                    if (resp['data'] === -4) {
+                    if (resp['data']['code'] === 86101) {
                         resolve({
                             status: QrCodeStatus.NeedScan
                         })
-                    } else if (resp['data'] === -5) {
+                    } else if (resp['data']['code'] === 86090) {
                         resolve({
                             status: QrCodeStatus.NeedConfirm
                         })
@@ -71,7 +65,6 @@ export function CheckQrCodeStatus(oauthKey: string) {
                 reject(err)
             })
         })
-        statusReq.write(postData)
         statusReq.end()
     })
 }
