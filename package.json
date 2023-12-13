@@ -2,10 +2,11 @@
   "name": "jlivertool",
   "version": "1.4.1",
   "description": "Simple Bilibili Danmaku Tool",
+  "homepage": "https://github.com/Xinrea/JLiveTool",
   "main": "src/main.js",
   "scripts": {
     "start": "npx webpack && cross-env NODE_ENV=development electron .",
-    "build": "npx webpack && cross-env NODE_ENV=production electron-builder build -mw --publish=never"
+    "build": "npx webpack && cross-env NODE_ENV=production electron-builder build -lmw --publish=never"
   },
   "build": {
     "win": {
@@ -30,9 +31,34 @@
           ]
         }
       ]
+    },
+    "linux": {
+      "icon": "src/assets/icons/icon.png",
+      "target": [
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "pacman",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "description": "Simple Bilibili Danmaku Tool"
     }
   },
-  "author": "Xinrea",
+  "author": "Xinrea <xinreas@outlook.com>",
   "license": "MIT",
   "devDependencies": {
     "@types/alpinejs": "^3.7.1",
