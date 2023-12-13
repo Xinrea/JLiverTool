@@ -6,6 +6,7 @@ dist
 *.min.js
 *.LICENSE.txt
 *.node
+package-lock.json
 
 src/bilibili.js
 src/main.js
