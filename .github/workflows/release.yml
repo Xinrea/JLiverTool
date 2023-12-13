@@ -19,7 +19,7 @@ jobs:
     - run: npm run build
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "dist/*.dmg,dist/*.exe,dist/*.blockmap"
+        artifacts: "dist/*.dmg,dist/*.exe,dist/*.blockmap,dist/*.deb,dist/*.AppImage,dist/*.pacman"
         token: ${{ github.token }}
     - run: mv dist jlivertool
     - name: Upload to oss
@@ -35,3 +35,6 @@ jobs:
           jlivertool/*.exe:/
           jlivertool/*.yml:/
           jlivertool/*.blockmap:/
+          jlivertool/*.deb:/
+          jlivertool/*.AppImage:/
+          jlivertool/*.pacman:/
