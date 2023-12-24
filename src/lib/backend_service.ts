@@ -10,7 +10,7 @@ import { Cookies } from './types'
 import ConfigStore from './config_store'
 import { MessageDanmu } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
-import { getFonts } from 'font-list'
+import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 
 const log = JLogger.getInstance('backend_service')
@@ -32,6 +32,8 @@ export default class BackendService {
 
   private _gift_list_cache: Map<number, any> = new Map()
   private _gift_store: GiftStore = new GiftStore()
+
+  private _font_list_cached: FontList = []
 
   public constructor(store: ConfigStore, window_manager: WindowManager) {
     this._config_store = store
@@ -84,6 +86,10 @@ export default class BackendService {
 
     // everything is ready, now we start windows
     this._window_manager.Start()
+
+    // Init font list
+    this._font_list_cached = await getFonts({ disableQuoting: true })
+    log.info('Get font list', { size: this._font_list_cached.length })
   }
 
   public async Stop() {
@@ -278,9 +284,12 @@ export default class BackendService {
       }
     )
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_FONT_LIST], async () => {
-      const font_list = await getFonts({ disableQuoting: true })
-      log.info('Get font list', { size: font_list.length })
-      return font_list
+      if (this._font_list_cached.length > 0) {
+        return this._font_list_cached
+      }
+      this._font_list_cached = await getFonts({ disableQuoting: true })
+      log.info('Get font list', { size: this._font_list_cached.length })
+      return this._font_list_cached
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_VERSION], async () => {
       return app.getVersion()
