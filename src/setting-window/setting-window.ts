@@ -287,7 +287,7 @@ const danmu_style_setting = {
   set font(v: string) {
     this._font = v
     window.jliverAPI.set('config.font', v)
-  },
+  }
 }
 
 const window_setting = {
@@ -295,12 +295,19 @@ const window_setting = {
     this._opacity = await window.jliverAPI.get('config.opacity', 1)
   },
   _opacity: 1,
+  theme_list: ['light', 'dark'],
   get opacity() {
     return this._opacity
   },
   set opacity(v: number) {
     this._opacity = v
     window.jliverAPI.set('config.opacity', v)
+  },
+  get theme() {
+    return window.jliverAPI.get('config.theme', 'light')
+  },
+  set theme(v: string) {
+    window.jliverAPI.set('config.theme', v)
   },
 }
 

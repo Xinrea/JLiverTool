@@ -183,8 +183,22 @@
                 </div>
               </div>
             </div>
-            <div class="group" x-data="window_setting">
+            <div class="group multiple" x-data="window_setting">
               <div class="group-label">窗口设置</div>
+              <div class="group-item">
+                <span class="group-desc">
+                    <span class="icon">&#xF5A1;</span>
+                    <span class="desc">
+                      <span>主题</span>
+                      <span>窗口的主题颜色</span>
+                    </span>
+                </span>
+                <select id="theme" class="select" x-model="theme">
+                  <template x-for="item in theme_list">
+                    <option x-text="item"></option>
+                  </template>
+                </select>
+            </div>
               <div class="group-item">
                   <span class="group-desc">
                       <span class="icon">&#xF5A1;</span>
