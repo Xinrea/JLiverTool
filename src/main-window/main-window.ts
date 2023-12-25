@@ -92,8 +92,8 @@ const appStatus = {
     const initialConfig = await window.jliverAPI.get('config', {})
 
     this.l.texts = Languages[initialConfig.language || LanguageType.zh]
-    this.base.fontSize = initialConfig.fontSize || 18
-    this.base.opacity = initialConfig.opacity || 1
+    this.base.fontSize = initialConfig['font_size'] || 18
+    this.base.opacity = initialConfig['opacity'] || 1
     this.login = initialConfig.login || false
     this.base.theme = initialConfig.theme || 'light'
 
@@ -103,7 +103,7 @@ const appStatus = {
     window.jliverAPI.onDidChange('config.opacity', (newValue: number) => {
       this.base.opacity = newValue
     })
-    window.jliverAPI.onDidChange('config.fontSize', (newValue: number) => {
+    window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
       this.base.fontSize = newValue
     })
 
@@ -128,7 +128,10 @@ const appStatus = {
     })
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ROOM, (arg: any) => {
       // Update room title
-      this.base.title = arg.title
+      var encodedString = arg.title
+      var textarea = document.createElement("textarea")
+      textarea.innerHTML = encodedString
+      this.base.title = textarea.value
       this.base.live = arg.live_status == 1
     })
     window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: MessageDanmu) => {

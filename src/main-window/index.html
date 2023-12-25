@@ -8,7 +8,7 @@
   </head>
 
   <body x-data="appStatus">
-    <div id="app" :style="`--global-opacity: ${base.opacity}`">
+    <div id="app" :style="`--global-opacity: ${base.opacity}; --danmu-size: ${base.fontSize}px`">
       <div
         id="title-bar"
         :style="{backgroundColor: base.live ? 'rgba(237,59,107,1)' : 'var(--title-bar-color)'}"
