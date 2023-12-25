@@ -12,13 +12,13 @@ declare global {
 }
 
 Alpine.data('appStatus', () => ({
-  init() {
+  async init() {
     this.base.$panel = document.getElementById('gift-panel')
     // Opacity related
     window.jliverAPI.onDidChange('config.opacity', (newValue) => {
       this.base.opacity = newValue
     })
-    this.base.opacity = window.jliverAPI.get('config.opacity', 1)
+    this.base.opacity = await window.jliverAPI.get('config.opacity', 1)
     window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (arg) => {
       console.log(arg)
       if (this.giftsCheck.has(arg.id)) {
@@ -49,6 +49,19 @@ Alpine.data('appStatus', () => ({
         }
       }, 10)
     })
+    this.base.theme = await window.jliverAPI.get('config.theme', 'light')
+    document.documentElement.classList.add(
+      'theme-' + (this.base.theme || 'light')
+    )
+    window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
+      document.documentElement.classList.remove(
+        'theme-' + (this.base.theme || 'light')
+      )
+      document.documentElement.classList.add(
+        'theme-' + (newValue || 'light')
+      )
+      this.base.theme = newValue
+    })
   },
   base: {
     $panel: null,
@@ -59,6 +72,7 @@ Alpine.data('appStatus', () => ({
       window.jliverAPI.set('config.passFreeGift', value)
     },
     opacity: 1,
+    theme: 'light',
     lastSelected: null,
     lastPosition: 0,
     autoScroll: true,

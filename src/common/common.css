@@ -56,28 +56,24 @@
   --merge-color-4: rgb(171, 26, 50);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --main-color: rgb(255, 255, 255);
-    --title-bar-color: #39b5e7;
-    --main-bg: rgb(241, 242, 243);
-    --main-bg-rgb: 241, 242, 243;
-    --border: #ffffff50;
-    --font-secolor: #757575;
-    --font-color: #020202;
-  }
+.theme-light {
+  --main-color: rgb(255, 255, 255);
+  --title-bar-color: #39b5e7;
+  --main-bg: rgb(241, 242, 243);
+  --main-bg-rgb: 241, 242, 243;
+  --border: #ffffff50;
+  --font-secolor: #757575;
+  --font-color: #020202;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --main-color: rgb(22, 22, 26);
-    --title-bar-color: rgb(22, 22, 26);
-    --main-bg: rgb(0, 0, 0);
-    --main-bg-rgb: 0, 0, 0;
-    --border: #ffffff50;
-    --font-color: #e8e8e8;
-    --font-secolor: #999;
-  }
+.theme-dark {
+  --main-color: rgb(22, 22, 26);
+  --title-bar-color: rgb(22, 22, 26);
+  --main-bg: rgb(0, 0, 0);
+  --main-bg-rgb: 0, 0, 0;
+  --border: #ffffff50;
+  --font-color: #e8e8e8;
+  --font-secolor: #999;
 }
 
 html,
@@ -760,8 +756,8 @@ option {
   position: fixed;
   right: 56px;
   bottom: 8px;
-  background-color: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgb(128, 128, 128);
+  background-color: var(--main-bg);
+  border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 8px 1px 1px;
   vertical-align: middle;
@@ -769,7 +765,7 @@ option {
 }
 
 #danmuSender > span {
-  color: white;
+  color: var(--font-color);
   font-size: 13px;
   padding: 4px;
   text-align: left;

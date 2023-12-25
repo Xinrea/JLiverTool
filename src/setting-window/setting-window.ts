@@ -293,8 +293,10 @@ const danmu_style_setting = {
 const window_setting = {
   async init() {
     this._opacity = await window.jliverAPI.get('config.opacity', 1)
+    this._theme = await window.jliverAPI.get('config.theme', 'light')
   },
   _opacity: 1,
+  _theme: 'light',
   theme_list: ['light', 'dark'],
   get opacity() {
     return this._opacity
@@ -304,10 +306,11 @@ const window_setting = {
     window.jliverAPI.set('config.opacity', v)
   },
   get theme() {
-    return window.jliverAPI.get('config.theme', 'light')
+    return this._theme
   },
   set theme(v: string) {
     window.jliverAPI.set('config.theme', v)
+    this._theme = v
   },
 }
 
