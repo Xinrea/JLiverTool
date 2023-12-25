@@ -8,8 +8,8 @@
     <link rel="stylesheet" href="superchat-window.css">
   </head>
 
-  <body>
-    <div id="app">
+  <body x-data="app">
+    <div id="app" :style="`--global-opacity: ${opacity}`">
       <div id="title-bar">
         <div>
           <div id="title">SUPERCHAT</div>
@@ -33,6 +33,6 @@
       </div>
     </div>
   </body>
-  <script src="superchat-window.min.js"></script>
+  <script src="superchat-window.js"></script>
 
 </html>

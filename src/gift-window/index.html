@@ -21,7 +21,7 @@
         </div>
         <div>
           <div id="free-button" class="title-button" :class="base.filterFree && 'enabled'"
-            @click="base.filterFree= !base.filterFree">
+            @click="base.filterFree= !base.filterFree" style="color: white;">
             ￥
           </div>
           <div id="hide-button" class="title-button" @click="window.jliverAPI.send('hideGiftWindow')">
@@ -90,6 +90,6 @@
     </div>
     </div>
   </body>
-  <script src="gift-window.min.js"></script>
+  <script src="gift-window.js"></script>
 
 </html>

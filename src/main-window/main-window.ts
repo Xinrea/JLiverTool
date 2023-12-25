@@ -95,6 +95,7 @@ const appStatus = {
     this.base.fontSize = initialConfig.fontSize || 18
     this.base.opacity = initialConfig.opacity || 1
     this.login = initialConfig.login || false
+    this.base.theme = initialConfig.theme || 'light'
 
     window.jliverAPI.onDidChange('config.login', (v: boolean) => {
       this.login = v
@@ -104,6 +105,14 @@ const appStatus = {
     })
     window.jliverAPI.onDidChange('config.fontSize', (newValue: number) => {
       this.base.fontSize = newValue
+    })
+
+    // Set theme class in html
+    document.documentElement.classList.add('theme-'+(this.base.theme || 'light'))
+    window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
+      document.documentElement.classList.remove('theme-' + (this.base.theme || 'light'))
+      document.documentElement.classList.add('theme-' + (newValue || 'light'))
+      this.base.theme = newValue
     })
 
     console.log('Init events')
@@ -154,6 +163,7 @@ const appStatus = {
     live: false,
     fontSize: 18,
     opacity: 1,
+    theme: 'light',
   },
   windowStatus: {
     gift: false,

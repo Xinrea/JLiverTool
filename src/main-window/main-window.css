@@ -110,7 +110,7 @@ button:hover {
 }
 
 #dropdown-content a:hover {
-  background-color: #3d414a;
+  background-color: var(--main-bg);
 }
 
 #statusbar {
