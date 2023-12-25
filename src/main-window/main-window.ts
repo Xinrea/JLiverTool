@@ -94,6 +94,7 @@ const appStatus = {
     this.l.texts = Languages[initialConfig.language || LanguageType.zh]
     this.base.fontSize = initialConfig['font_size'] || 18
     this.base.opacity = initialConfig['opacity'] || 1
+    this.base.font = initialConfig['font'] || 'system-ui'
     this.login = initialConfig.login || false
     this.base.theme = initialConfig.theme || 'light'
 
@@ -106,7 +107,9 @@ const appStatus = {
     window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
       this.base.fontSize = newValue
     })
-
+    window.jliverAPI.onDidChange('config.font', (newValue: string) => {
+      this.base.font = newValue
+    })
     // Set theme class in html
     document.documentElement.classList.add('theme-'+(this.base.theme || 'light'))
     window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
@@ -165,6 +168,7 @@ const appStatus = {
     online: '',
     live: false,
     fontSize: 18,
+    font: '',
     opacity: 1,
     theme: 'light',
   },
