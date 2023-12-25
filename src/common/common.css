@@ -5,6 +5,7 @@
 
 :root {
   -webkit-text-size-adjust: 100%;
+  --font: system-ui;
   --danmu-size: 14px;
   --danmu-special-bg: #53baff1a;
   --sc-b-level-0: rgb(237, 245, 255);
@@ -81,10 +82,12 @@ body {
   margin: 0;
   width: 100%;
   height: 100%;
-  font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf',
-    微软雅黑, system-ui, 'Segoe Fluent Icons';
   overflow: hidden;
   box-sizing: border-box;
+}
+
+#app {
+  font-family: var(--font), system-ui, 'Segoe Fluent Icons';
 }
 
 div {
@@ -419,8 +422,6 @@ option {
   line-height: calc(var(--danmu-size));
   color: rgb(255, 255, 255);
   white-space: nowrap;
-  font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf',
-    微软雅黑, system-ui;
   font-size: var(--danmu-size);
   cursor: default;
   border-width: 1px;
@@ -435,8 +436,6 @@ option {
   word-wrap: break-word;
   line-height: 14px;
   white-space: nowrap;
-  font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf',
-    微软雅黑, system-ui;
   font-size: var(--danmu-size);
   cursor: default;
   box-sizing: content-box;
@@ -457,8 +456,6 @@ option {
   word-wrap: break-word;
   line-height: calc(var(--danmu-size) + 8px);
   white-space: nowrap;
-  font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf',
-    微软雅黑, serif;
   font-size: calc(var(--danmu-size) + 6px);
   cursor: default;
   text-align: center;
@@ -477,8 +474,6 @@ option {
   word-wrap: break-word;
   line-height: 14px;
   white-space: nowrap;
-  font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf',
-    微软雅黑, serif;
   font-size: var(--danmu-size);
   cursor: default;
   text-align: center;
@@ -490,8 +485,6 @@ option {
   word-wrap: break-word;
   line-height: calc(var(--danmu-size) + 2px);
   white-space: nowrap;
-  font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf',
-    微软雅黑, serif;
   font-size: var(--danmu-size);
   cursor: default;
   display: block;
@@ -507,8 +500,6 @@ option {
 
 #title-bar {
   font-size: 14px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   width: 100%;
   min-height: 25px;
   align-items: center;
