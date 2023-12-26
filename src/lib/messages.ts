@@ -1,4 +1,4 @@
-import { EmojiContent, Sender } from './types'
+import { EmojiContent, Sender, MergeUserInfo } from './types'
 
 export class MessageDanmu {
   sender: Sender = new Sender()
@@ -6,11 +6,13 @@ export class MessageDanmu {
   is_generated: boolean = false
   is_special: boolean = false
   emoji_content: EmojiContent = null
-  is_side: boolean = false
+  side_index: number = -1
 
-  constructor(body: any, is_side: boolean = false) {
+  constructor(body: any, user_info: MergeUserInfo = null) {
     // basic info
-    this.is_side = is_side
+    if (user_info) {
+      this.side_index = user_info.index
+    }
     this.sender.uid = body.info[2][0]
     this.sender.uname = body.info[2][1]
     // TODO maybe need the backend service to offer a face cache
