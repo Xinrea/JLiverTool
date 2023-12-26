@@ -15,10 +15,21 @@ Alpine.data('appStatus', () => ({
   async init() {
     this.base.$panel = document.getElementById('gift-panel')
     // Opacity related
-    window.jliverAPI.onDidChange('config.opacity', (newValue) => {
+    this.base.opacity = await window.jliverAPI.get('config.opacity', 1)
+    window.jliverAPI.onDidChange('config.opacity', (newValue: number) => {
       this.base.opacity = newValue
     })
-    this.base.opacity = await window.jliverAPI.get('config.opacity', 1)
+
+    this.base.font = await window.jliverAPI.get('config.font', 'system-ui')
+    window.jliverAPI.onDidChange('config.font', (newValue: string) => {
+      this.base.font = newValue
+    })
+
+    this.base.font_size = await window.jliverAPI.get('config.font_size', 14)
+    window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
+      this.base.font_size = newValue
+    })
+
     window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (arg) => {
       console.log(arg)
       if (this.giftsCheck.has(arg.id)) {
@@ -72,6 +83,8 @@ Alpine.data('appStatus', () => ({
       window.jliverAPI.set('config.passFreeGift', value)
     },
     opacity: 1,
+    font: 'system-ui',
+    font_size: 14,
     theme: 'light',
     lastSelected: null,
     lastPosition: 0,

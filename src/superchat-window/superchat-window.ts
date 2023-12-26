@@ -39,8 +39,16 @@ const app = {
   async init() {
     this.opacity = await window.jliverAPI.get('config.opacity', 1)
     this.theme = await window.jliverAPI.get('config.theme', 'light')
-    window.jliverAPI.onDidChange('config.opacity', (newValue) => {
+    this.font = await window.jliverAPI.get('config.font', 'system-ui')
+    this.font_size = await window.jliverAPI.get('config.font_size', 14)
+    window.jliverAPI.onDidChange('config.opacity', (newValue: number) => {
       this.opacity = newValue
+    })
+    window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
+      this.font_size= newValue
+    })
+    window.jliverAPI.onDidChange('config.font', (newValue: string) => {
+      this.font= newValue
     })
     document.documentElement.classList.add('theme-'+(this.theme || 'light'))
     window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
@@ -48,6 +56,8 @@ const app = {
     })
   },
   opacity: 1,
+  font: 'system-ui',
+  font_size: 14,
   _theme: 'light',
   get theme() {
     return this._theme
