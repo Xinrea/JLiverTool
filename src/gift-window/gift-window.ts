@@ -4,6 +4,7 @@ import { createConfirmBox } from '../common/confirmbox'
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
+import { WindowType } from '../lib/types'
 
 declare global {
   interface Window {
@@ -134,6 +135,9 @@ Alpine.data('appStatus', () => ({
     }
     return '#' + hexString
   },
+  hide() {
+    window.jliverAPI.window.hide(WindowType.WGIFT)
+  }
 }))
 
 Alpine.start()
