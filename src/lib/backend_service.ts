@@ -68,16 +68,6 @@ export default class BackendService {
     // Must update gift list before receiving any gift message
     await this.updateGiftList()
 
-    // Setup task for updating infos
-    this._task_update_room_info = CreateIntervalTask(
-      this.updateRoomInfo.bind(this),
-      10 * 1000
-    )
-    this._task_update_online_num = CreateIntervalTask(
-      this.updateOnlineNum.bind(this),
-      10 * 1000
-    )
-
     // Init events
     this.initEvents()
 
@@ -87,8 +77,22 @@ export default class BackendService {
     // Init merge rooms
     await this.initMergeRooms()
 
+    this._window_manager.setMainLoadedCallback(() => {
+      // Setup task for updating infos
+      this._task_update_room_info = CreateIntervalTask(
+        this.updateRoomInfo.bind(this),
+        10 * 1000
+      )
+      this._task_update_online_num = CreateIntervalTask(
+        this.updateOnlineNum.bind(this),
+        10 * 1000
+      )
+    })
+
     // everything is ready, now we start windows
     this._window_manager.Start()
+
+
 
     // Init font list
     this._font_list_cached = await getFonts({ disableQuoting: true })
