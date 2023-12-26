@@ -21,6 +21,9 @@ app.on('window-all-closed', function () {
   app.quit()
 })
 
+// fix window blink when showing from hide
+app.commandLine.appendSwitch('wm-window-animations-disabled');
+
 let quitCallback = async () => {}
 app.on('ready', () => {
   const store = new ConfigStore()
@@ -53,7 +56,6 @@ app.on('ready', () => {
             message: 'JLiverTool 弹幕机 v' + app.getVersion(),
             detail: '作者：@Xinrea\n赞助：https://afdian.net/a/Xinrea',
           })
-          .then((r) => {})
       },
     },
     {

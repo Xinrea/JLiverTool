@@ -247,13 +247,15 @@ export class WindowManager {
   private registerEvents() {
     ipcMain.handle(
       JEvent[JEvent.INVOKE_WINDOW_HIDE],
-      (_, win_type: WindowType) => {
+      (e, win_type: WindowType) => {
+        log.debug('[EVENT] INVOKE_WINDOW_HIDE', {context: e})
         this.setWindowShow(win_type, false)
       }
     )
     ipcMain.handle(
       JEvent[JEvent.INVOKE_WINDOW_SHOW],
-      (_, win_type: WindowType) => {
+      (e, win_type: WindowType) => {
+        log.debug('[EVENT] INVOKE_WINDOW_SHOW', {context: e})
         this.setWindowShow(win_type, true)
       }
     )
@@ -312,6 +314,7 @@ export class WindowManager {
   }
 
   public setWindowShow(win_type: WindowType, show: boolean) {
+    log.debug('Set window show', {type: win_type, show: show})
     switch (win_type) {
       case WindowType.WMAIN: {
         this._main_window.show = show

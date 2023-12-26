@@ -2,6 +2,7 @@ import Alpine from 'alpinejs'
 import { createConfirmBox } from '../common/confirmbox'
 import { createSuperchatEntry } from '../common/superchat'
 import JEvent from '../lib/events'
+import { WindowType } from '../lib/types'
 import { JLiverAPI } from '../preload'
 
 let $panel = document.getElementById('panel')
@@ -77,7 +78,7 @@ const app = {
     )
   },
   hide() {
-    window.jliverAPI.send('hideSuperchatWindow')
+    window.jliverAPI.window.hide(WindowType.WSUPERCHAT)
   }
 }
 
