@@ -12,6 +12,7 @@ import { MessageDanmu } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
 import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
+import { DanmuCache } from './danmu_cache'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -34,6 +35,8 @@ export default class BackendService {
   private _gift_store: GiftStore = new GiftStore()
 
   private _font_list_cached: FontList = []
+
+  private _danmu_cache: DanmuCache = new DanmuCache()
 
   public constructor(store: ConfigStore, window_manager: WindowManager) {
     this._config_store = store
@@ -331,6 +334,7 @@ export default class BackendService {
             JEvent.EVENT_NEW_DANMU,
             danmu_msg
           )
+          this._danmu_cache.add(danmu_msg.sender.uid, danmu_msg.content)
         }
       }
     }
@@ -348,6 +352,7 @@ export default class BackendService {
               JEvent.EVENT_NEW_DANMU,
               danmu_msg
             )
+            this._danmu_cache.add(danmu_msg.sender.uid, danmu_msg.content)
           }
         }
       }
