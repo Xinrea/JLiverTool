@@ -229,7 +229,7 @@ const appStatus = {
   onReceiveNewDanmu(danmu_msg: MessageDanmu) {
     this.danmuPanel.doClean()
     const $newEntry = createDanmuEntry(
-      danmu_msg.is_side,
+      danmu_msg.side_index,
       danmu_msg.is_special,
       danmu_msg.sender.medal_info,
       danmu_msg.sender.uname,

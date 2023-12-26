@@ -3,7 +3,7 @@ import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
 import { WindowManager } from './window_manager'
-import { RoomID, WindowType, typecast } from './types'
+import { RoomID, WindowType, typecast, MergeUserInfo } from './types'
 import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
@@ -133,19 +133,22 @@ export default class BackendService {
       }
     }
     // setup new connections
-    for (const room of rooms) {
+    for (let room of rooms) {
       if (!this._side_conns.has(room)) {
         const danmu_server_info = await BiliApi.GetDanmuInfo(
           this._config_store.Cookies,
           room
         )
+        const user_info = await BiliApi.GetUserInfo(this._config_store.Cookies, room.getOwnerID())
         const conn = new BiliWebSocket({
           room_id: room.getRealID(),
           uid: parseInt(this._config_store.Cookies.DedeUserID),
           server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
           token: danmu_server_info.data.token,
         })
-        conn.msg_handler = this.sideMsgHandler.bind(this)
+        const merge_user_info = {index: rooms.indexOf(room), uid: user_info.data.mid, name: user_info.data.uname}
+        log.debug('Merge user info', {merge_user_info})
+        conn.msg_handler = this.sideMsgHandlerConstructor(merge_user_info).bind(this)
         conn.Connect(true)
         this._side_conns.set(room, conn)
       }
@@ -311,6 +314,7 @@ export default class BackendService {
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
+        rooms = rooms.map((room) => typecast(RoomID, room))
         await this.updateMergeRooms(rooms)
       }
     )
@@ -333,16 +337,18 @@ export default class BackendService {
   }
 
   // msg handler for side connections
-  private sideMsgHandler(packet: PackResult) {
-    for (const msg of packet.body) {
-      switch (msg.cmd) {
-        case 'DANMU_MSG': {
-          const danmu_msg = new MessageDanmu(msg, true)
-          this._window_manager.sendTo(
-            WindowType.WMAIN,
-            JEvent.EVENT_NEW_DANMU,
-            danmu_msg
-          )
+  private sideMsgHandlerConstructor(owner_info: MergeUserInfo) {
+    return function(packet: PackResult) {
+      for (const msg of packet.body) {
+        switch (msg.cmd) {
+          case 'DANMU_MSG': {
+            const danmu_msg = new MessageDanmu(msg, owner_info)
+            this._window_manager.sendTo(
+              WindowType.WMAIN,
+              JEvent.EVENT_NEW_DANMU,
+              danmu_msg
+            )
+          }
         }
       }
     }

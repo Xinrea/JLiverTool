@@ -2,6 +2,7 @@ export function typecast(Class, obj) {
   let t = new Class()
   return Object.assign(t, obj)
 }
+
 export class Cookies {
   DedeUserID: string
   DedeUserID__ckMd5: string
@@ -39,6 +40,12 @@ export class Cookies {
       this.Expires
     )
   }
+}
+
+export type MergeUserInfo = {
+  index: number
+  uid: string
+  name: string
 }
 
 export class RoomID {

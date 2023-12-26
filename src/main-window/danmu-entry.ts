@@ -3,7 +3,7 @@ import { createMedal } from '../common/medal'
 import { EmojiContent, MedalInfo } from '../lib/types'
 
 export function createDanmuEntry(
-  side: boolean,
+  side_index: number,
   special: boolean,
   medal: MedalInfo,
   sender: string,
@@ -17,8 +17,8 @@ export function createDanmuEntry(
     danmuEntry.className = 'danmu_entry'
   }
 
-  if (side) {
-    danmuEntry.classList.add('side')
+  if (side_index >= 0) {
+    danmuEntry.classList.add('side' + side_index)
   }
 
   // might be gray medal, need to check color
@@ -48,7 +48,7 @@ export function createDanmuEntry(
 
 export function createEnterEntry(medal, sender) {
   return createDanmuEntry(
-    false,
+    -1,
     false,
     medal,
     sender + ' 进入直播间',
@@ -58,7 +58,7 @@ export function createEnterEntry(medal, sender) {
 }
 
 export function createEffectEntry(content) {
-  return createDanmuEntry(false, false, null, content, null, null)
+  return createDanmuEntry(-1, false, null, content, null, null)
 }
 
 export const giftCache = new Map()
