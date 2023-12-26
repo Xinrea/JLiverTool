@@ -57,7 +57,8 @@ export class MessageDanmu {
     // TODO need confirm
     this.sender.medal_info.guard_level = body.info[3][10]
 
-    this.content = body.info[1]
+    // trim the content and remove line break
+    this.content = body.info[1].trim().replace(/[\r\n]/g, '')
 
     if (body.info[0][12] == 1) {
       this.emoji_content = body.info[0][13]
