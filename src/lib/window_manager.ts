@@ -139,6 +139,12 @@ class Window {
     this.registerEvents()
   }
 
+  public setLoadedCallback(f: Function) {
+    this._window.once('ready-to-show', () => {
+      f()
+    })
+  }
+
   public setClosedCallback(f: Function) {
     this._closed_callback = f
   }
@@ -175,6 +181,7 @@ export class WindowManager {
   private _gift_window: Window
   private _superchat_window: Window
   private _setting_window: Window
+  private _main_loaded_callback: Function
   private readonly _main_close_callback: Function
   private readonly _config_store: ConfigStore
 
@@ -185,6 +192,7 @@ export class WindowManager {
 
   public Start() {
     this._main_window = new Window(null, WindowType.WMAIN, this._config_store)
+    this._main_window.setLoadedCallback(this._main_loaded_callback)
     this._main_window.setClosedCallback(this._main_close_callback)
     // window should be created and hide at start, cuz gift data stream need to be processed in window render process
     this._gift_window = new Window(
@@ -203,7 +211,13 @@ export class WindowManager {
       this._config_store
     )
 
+    this._main_window
+
     this.registerEvents()
+  }
+
+  public setMainLoadedCallback(f: Function) {
+    this._main_loaded_callback = f
   }
 
   public loaded(): boolean {
