@@ -9,6 +9,7 @@
     background-color: rgba(var(--main-bg-rgb), var(--global-opacity));
     box-sizing: border-box;
     border: 2px solid var(--border);
+    padding-bottom: 32px;
 }
 
 #panel {
@@ -44,6 +45,7 @@
 
 #danmu-list {
     width: 100%;
+    height: 100%;
     overflow-y: auto;
     box-sizing: border-box;
     display: flex;
