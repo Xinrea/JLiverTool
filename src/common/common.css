@@ -422,7 +422,7 @@ option {
   line-height: calc(var(--font-size));
   color: rgb(255, 255, 255);
   white-space: nowrap;
-  font-size: var(--font-size);
+  font-size: calc(var(--font-size) - 2px);
   cursor: default;
   border-width: 1px;
   border-style: solid;
@@ -436,7 +436,6 @@ option {
   word-wrap: break-word;
   line-height: 14px;
   white-space: nowrap;
-  font-size: var(--font-size);
   cursor: default;
   box-sizing: content-box;
   height: 100%;
@@ -456,7 +455,7 @@ option {
   word-wrap: break-word;
   line-height: calc(var(--font-size) + 8px);
   white-space: nowrap;
-  font-size: calc(var(--font-size) + 6px);
+  font-size: calc(var(--font-size) + 4px);
   cursor: default;
   text-align: center;
   color: #fff;
@@ -474,7 +473,6 @@ option {
   word-wrap: break-word;
   line-height: 14px;
   white-space: nowrap;
-  font-size: var(--font-size);
   cursor: default;
   text-align: center;
   color: #fff;
@@ -485,7 +483,6 @@ option {
   word-wrap: break-word;
   line-height: calc(var(--font-size) + 2px);
   white-space: nowrap;
-  font-size: var(--font-size);
   cursor: default;
   display: block;
   box-sizing: content-box;
