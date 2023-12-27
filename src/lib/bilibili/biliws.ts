@@ -242,6 +242,9 @@ export class BiliWebSocket {
       const heart_msg = new BiliWsMessage(MessageOP.KEEP_ALIVE, '')
       this._ws.send(heart_msg.GetBuffer())
       this._heartbeat_task = setInterval(() => {
+        if (!this._ws) {
+          return
+        }
         this._ws.send(heart_msg.GetBuffer())
       }, 10 * 1000)
     })

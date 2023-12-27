@@ -6,8 +6,17 @@ const appStatus = {
     async init() {
         window.jliverAPI.register(JEvent.EVENT_DETAIL_UPDATE, (detail_info: DetailInfo) => {
             console.log(detail_info)
+            detail_info.danmus.reverse()
             this.detail_info = detail_info
             this.detail_info.sender.face = 'https:' + this.detail_info.sender.face
+            // calculate rate
+            const n = detail_info.danmus.length
+            if (n < 2) {
+                this.rate = 0
+                return
+            }
+            this.rate = detail_info.danmus.length / (detail_info.danmus[0].timestamp - detail_info.danmus[n-1].timestamp) * 1000 * 60
+            this.rate = this.rate.toFixed(1)
         })
 
         // Set theme class in html
@@ -37,6 +46,7 @@ const appStatus = {
     font_size: 14,
     theme: 'light',
     detail_info: null,
+    rate: 0,
     hide() {
         window.jliverAPI.window.hide(WindowType.WDETAIL)
     },
