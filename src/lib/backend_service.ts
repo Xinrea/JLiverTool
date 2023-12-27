@@ -1,9 +1,9 @@
-import { app, ipcMain, shell } from 'electron'
+import { app, clipboard, ipcMain, shell } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
 import { WindowManager } from './window_manager'
-import { RoomID, WindowType, typecast, MergeUserInfo } from './types'
+import { RoomID, WindowType, typecast, MergeUserInfo, Sender } from './types'
 import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
@@ -105,6 +105,7 @@ export default class BackendService {
     this.releaseWebSocket()
     clearInterval(this._task_update_room_info)
     clearInterval(this._task_update_online_num)
+    this._window_manager.Stop()
   }
 
   private async roomChange(room: RoomID) {
@@ -317,6 +318,23 @@ export default class BackendService {
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_UPDATE_ROOM], (_, new_room: RoomID) => {
       this.roomChange(typecast(RoomID, new_room))
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_WINDOW_DETAIL], async (_, uid: number) => {
+      // get user info
+      const user_info = await BiliApi.GetUserInfo(this._config_store.Cookies, uid)
+      const sender = new Sender()
+      sender.uid = uid
+      sender.uname = user_info.data.uname
+      sender.face = user_info.data.face
+      const danmus = this._danmu_cache.get(uid)
+      const detail_info = {
+        sender: sender,
+        danmus: danmus,
+      }
+      this._window_manager.updateDetailWindow(detail_info)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_SET_CLIPBOARD], async (_, text: string) => {
+      clipboard.writeText(text)
     })
     this._config_store.onDidChange(
       'config.merge_rooms',

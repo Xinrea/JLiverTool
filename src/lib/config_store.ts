@@ -17,6 +17,7 @@ DEFAULT_WINDOWSIZE[WindowType.WMAIN] = [400, 800]
 DEFAULT_WINDOWSIZE[WindowType.WGIFT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [400, 300]
+DEFAULT_WINDOWSIZE[WindowType.WDETAIL] = [400, 300]
 
 class Store {
   private web_contents: Electron.WebContents[]

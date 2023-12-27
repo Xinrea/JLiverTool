@@ -11,6 +11,7 @@ const frontendConfig = {
     './src/main-window/main-window': './src/main-window/main-window.ts',
     './src/setting-window/setting-window':
       './src/setting-window/setting-window.ts',
+    './src/detail-window/detail-window': './src/detail-window/detail-window.ts',
   },
   module: {
     rules: [

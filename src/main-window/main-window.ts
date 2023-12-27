@@ -10,7 +10,7 @@ import {
 import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
-import { WindowType } from '../lib/types'
+import { MedalInfo, Sender, WindowType } from '../lib/types'
 import { MessageDanmu } from '../lib/messages'
 
 const toggles = {
@@ -232,18 +232,18 @@ const appStatus = {
       danmu_msg.side_index,
       danmu_msg.is_special,
       danmu_msg.sender.medal_info,
-      danmu_msg.sender.uname,
+      danmu_msg.sender,
       danmu_msg.content,
       danmu_msg.emoji_content
     )
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveInteract(medalInfo, sender) {
+  onReceiveInteract(medalInfo: MedalInfo, sender: Sender) {
     this.danmuPanel.doClean()
     const $newEntry = createEnterEntry(medalInfo, sender)
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveEffect(content) {
+  onReceiveEffect(content: string) {
     this.danmuPanel.doClean()
     const $newEntry = createEffectEntry(content)
     this.danmuPanel.handleNewEntry($newEntry)
