@@ -52,6 +52,8 @@
 }
 
 .danmu-item {
+    font-family: var(--font);
+    font-size: var(--font-size);
     transition: all 0.2s ease 0s;
     cursor: pointer;
 }
