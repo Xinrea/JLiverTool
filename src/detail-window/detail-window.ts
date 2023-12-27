@@ -19,6 +19,18 @@ const appStatus = {
             this.theme = newValue
         })
 
+        this.opacity = await window.jliverAPI.get('config.opacity', 1)
+        window.jliverAPI.onDidChange('config.opacity', (newValue: number) => {
+            this.opacity = newValue
+        })
+        this.font = await window.jliverAPI.get('config.font', 'system-ui')
+        window.jliverAPI.onDidChange('config.font', (newValue: string) => {
+            this.font = newValue
+        })
+        this.font_size = await window.jliverAPI.get('config.font_size', 14)
+        window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
+            this.font_size = newValue
+        })
     },
     opacity: 1,
     font: 'system-ui',
