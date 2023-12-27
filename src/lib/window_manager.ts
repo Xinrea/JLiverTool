@@ -3,7 +3,7 @@ import path = require('path')
 import JLogger from './logger'
 import JEvent from './events'
 import ConfigStore from './config_store'
-import { WindowType } from './types'
+import { DetailInfo, WindowType } from './types'
 
 const log = JLogger.getInstance('window_manager')
 const dev = process.env.DEBUG === 'true'
@@ -18,6 +18,8 @@ function WindowTypeTitle(win_type: WindowType): string {
       return 'superchat'
     case WindowType.WSETTING:
       return 'setting'
+    case WindowType.WDETAIL:
+      return 'detail'
     default:
   }
   throw new Error('Invalid WindowType')
@@ -26,6 +28,7 @@ function WindowTypeTitle(win_type: WindowType): string {
 class Window {
   private readonly _window: BrowserWindow
   private _store: ConfigStore
+  private _is_quit: boolean = false
 
   private _closed_callback: Function
 
@@ -83,6 +86,24 @@ class Window {
     } else {
       this._window.hide()
     }
+  }
+
+  public setQuit() {
+    this._is_quit = true
+  }
+
+  public close() {
+    this.setQuit()
+    if (this._window) {
+      this._window.close()
+    }
+  }
+
+  public id(): number {
+    if (!this._window) {
+      return -1
+    }
+    return this._window.id
   }
 
   public constructor(parent: Window, win_type: WindowType, store: ConfigStore) {
@@ -157,8 +178,15 @@ class Window {
 
   // registerEvents handles window related events
   private registerEvents() {
-    this._window.on('close', () => {
-      this._window.hide()
+    this._window.on('close', (e) => {
+      // Do not hide main window
+      if (this.win_type != WindowType.WMAIN) {
+        this._window.hide()
+      }
+      if (!this._is_quit) {
+        e.preventDefault()
+        return
+      }
       this._store.UpdateWindowCachedSetting(this.win_type, {
         pos: [this._window.getPosition()[0], this._window.getPosition()[1]],
         size: [this._window.getSize()[0], this._window.getSize()[1]],
@@ -181,6 +209,7 @@ export class WindowManager {
   private _gift_window: Window
   private _superchat_window: Window
   private _setting_window: Window
+  private _detail_windows: Window
   private _main_loaded_callback: Function
   private readonly _main_close_callback: Function
   private readonly _config_store: ConfigStore
@@ -210,8 +239,11 @@ export class WindowManager {
       WindowType.WSETTING,
       this._config_store
     )
-
-    this._main_window
+    this._detail_windows = new Window(
+      this._main_window,
+      WindowType.WDETAIL,
+      this._config_store
+    )
 
     this.registerEvents()
   }
@@ -331,7 +363,7 @@ export class WindowManager {
     log.debug('Set window show', {type: win_type, show: show})
     switch (win_type) {
       case WindowType.WMAIN: {
-        this._main_window.show = show
+        // main window should always show
         return
       }
       case WindowType.WGIFT: {
@@ -344,6 +376,10 @@ export class WindowManager {
       }
       case WindowType.WSETTING: {
         this._setting_window.show = show
+        return
+      }
+      case WindowType.WDETAIL: {
+        this._detail_windows.show = show
         return
       }
     }
@@ -389,5 +425,19 @@ export class WindowManager {
         return
       }
     }
+  }
+
+  public updateDetailWindow(detail_info: DetailInfo) {
+    log.debug('Create detail window', {uid: detail_info.sender.uid})
+    this._detail_windows.send(JEvent[JEvent.EVENT_DETAIL_UPDATE], detail_info)
+    this._detail_windows.show = true
+  }
+
+  public Stop() {
+    this._main_window.close()
+    this._gift_window.close()
+    this._superchat_window.close()
+    this._setting_window.close()
+    this._detail_windows.close()
   }
 }

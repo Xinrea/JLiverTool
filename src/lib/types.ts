@@ -156,4 +156,15 @@ export enum WindowType {
   WGIFT = 'gift',
   WSUPERCHAT = 'superchat',
   WSETTING = 'setting',
+  WDETAIL = 'detail',
+}
+
+export type DanmuRecord = {
+  timestamp: number
+  content: string
+}
+
+export type DetailInfo = {
+  sender: Sender
+  danmus: DanmuRecord[]
 }

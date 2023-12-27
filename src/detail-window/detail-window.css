@@ -1,0 +1,69 @@
+@import url(../common/common.css);
+
+#app {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    flex-direction: column;
+    border-radius: 10px;
+    background-color: rgba(var(--main-bg-rgb), var(--global-opacity));
+    box-sizing: border-box;
+    border: 2px solid var(--border);
+}
+
+#panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#user-info {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #ccc;
+}
+
+#user-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background-color: #ccc;
+    overflow: hidden;
+    margin: 12px;
+}
+
+#user-name {
+    align-items: center;
+    font-size: 24px;
+    color: var(--font-color);
+    margin: 12px;
+}
+
+#danmu-list {
+    width: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    color: var(--font-color);
+}
+
+.danmu-item {
+    transition: all 0.2s ease 0s;
+    cursor: pointer;
+}
+
+.danmu-item:hover {
+    padding: 6px;
+    font-weight: bold;
+    border: 1px solid rgb(127, 127, 127);
+    box-sizing: content-box;
+}
+
+.danmu-time {
+    opacity: 0.5;
+    font-weight: normal;
+}

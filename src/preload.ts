@@ -18,6 +18,7 @@ export type JLiverAPI = {
     minimize: (window_type: WindowType) => void
     alwaysOnTop: (window_type: WindowType, value: boolean) => void
     minimizable: (window_type: WindowType, value: boolean) => void
+    windowDetail: (uid: number) => void
   }
   app: {
     quit: () => void
@@ -45,6 +46,7 @@ export type JLiverAPI = {
     fonts: () => Promise<any>
     version: () => Promise<string>
     latestRelease: () => Promise<any>
+    setClipboard: (text: string) => Promise<any>
   }
 }
 
@@ -70,6 +72,7 @@ registerListener(JEvent.EVENT_WINDOW_BLUR)
 registerListener(JEvent.EVENT_WINDOW_FOCUS)
 registerListener(JEvent.EVENT_STORE_WATCH)
 registerListener(JEvent.EVENT_LOG)
+registerListener(JEvent.EVENT_DETAIL_UPDATE)
 
 // watcher keeps all registered onDidChange callback in renderer process
 // and will be called when ipcMain send store-watch event
@@ -127,6 +130,12 @@ contextBridge.exposeInMainWorld('jliverAPI', {
         value
       )
     },
+    windowDetail: (uid: number) => {
+      return ipcRenderer.invoke(
+        JEvent[JEvent.INVOKE_WINDOW_DETAIL],
+        uid
+      )
+    }
   },
   app: {
     quit: () => {
@@ -205,5 +214,8 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     latestRelease() {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_LATEST_RELEASE])
     },
+    setClipboard(text: string) {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_SET_CLIPBOARD], text)
+    }
   },
 })

@@ -1,12 +1,14 @@
+import { DanmuRecord } from "./types"
+
 export class DanmuCache {
     private _max_entries: number
-    private _cache: Map<number, string[]> = new Map<number, string[]>()
+    private _cache: Map<number, DanmuRecord[]> = new Map<number, DanmuRecord[]>()
 
     constructor(max_entries: number = 100) {
         this._max_entries = max_entries
     }
 
-    public get(uid: number): string[] {
+    public get(uid: number): DanmuRecord[] {
         return this._cache.get(uid)
     }
 
@@ -15,7 +17,10 @@ export class DanmuCache {
             this._cache.set(uid, [])
         }
         const cache = this._cache.get(uid)
-        cache.push(danmu)
+        cache.push({
+            timestamp: Date.now(),
+            content: danmu
+        })
         if (cache.length > this._max_entries) {
             cache.shift()
         }

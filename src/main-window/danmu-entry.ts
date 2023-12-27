@@ -1,12 +1,13 @@
 import { renderContent } from '../common/content-render'
 import { createMedal } from '../common/medal'
-import { EmojiContent, MedalInfo } from '../lib/types'
+import JEvent from '../lib/events'
+import { EmojiContent, MedalInfo, Sender } from '../lib/types'
 
 export function createDanmuEntry(
   side_index: number,
   special: boolean,
   medal: MedalInfo,
-  sender: string,
+  sender: Sender,
   content: string,
   emoji_content: EmojiContent
 ) {
@@ -27,8 +28,8 @@ export function createDanmuEntry(
   }
   const danmuSender = document.createElement('span')
   danmuSender.className = 'sender'
-  if (content) sender = sender + '：'
-  danmuSender.innerText = sender
+  if (content) sender.uname = sender.uname + '：'
+  danmuSender.innerText = sender.uname
   danmuEntry.appendChild(danmuSender)
   if (content) {
     if (emoji_content) {
@@ -43,22 +44,32 @@ export function createDanmuEntry(
       danmuEntry.appendChild(renderContent(content))
     }
   }
+
+  // add dbclick event
+  danmuEntry.addEventListener('dblclick', () => {
+    window.jliverAPI.window.windowDetail(sender.uid)
+  })
   return danmuEntry
 }
 
-export function createEnterEntry(medal, sender) {
+export function createEnterEntry(medal: MedalInfo, sender: Sender) {
+  // TODO: need a better way to handle this
+  sender.uname = sender.uname + ' 进入直播间'
   return createDanmuEntry(
     -1,
     false,
     medal,
-    sender + ' 进入直播间',
+    sender,
     null,
     null
   )
 }
 
-export function createEffectEntry(content) {
-  return createDanmuEntry(-1, false, null, content, null, null)
+export function createEffectEntry(content: string) {
+  // TODO: need a better way to handle this
+  const fake_sender = new Sender()
+  fake_sender.uname = content
+  return createDanmuEntry(-1, false, null, fake_sender, null, null)
 }
 
 export const giftCache = new Map()
