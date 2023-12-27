@@ -320,6 +320,10 @@ export default class BackendService {
       this.roomChange(typecast(RoomID, new_room))
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_WINDOW_DETAIL], async (_, uid: number) => {
+      // Only login user can get detail info
+      if (this._config_store.IsLogin === false) {
+        return
+      }
       // get user info
       const user_info = await BiliApi.GetUserInfo(this._config_store.Cookies, uid)
       const sender = new Sender()
