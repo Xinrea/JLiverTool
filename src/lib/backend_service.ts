@@ -131,6 +131,14 @@ export default class BackendService {
     this.updateMergeRooms(this._config_store.MergeRooms)
   }
 
+  private async releaseMergeRooms() {
+    log.info('Releasing merge rooms')
+    for (const [room, conn] of this._side_conns) {
+      conn.Disconnect()
+    }
+    this._side_conns.clear()
+  }
+
   private async updateMergeRooms(rooms: RoomID[]) {
     log.info('Updating merge rooms', { rooms })
     // release connections not in rooms
@@ -347,6 +355,16 @@ export default class BackendService {
         await this.updateMergeRooms(rooms)
       }
     )
+    this._config_store.onDidChange('config.login', async (login: boolean) => {
+      if (login) {
+        // reconnect primary websocket
+        await this.releaseWebSocket()
+        await this.setupWebSocket()
+        // reconnect merge websockets
+        await this.releaseMergeRooms()
+        await this.initMergeRooms()
+      }
+    })
   }
 
   // msg handler for primary connection
