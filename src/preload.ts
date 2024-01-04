@@ -4,6 +4,7 @@ import JEvent from './lib/events'
 import RoomInitResponse from './lib/bilibili/api/room/room_init'
 import GetInfoResponse from './lib/bilibili/api/room/get_info'
 import UserInfoResponse from './lib/bilibili/api/user/user_info'
+import { GiftMessage } from './lib/messages'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -39,6 +40,8 @@ export type JLiverAPI = {
   }
   backend: {
     updateRoom: (room: RoomID) => Promise<void>
+    getInitGifts: () => Promise<GiftMessage[]>
+    removeGiftEntry: (type: string, id: string) => Promise<void>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -68,6 +71,7 @@ function registerListener(event: JEvent) {
 registerListener(JEvent.EVENT_UPDATE_ROOM)
 registerListener(JEvent.EVENT_UPDATE_ONLINE)
 registerListener(JEvent.EVENT_NEW_DANMU)
+registerListener(JEvent.EVENT_NEW_GIFT)
 registerListener(JEvent.EVENT_WINDOW_BLUR)
 registerListener(JEvent.EVENT_WINDOW_FOCUS)
 registerListener(JEvent.EVENT_STORE_WATCH)
@@ -131,11 +135,8 @@ contextBridge.exposeInMainWorld('jliverAPI', {
       )
     },
     windowDetail: (uid: number) => {
-      return ipcRenderer.invoke(
-        JEvent[JEvent.INVOKE_WINDOW_DETAIL],
-        uid
-      )
-    }
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_WINDOW_DETAIL], uid)
+    },
   },
   app: {
     quit: () => {
@@ -179,6 +180,16 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     updateRoom: (room: RoomID) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_UPDATE_ROOM], room)
     },
+    getInitGifts: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_INIT_GIFTS])
+    },
+    removeGiftEntry: (type: string, id: string) => {
+      return ipcRenderer.invoke(
+        JEvent[JEvent.INVOKE_REMOVE_GIFT_ENTRY],
+        type,
+        id
+      )
+    },
   },
   config: {
     room: async () => {
@@ -216,6 +227,6 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     setClipboard(text: string) {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_SET_CLIPBOARD], text)
-    }
+    },
   },
 })

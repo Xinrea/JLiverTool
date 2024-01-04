@@ -109,18 +109,6 @@ export class MedalInfo {
   medal_name: string
 }
 
-export type Gift = {
-  id: number
-  room: number
-  name: string
-  price: number
-  coin_type: string
-  animation_frame_num: number
-  png: string
-  gif: string
-  sender: Sender
-}
-
 export type Guard = {
   id: number
   room: number

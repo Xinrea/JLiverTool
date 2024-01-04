@@ -4,6 +4,7 @@ import JLogger from './logger'
 import JEvent from './events'
 import ConfigStore from './config_store'
 import { DetailInfo, WindowType } from './types'
+import { AsyncFunc } from 'mocha'
 
 const log = JLogger.getInstance('window_manager')
 const dev = process.env.DEBUG === 'true'
@@ -106,7 +107,13 @@ class Window {
     return this._window.id
   }
 
-  public constructor(parent: Window, win_type: WindowType, store: ConfigStore) {
+  public constructor(
+    parent: Window,
+    win_type: WindowType,
+    store: ConfigStore,
+    loaded_callback?: Function,
+    closed_callback?: Function
+  ) {
     this.win_type = win_type
     this._store = store
     const setting = store.GetWindowCachedSetting(win_type)
@@ -153,21 +160,22 @@ class Window {
     this._window.on('focus', () => {
       this._window.webContents.send(JEvent[JEvent.EVENT_WINDOW_FOCUS], {})
     })
+    this._window.once('ready-to-show', () => {
+      if (loaded_callback) {
+        loaded_callback()
+      } else {
+        log.warn('Window loaded callback not set', { window: this.win_type })
+      }
+    })
+
+    if (closed_callback) {
+      this._closed_callback = closed_callback
+    }
 
     if (dev) {
       this._window.webContents.openDevTools()
     }
     this.registerEvents()
-  }
-
-  public setLoadedCallback(f: Function) {
-    this._window.once('ready-to-show', () => {
-      f()
-    })
-  }
-
-  public setClosedCallback(f: Function) {
-    this._closed_callback = f
   }
 
   public send(channel: string, args: any) {
@@ -211,6 +219,8 @@ export class WindowManager {
   private _setting_window: Window
   private _detail_windows: Window
   private _main_loaded_callback: Function
+  private _gift_loaded_callback: Function
+  private _superchat_loaded_callback: Function
   private readonly _main_close_callback: Function
   private readonly _config_store: ConfigStore
 
@@ -220,20 +230,28 @@ export class WindowManager {
   }
 
   public Start() {
-    this._main_window = new Window(null, WindowType.WMAIN, this._config_store)
-    this._main_window.setLoadedCallback(this._main_loaded_callback)
-    this._main_window.setClosedCallback(this._main_close_callback)
+    this._main_window = new Window(
+      null,
+      WindowType.WMAIN,
+      this._config_store,
+      this._main_loaded_callback,
+      this._main_close_callback
+    )
     // window should be created and hide at start, cuz gift data stream need to be processed in window render process
     this._gift_window = new Window(
       this._main_window,
       WindowType.WGIFT,
-      this._config_store
+      this._config_store,
+      this._gift_loaded_callback
     )
+
     this._superchat_window = new Window(
       this._main_window,
       WindowType.WSUPERCHAT,
-      this._config_store
+      this._config_store,
+      this._superchat_loaded_callback
     )
+
     this._setting_window = new Window(
       this._main_window,
       WindowType.WSETTING,
@@ -252,6 +270,14 @@ export class WindowManager {
     this._main_loaded_callback = f
   }
 
+  public setGiftLoadedCallback(f: Function) {
+    this._gift_loaded_callback = f
+  }
+
+  public setSuperChatLoadedCallback(f: Function) {
+    this._superchat_loaded_callback = f
+  }
+
   public loaded(): boolean {
     return (
       this._main_window.loaded &&
@@ -261,7 +287,7 @@ export class WindowManager {
     )
   }
 
-  public sendTo(win_type: WindowType, channel: JEvent, args: any) {
+  public SendTo(win_type: WindowType, channel: JEvent, args: any) {
     let target_window: Window = null
     switch (win_type) {
       case WindowType.WMAIN: {
@@ -286,6 +312,9 @@ export class WindowManager {
     }
     if (target_window) {
       target_window.send(JEvent[channel], args)
+      return true
+    } else {
+      return false
     }
   }
 
@@ -294,14 +323,14 @@ export class WindowManager {
     ipcMain.handle(
       JEvent[JEvent.INVOKE_WINDOW_HIDE],
       (e, win_type: WindowType) => {
-        log.debug('[EVENT] INVOKE_WINDOW_HIDE', {context: e})
+        log.debug('[EVENT] INVOKE_WINDOW_HIDE', { context: e })
         this.setWindowShow(win_type, false)
       }
     )
     ipcMain.handle(
       JEvent[JEvent.INVOKE_WINDOW_SHOW],
       (e, win_type: WindowType) => {
-        log.debug('[EVENT] INVOKE_WINDOW_SHOW', {context: e})
+        log.debug('[EVENT] INVOKE_WINDOW_SHOW', { context: e })
         this.setWindowShow(win_type, true)
       }
     )
@@ -360,7 +389,7 @@ export class WindowManager {
   }
 
   public setWindowShow(win_type: WindowType, show: boolean) {
-    log.debug('Set window show', {type: win_type, show: show})
+    log.debug('Set window show', { type: win_type, show: show })
     switch (win_type) {
       case WindowType.WMAIN: {
         // main window should always show
@@ -428,7 +457,7 @@ export class WindowManager {
   }
 
   public updateDetailWindow(detail_info: DetailInfo) {
-    log.debug('Create detail window', {uid: detail_info.sender.uid})
+    log.debug('Create detail window', { uid: detail_info.sender.uid })
     this._detail_windows.send(JEvent[JEvent.EVENT_DETAIL_UPDATE], detail_info)
     this._detail_windows.show = true
   }

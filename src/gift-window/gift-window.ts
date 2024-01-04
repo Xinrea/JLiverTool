@@ -5,6 +5,7 @@ import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
 import { WindowType } from '../lib/types'
+import { GiftMessage } from '../lib/messages'
 
 declare global {
   interface Window {
@@ -30,21 +31,26 @@ Alpine.data('appStatus', () => ({
     window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
       this.base.font_size = newValue
     })
+    this.base.filterFree = await window.jliverAPI.get(
+      'config.ignore_free',
+      true
+    )
 
-    window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (arg) => {
-      console.log(arg)
-      if (this.giftsCheck.has(arg.id)) {
-        for (let i = 0; i < this.gifts.length; i++) {
-          if (this.gifts[i].id === arg.id) {
-            this.gifts[i].msg.data.num += arg.msg.data.num
-            break
-          }
-        }
-        return
+    console.log('init stored gifts')
+    const stored_gifts = await window.jliverAPI.backend.getInitGifts()
+    for (let i = 0; i < stored_gifts.length; i++) {
+      this.giftHandler(stored_gifts[i])
+    }
+    setTimeout(() => {
+      if (this.base.autoScroll) {
+        this.base.$panel.scrollTop = this.base.lastPosition =
+          this.base.$panel.scrollHeight - this.base.$panel.clientHeight
       }
-      this.giftsCheck.set(arg.id, true)
-      this.gifts.push(arg)
-      // Wait for view render
+    }, 10)
+
+    window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (gift: GiftMessage) => {
+      console.log(gift)
+      this.giftHandler(gift)
       setTimeout(() => {
         if (this.base.autoScroll) {
           this.base.$panel.scrollTop = this.base.lastPosition =
@@ -69,19 +75,18 @@ Alpine.data('appStatus', () => ({
       document.documentElement.classList.remove(
         'theme-' + (this.base.theme || 'light')
       )
-      document.documentElement.classList.add(
-        'theme-' + (newValue || 'light')
-      )
+      document.documentElement.classList.add('theme-' + (newValue || 'light'))
       this.base.theme = newValue
     })
   },
   base: {
     $panel: null,
     get filterFree(): boolean {
-      return window.jliverAPI.get('config.passFreeGift', true)
+      return this._filter_free
     },
     set filterFree(value: boolean) {
-      window.jliverAPI.set('config.passFreeGift', value)
+      this._filter_free = value
+      window.jliverAPI.set('config.ignore_free', value)
     },
     opacity: 1,
     font: 'system-ui',
@@ -90,6 +95,7 @@ Alpine.data('appStatus', () => ({
     lastSelected: null,
     lastPosition: 0,
     autoScroll: true,
+    _filter_free: true,
     scroll() {
       if (Math.ceil(this.$panel.scrollTop) == this.lastPosition) {
         // Auto scroll
@@ -105,10 +111,7 @@ Alpine.data('appStatus', () => ({
   gifts: [],
   giftsCheck: new Map(),
   giftRemove(id: string) {
-    window.jliverAPI.send('remove', {
-      type: 'gifts',
-      id: id,
-    })
+    window.jliverAPI.backend.removeGiftEntry('gift', id)
     for (let i = 0; i < this.gifts.length; i++) {
       if (this.gifts[i].id == id) {
         this.gifts.splice(i, 1)
@@ -119,7 +122,8 @@ Alpine.data('appStatus', () => ({
   giftClean() {
     document.body.appendChild(
       createConfirmBox('确定清空所有礼物和上舰记录？', () => {
-        this.gifts = new Map()
+        this.gifts = []
+        this.giftsCheck.clear()
         window.jliverAPI.send('clear-gifts')
         window.jliverAPI.send('clear-guards')
       })
@@ -137,7 +141,27 @@ Alpine.data('appStatus', () => ({
   },
   hide() {
     window.jliverAPI.window.hide(WindowType.WGIFT)
-  }
+  },
+  giftHandler(gift: GiftMessage) {
+    if (this.giftsCheck.has(gift.id)) {
+      for (let i = 0; i < this.gifts.length; i++) {
+        if (this.gifts[i].id === gift.id) {
+          this.gifts[i].num += gift.num
+          break
+        }
+      }
+      return
+    }
+    this.giftsCheck.set(gift.id, true)
+    this.gifts.push(gift)
+    // Wait for view render
+    setTimeout(() => {
+      if (this.base.autoScroll) {
+        this.base.$panel.scrollTop = this.base.lastPosition =
+          this.base.$panel.scrollHeight - this.base.$panel.clientHeight
+      }
+    }, 10)
+  },
 }))
 
 Alpine.start()
