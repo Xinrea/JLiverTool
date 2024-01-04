@@ -1,6 +1,7 @@
 import { renderContent } from '../common/content-render'
 import { createMedal } from '../common/medal'
 import JEvent from '../lib/events'
+import { GiftMessage } from '../lib/messages'
 import { EmojiContent, MedalInfo, Sender } from '../lib/types'
 
 export function createDanmuEntry(
@@ -74,17 +75,9 @@ export function createEffectEntry(content: string) {
 
 export const giftCache = new Map()
 
-export function createGiftEntry(id, g) {
-  let medalInfo = {
-    guardLevel: g.data.medal_info.guard_level,
-    name: g.data.medal_info.medal_name,
-    level: g.data.medal_info.medal_level,
-  }
-  if (medalInfo.level == 0) {
-    medalInfo = null
-  }
-  const entry = doCreateGiftEntry(medalInfo, g.data.uname, g)
-  giftCache.set(id, entry)
+export function createGiftEntry(gift: GiftMessage) {
+  const entry = doCreateGiftEntry(gift)
+  giftCache.set(gift.id, entry)
   return entry
 }
 
@@ -97,26 +90,20 @@ export function createGuardEntry(g) {
       level: g.medal.level,
     }
   }
-  return doCreateGiftEntry(medalInfo, g.name, {
-    data: {
-      action: '开通',
-      giftName: g.gift_name,
-      isGuard: true,
-      guardLevel: g.guard_level,
-    },
-  })
+  // TODO handle guard message
+  return
 }
 
-function doCreateGiftEntry(medal, sender, g) {
-  const gift = g.data
+function doCreateGiftEntry(gift: GiftMessage) {
   const danmuEntry = document.createElement('span')
   danmuEntry.className = 'danmu_entry special gift'
-  if (medal) {
-    danmuEntry.appendChild(createMedal(medal))
+  // check medal
+  if (gift.sender.medal_info && gift.sender.medal_info.medal_level > 0) {
+    danmuEntry.appendChild(createMedal(gift.sender.medal_info))
   }
   const danmuSender = document.createElement('span')
   danmuSender.className = 'sender'
-  danmuSender.innerText = sender
+  danmuSender.innerText = gift.sender.uname
   danmuEntry.appendChild(danmuSender)
   // Content
   const giftAction = document.createElement('span')
@@ -125,22 +112,16 @@ function doCreateGiftEntry(medal, sender, g) {
   danmuEntry.appendChild(giftAction)
   const giftName = document.createElement('span')
   giftName.className = 'gift-name'
-  giftName.innerText = gift.giftName
+  giftName.innerText = gift.gift_info.name
   danmuEntry.appendChild(giftName)
   const giftIcon = document.createElement('span')
   giftIcon.className = 'gift-icon'
-  if (gift.isGuard) {
-    giftIcon.style.backgroundImage = `var(--guard-level-${gift.guardLevel})`
-  } else {
-    giftIcon.style.backgroundImage = `url(${g.gif.gif})`
-  }
+  giftIcon.style.backgroundImage = `url(${gift.gift_info.webp})`
   danmuEntry.appendChild(giftIcon)
-  if (gift.num) {
-    const giftNum = document.createElement('span')
-    giftNum.className = 'gift-num'
-    giftNum.innerText = `共${gift.num}个 | ￥${(gift.price * gift.num) / 1000}`
-    danmuEntry.appendChild(giftNum)
-    danmuEntry.setAttribute('gift-num', gift.num)
-  }
+  const giftNum = document.createElement('span')
+  giftNum.className = 'gift-num'
+  giftNum.innerText = `共${gift.num}个 | ￥${(gift.gift_info.price * gift.num) / 1000}`
+  danmuEntry.appendChild(giftNum)
+  danmuEntry.setAttribute('gift-num', gift.num.toString())
   return danmuEntry
 }

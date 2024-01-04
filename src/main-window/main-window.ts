@@ -11,7 +11,7 @@ import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
 import { MedalInfo, Sender, WindowType } from '../lib/types'
-import { MessageDanmu } from '../lib/messages'
+import { DanmuMessage, GiftMessage } from '../lib/messages'
 
 const toggles = {
   async init() {
@@ -137,8 +137,11 @@ const appStatus = {
       this.base.title = textarea.value
       this.base.live = arg.live_status == 1
     })
-    window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: MessageDanmu) => {
+    window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: DanmuMessage) => {
       this.onReceiveNewDanmu(arg)
+    })
+    window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (arg: GiftMessage) => {
+      this.onReceiveNewGift(arg)
     })
 
     console.log('Init smooth scroll')
@@ -226,7 +229,7 @@ const appStatus = {
   minimize() {
     window.jliverAPI.window.minimize(WindowType.WMAIN)
   },
-  onReceiveNewDanmu(danmu_msg: MessageDanmu) {
+  onReceiveNewDanmu(danmu_msg: DanmuMessage) {
     this.danmuPanel.doClean()
     const $newEntry = createDanmuEntry(
       danmu_msg.side_index,
@@ -248,22 +251,24 @@ const appStatus = {
     const $newEntry = createEffectEntry(content)
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveGift(id, msg) {
-    if (window.jliverAPI.get('config.passFreeGift', true)) {
-      if (msg.data.coin_type !== 'gold') {
+  onReceiveNewGift(gift: GiftMessage) {
+    // if ignore free gift
+    if (window.jliverAPI.get('config.ignore_free', true)) {
+      if (gift.gift_info.coin_type != 'gold') {
         return
       }
     }
-    if (giftCache.has(id)) {
-      const old = giftCache.get(id)
+    // check gift cache to merge gift in combo
+    if (giftCache.has(gift.id)) {
+      const old = giftCache.get(gift.id)
       const oldNum = parseInt(old.getAttribute('gift-num'))
-      const newNum = oldNum + parseInt(msg.data.num)
+      const newNum = oldNum + gift.num
       old.querySelector('.gift-num').innerText = `共${newNum}个`
       old.setAttribute('gift-num', String(newNum))
       return
     }
     this.danmuPanel.doClean()
-    const $newEntry = createGiftEntry(id, msg)
+    const $newEntry = createGiftEntry(gift)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveGuard(id, msg) {

@@ -1,6 +1,7 @@
+import { GiftType } from './bilibili/api/room/gift_config'
 import { EmojiContent, Sender, MergeUserInfo } from './types'
 
-export class MessageDanmu {
+export class DanmuMessage {
   sender: Sender = new Sender()
   content: string
   is_generated: boolean = false
@@ -74,4 +75,14 @@ export class MessageDanmu {
       this.is_special = true
     }
   }
+}
+
+export class GiftMessage {
+  id: string
+  room: number
+  gift_info: GiftType
+  sender: Sender
+  action: string
+  num: number
+  timestamp: number
 }

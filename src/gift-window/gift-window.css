@@ -36,10 +36,11 @@
   background-color: #16161a7e;
   flex-direction: column;
   transition: all 0.5s ease-in-out;
+  font-size: calc(var(--font-size) - 2px);
 }
 
 .gift-entry.free {
-  display: var(--free-gift);
+  display: var(--filter-free);
 }
 
 .gift-entry:hover {
@@ -67,9 +68,8 @@
 }
 
 .gift-time {
-  color: gray;
   align-items: center;
-  font-size: calc(var(--danmu-size) - 2px);
+  font-size: calc(var(--font-size) - 2px);
 }
 
 .gift-content {
@@ -87,17 +87,6 @@
   height: 40px;
   margin-right: 20px;
   background-size: cover;
-  animation: play calc(var(--frame-number) * 0.08s) steps(var(--frame-number))
-    infinite;
-}
-
-@keyframes play {
-  from {
-    background-position-x: 0;
-  }
-  to {
-    background-position-x: calc(-40px * var(--frame-number));
-  }
 }
 
 .gift-count {
@@ -109,14 +98,9 @@
   right: 5px;
 }
 
-.sender-name {
-  font-size: var(--danmu-size);
-  font-family: 'Roboto';
-}
-
 .sender-avatar {
-  width: 36px;
-  height: 36px;
+  width: calc(var(--font-size) * 1.5);
+  height: calc(var(--font-size) * 1.5);
   border-radius: 50%;
   margin-right: 10px;
   overflow: hidden;

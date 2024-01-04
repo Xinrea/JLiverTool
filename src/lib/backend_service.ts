@@ -8,13 +8,18 @@ import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
 import ConfigStore from './config_store'
-import { MessageDanmu } from './messages'
+import { DanmuMessage, GiftMessage } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
 import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 import { DanmuCache } from './danmu_cache'
+import { v4 as uuidv4 } from 'uuid'
+import { GiftMockMessage } from '../common/mock'
+import { GiftType } from './bilibili/api/room/gift_config'
 
 const log = JLogger.getInstance('backend_service')
+
+const dev = process.env.DEBUG === 'true'
 
 function CreateIntervalTask(f: Function, interval: number) {
   f()
@@ -31,7 +36,7 @@ export default class BackendService {
   private _task_update_room_info: number
   private _task_update_online_num: number
 
-  private _gift_list_cache: Map<number, any> = new Map()
+  private _gift_list_cache: Map<number, GiftType> = new Map()
   private _gift_store: GiftStore = new GiftStore()
 
   private _font_list_cached: FontList = []
@@ -89,14 +94,20 @@ export default class BackendService {
       )
     })
 
-    // everything is ready, now we start windows
+    // Everything is ready, now we start windows
     this._window_manager.Start()
-
-
 
     // Init font list
     this._font_list_cached = await getFonts({ disableQuoting: true })
     log.info('Get font list', { size: this._font_list_cached.length })
+
+    // Using mock data for testing
+    // if (dev) {
+    //   CreateIntervalTask(() => {
+    //     GiftMockMessage.data.batch_combo_id = uuidv4()
+    //     this.giftHandler(GiftMockMessage)
+    //   }, 10 * 1000)
+    // }
   }
 
   public async Stop() {
@@ -114,6 +125,13 @@ export default class BackendService {
     this._config_store.Room = room
     this.updateRoomInfo()
     this.updateOnlineNum()
+    // if room is in merge rooms, release it
+    for (const [merge_room, conn] of this._side_conns) {
+      if (merge_room.getRealID() === room.getRealID()) {
+        conn.Disconnect()
+        this._side_conns.delete(merge_room)
+      }
+    }
     await this.updateGiftList()
     // release old connection and setup new one
     await this.releaseWebSocket()
@@ -150,21 +168,33 @@ export default class BackendService {
     }
     // setup new connections
     for (let room of rooms) {
+      if (room.getRealID() === this._room.getRealID()) {
+        log.warn('Merge room is same as primary room, ignored', { room })
+        continue
+      }
       if (!this._side_conns.has(room)) {
         const danmu_server_info = await BiliApi.GetDanmuInfo(
           this._config_store.Cookies,
           room
         )
-        const user_info = await BiliApi.GetUserInfo(this._config_store.Cookies, room.getOwnerID())
+        const user_info = await BiliApi.GetUserInfo(
+          this._config_store.Cookies,
+          room.getOwnerID()
+        )
         const conn = new BiliWebSocket({
           room_id: room.getRealID(),
           uid: parseInt(this._config_store.Cookies.DedeUserID),
           server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
           token: danmu_server_info.data.token,
         })
-        const merge_user_info = {index: rooms.indexOf(room), uid: user_info.data.mid, name: user_info.data.uname}
-        log.debug('Merge user info', {merge_user_info})
-        conn.msg_handler = this.sideMsgHandlerConstructor(merge_user_info).bind(this)
+        const merge_user_info = {
+          index: rooms.indexOf(room),
+          uid: user_info.data.mid,
+          name: user_info.data.uname,
+        }
+        log.debug('Merge user info', { merge_user_info })
+        conn.msg_handler =
+          this.sideMsgHandlerConstructor(merge_user_info).bind(this)
         conn.Connect(true)
         this._side_conns.set(room, conn)
       }
@@ -177,7 +207,7 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
-    this._window_manager.sendTo(
+    this._window_manager.SendTo(
       WindowType.WMAIN,
       JEvent.EVENT_UPDATE_ROOM,
       room_response.data
@@ -242,7 +272,7 @@ export default class BackendService {
     log.debug('Updating online number', {
       online: online_response.data.onlineNum,
     })
-    this._window_manager.sendTo(
+    this._window_manager.SendTo(
       WindowType.WMAIN,
       JEvent.EVENT_UPDATE_ONLINE,
       online_response.data
@@ -314,7 +344,7 @@ export default class BackendService {
       return app.getVersion()
     })
     ipcMain.on(JEvent[JEvent.EVENT_LOG], (msg) => {
-      this._window_manager.sendTo(WindowType.WSETTING, JEvent.EVENT_LOG, msg)
+      this._window_manager.SendTo(WindowType.WSETTING, JEvent.EVENT_LOG, msg)
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_OPEN_LOG_DIR], async () => {
       return shell.openPath(JLogger.getLogPath())
@@ -327,27 +357,50 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_UPDATE_ROOM], (_, new_room: RoomID) => {
       this.roomChange(typecast(RoomID, new_room))
     })
-    ipcMain.handle(JEvent[JEvent.INVOKE_WINDOW_DETAIL], async (_, uid: number) => {
-      // Only login user can get detail info
-      if (this._config_store.IsLogin === false) {
-        return
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_WINDOW_DETAIL],
+      async (_, uid: number) => {
+        // Only login user can get detail info
+        if (this._config_store.IsLogin === false) {
+          return
+        }
+        // get user info
+        const user_info = await BiliApi.GetUserInfo(
+          this._config_store.Cookies,
+          uid
+        )
+        const sender = new Sender()
+        sender.uid = uid
+        sender.uname = user_info.data.uname
+        sender.face = user_info.data.face
+        const danmus = this._danmu_cache.get(uid)
+        const detail_info = {
+          sender: sender,
+          danmus: danmus,
+        }
+        this._window_manager.updateDetailWindow(detail_info)
       }
-      // get user info
-      const user_info = await BiliApi.GetUserInfo(this._config_store.Cookies, uid)
-      const sender = new Sender()
-      sender.uid = uid
-      sender.uname = user_info.data.uname
-      sender.face = user_info.data.face
-      const danmus = this._danmu_cache.get(uid)
-      const detail_info = {
-        sender: sender,
-        danmus: danmus,
+    )
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_SET_CLIPBOARD],
+      async (_, text: string) => {
+        clipboard.writeText(text)
       }
-      this._window_manager.updateDetailWindow(detail_info)
+    )
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_INIT_GIFTS], async () => {
+      const stored_gifts = await this._gift_store.Get(
+        'gift',
+        this._room.getRealID()
+      )
+      log.info('Load stored gifts', { length: stored_gifts.length })
+      return stored_gifts
     })
-    ipcMain.handle(JEvent[JEvent.INVOKE_SET_CLIPBOARD], async (_, text: string) => {
-      clipboard.writeText(text)
-    })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_REMOVE_GIFT_ENTRY],
+      async (_, type: string, id: string) => {
+        await this._gift_store.Delete(type, id)
+      }
+    )
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
@@ -368,30 +421,103 @@ export default class BackendService {
   }
 
   // msg handler for primary connection
-  private msgHandler(packet: PackResult) {
+  private async msgHandler(packet: PackResult) {
     for (const msg of packet.body) {
       switch (msg.cmd) {
         case 'DANMU_MSG': {
-          const danmu_msg = new MessageDanmu(msg)
-          this._window_manager.sendTo(
-            WindowType.WMAIN,
-            JEvent.EVENT_NEW_DANMU,
-            danmu_msg
-          )
-          this._danmu_cache.add(danmu_msg.sender.uid, danmu_msg.content)
+          this.danmuHandler(msg)
+          break
+        }
+        case 'SEND_GIFT': {
+          this.giftHandler(msg)
+          break
         }
       }
     }
   }
 
+  private danmuHandler(msg: any) {
+    if (msg.cmd !== 'DANMU_MSG') {
+      log.error('Not a danmu message', { msg })
+      return
+    }
+    const danmu_msg = new DanmuMessage(msg)
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_DANMU,
+      danmu_msg
+    )
+    this._danmu_cache.add(danmu_msg.sender.uid, danmu_msg.content)
+  }
+
+  private async giftHandler(msg: any) {
+    if (msg.cmd !== 'SEND_GIFT') {
+      log.error('Not a gift message', { msg })
+      return
+    }
+    if (msg.data.coin_type === 'silver' && msg.data.giftName == '辣条') {
+      // ignore this gift
+      return
+    }
+    // unique id for each gift or batch of gift
+    let id = msg.data.batch_combo_id
+    if (id == '') {
+      id = uuidv4()
+    }
+    let gift_animate_info = null
+    if (this._gift_list_cache.has(msg.data.giftId)) {
+      gift_animate_info = this._gift_list_cache.get(msg.data.giftId)
+    }
+    // gift animate info not found, may need update
+    if (gift_animate_info === null) {
+      log.warn('Gift animate info not found, may need update', {
+        gift_id: msg.data.giftId,
+      })
+      await this.updateGiftList()
+      gift_animate_info = this._gift_list_cache.get(msg.data.giftId)
+      if (gift_animate_info === null) {
+        log.error('Gift animate info not found after update', {
+          gift_id: msg.data.giftId,
+        })
+        return
+      }
+    }
+    // construct gift message from raw msg
+    const gift_msg = new GiftMessage()
+    gift_msg.id = id
+    gift_msg.room = this._room.getRealID()
+    gift_msg.sender = new Sender()
+    gift_msg.sender.uid = msg.data.uid
+    gift_msg.sender.uname = msg.data.uname
+    gift_msg.sender.face = msg.data.face
+    gift_msg.sender.medal_info = msg.data.medal_info
+    gift_msg.gift_info = gift_animate_info
+    gift_msg.action = msg.data.action
+    gift_msg.num = msg.data.num
+    gift_msg.timestamp = msg.data.timestamp
+    // send to related window
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_GIFT,
+      gift_msg
+    )
+    this._window_manager.SendTo(
+      WindowType.WGIFT,
+      JEvent.EVENT_NEW_GIFT,
+      gift_msg
+    )
+    // store gift message
+    this._gift_store.Push(gift_msg)
+  }
+
   // msg handler for side connections
   private sideMsgHandlerConstructor(owner_info: MergeUserInfo) {
-    return function(packet: PackResult) {
+    return async function (packet: PackResult) {
       for (const msg of packet.body) {
         switch (msg.cmd) {
           case 'DANMU_MSG': {
-            const danmu_msg = new MessageDanmu(msg, owner_info)
-            this._window_manager.sendTo(
+            const danmu_msg = new DanmuMessage(msg, owner_info)
+            this._window_manager.SendTo(
               WindowType.WMAIN,
               JEvent.EVENT_NEW_DANMU,
               danmu_msg

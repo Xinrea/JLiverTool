@@ -166,12 +166,8 @@ const merge_setting = {
       'config.merge_rooms',
       []
     )) as RoomID[]
-    const current_room = typecast(RoomID, await window.jliverAPI.config.room())
     for (let room of merge_rooms) {
       room = typecast(RoomID, room)
-      if (current_room.equals(room)) {
-        continue
-      }
       const room_info = await window.jliverAPI.room.info(room.getID())
       if (room_info.code != 0) {
         continue
@@ -186,12 +182,6 @@ const merge_setting = {
         name: `[${user_info.data.uname}]${room_info.data.title}`,
       })
     }
-    window.jliverAPI.onDidChange('config.room', (v: RoomID) => {
-      // filter out current room
-      this['room_list'] = this.room_list.filter((room: RoomID) => {
-        return room !== v
-      })
-    })
   },
   _enable: false,
   room_list: [],
@@ -222,12 +212,6 @@ const merge_setting = {
         return room.id == parseInt(this['to_add'])
       })
     ) {
-      this.error = true
-      return
-    }
-    // check if room is same with main room
-    const main_room = await window.jliverAPI.get('config.room', DefaultRoomID)
-    if (main_room == this['to_add']) {
       this.error = true
       return
     }
@@ -287,7 +271,7 @@ const danmu_style_setting = {
   set font(v: string) {
     this._font = v
     window.jliverAPI.set('config.font', v)
-  }
+  },
 }
 
 const window_setting = {
