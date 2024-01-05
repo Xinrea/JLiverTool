@@ -58,23 +58,51 @@
 }
 
 .theme-light {
-  --main-color: rgb(255, 255, 255);
-  --title-bar-color: #39b5e7;
-  --main-bg: rgb(241, 242, 243);
-  --main-bg-rgb: 241, 242, 243;
+  --titlebar-color: #64bfe2;
+  --titlebar-font-color: #ffffff;
+  --statusbar-color: #64bfe2;
+  --statusbar-font-color: #ffffff;
+  --main-bg: 241, 242, 243;
+  --live-color: rgba(237, 59, 107, 1);
   --border: #ffffff50;
-  --font-secolor: #757575;
+  --uname-color: #757575;
   --font-color: #020202;
 }
 
 .theme-dark {
-  --main-color: rgb(22, 22, 26);
-  --title-bar-color: rgb(22, 22, 26);
-  --main-bg: rgb(0, 0, 0);
-  --main-bg-rgb: 0, 0, 0;
+  --titlebar-color: rgb(22, 22, 26);
+  --titlebar-font-color: #e8e8e8;
+  --statusbar-color: rgb(22, 22, 26);
+  --statusbar-font-color: #e8e8e8;
+  --main-bg: 0, 0, 0;
+  --live-color: rgba(237, 59, 107, 1);
   --border: #ffffff50;
+  --uname-color: #999;
   --font-color: #e8e8e8;
-  --font-secolor: #999;
+}
+
+.theme-dracula {
+  --titlebar-color: #353746;
+  --titlebar-font-color: #f8f8f2;
+  --statusbar-color: #353746;
+  --statusbar-font-color: #f8f8f2;
+  --main-bg: 25, 26, 33;
+  --live-color: #f981c6;
+  --border: #5d6d98;
+  --uname-color: #ac8be0;
+  --font-color: #eaece9;
+}
+
+.theme-catppuccin {
+  --titlebar-color: #232634;
+  --titlebar-font-color: #f8f8f2;
+  --statusbar-color: #232634;
+  --statusbar-font-color: #f8f8f2;
+  --main-bg: 48, 52, 70;
+  --live-color: #ef9f76;
+  --border: #5d6d98;
+  --uname-color: #a6d189;
+  --font-color: #eaece9;
 }
 
 html,
@@ -501,11 +529,12 @@ option {
   min-height: 25px;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--title-bar-color);
+  color: var(--titlebar-font-color);
+  background-color: var(--titlebar-color);
   border-radius: 10px 10px 0 0;
   -webkit-app-region: drag;
   transition: all 0.5s ease-in-out;
-  border-bottom: 1px solid #ffffff75;
+  border-bottom: 1px solid var(--border);
 }
 
 #title {
@@ -670,9 +699,9 @@ option {
   border-radius: 2px 2px 6px 6px;
 }
 
-.sc-entry-content-text {
+.sc-entry-content-text .content {
   font-size: var(--font-size);
-  color: white !important;
+  color: white;
 }
 
 ::-webkit-scrollbar {
@@ -743,7 +772,7 @@ option {
   position: fixed;
   right: 56px;
   bottom: 8px;
-  background-color: var(--main-bg);
+  background-color: rgb(var(--main-bg));
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 8px 1px 1px;

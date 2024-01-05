@@ -10,7 +10,7 @@
   position: relative;
   flex-direction: column;
   border-radius: 10px;
-  background-color: rgba(var(--main-bg-rgb), var(--global-opacity));
+  background-color: rgba(var(--main-bg), var(--global-opacity));
   box-sizing: border-box;
   border: 2px solid var(--border);
 }
@@ -31,13 +31,13 @@
   backdrop-filter: blur(10px);
   box-sizing: border-box;
   box-shadow: 0 0 10px black;
-  border: 1px solid #ffffff75;
+  border: 1px solid var(--border);
   z-index: 100;
 }
 
 input {
   color: #999999;
-  background-color: var(--main-bg);
+  background-color: rgb(var(--main-bg));
   width: 180px;
   padding: 6px;
   border: none;
@@ -69,7 +69,7 @@ button {
 }
 
 button:hover {
-  background-color: var(--main-bg);
+  background-color: rgb(var(--main-bg));
 }
 
 #enter-room {
@@ -86,8 +86,7 @@ button:hover {
   flex-direction: column;
   position: absolute;
   color: var(--font-color);
-  background-color: var(--main-color);
-  backdrop-filter: blur(10px);
+  background-color: rgb(var(--main-bg));
   min-width: 160px;
   border-radius: 10px 0 10px 10px;
   box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.411);
@@ -95,7 +94,7 @@ button:hover {
   z-index: 100;
   animation: ani 0.5s;
   animation-fill-mode: forwards;
-  border: 1px solid #646464;
+  border: 1px solid var(--border);
 }
 
 :any-link {
@@ -108,7 +107,7 @@ button:hover {
 }
 
 #dropdown-content a:hover {
-  background-color: var(--main-bg);
+  background-color: rgb(var(--main-bg));
 }
 
 #statusbar {
@@ -119,16 +118,16 @@ button:hover {
   position: absolute;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--main-color);
+  color: var(--statusbar-font-color);
+  background-color: var(--statusbar-color);
   border-radius: 0 0 10px 10px;
   box-sizing: border-box;
-  border-top: 1px solid #ffffff75;
+  border-top: 1px solid var(--border);
 }
 
 #live-text {
   font-size: 14px;
   line-height: 16px;
-  color: white;
   margin-left: 14px;
   align-items: center;
 }
@@ -136,14 +135,12 @@ button:hover {
 #online {
   font-size: 14px;
   line-height: 16px;
-  color: white;
   align-items: center;
 }
 
 #live-title {
   font-size: 14px;
   line-height: 16px;
-  color: var(--font-color);
   margin-left: 14px;
 }
 
@@ -154,7 +151,6 @@ button:hover {
   font-size: 14px;
   line-height: 16px;
   border-radius: 3px;
-  color: var(--font-color);
   transition: all 0.5s ease-in-out;
 }
 
@@ -182,11 +178,12 @@ button:hover {
   white-space: nowrap;
   vertical-align: middle;
   cursor: pointer;
-  color: var(--font-secolor);
+  color: var(--uname-color);
   line-height: 20px;
 }
 
 .content {
+  color: var(--font-color);
   font-size: var(--danmu-size);
   word-wrap: break-word;
   white-space: normal;
