@@ -129,22 +129,22 @@ const appStatus = {
 
     console.log('Init events')
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg: any) => {
-      // Update online number in title
-      if (this.base.live) {
-        if (arg.onlineNum >= 9999) {
-          this.base.online = '> 10000'
-        } else {
-          this.base.online = String(arg.onlineNum)
-        }
-      }
+      // Update online number
+      this.base.online = arg.count
     })
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ROOM, (arg: any) => {
-      // Update room title
-      var encodedString = arg.title
-      var textarea = document.createElement('textarea')
-      textarea.innerHTML = encodedString
-      this.base.title = textarea.value
-      this.base.live = arg.live_status == 1
+      // Update room title and status
+      // if arg has title
+      if (arg.hasOwnProperty('title')) {
+        var encodedString = arg.title
+        var textarea = document.createElement('textarea')
+        textarea.innerHTML = encodedString
+        this.base.title = textarea.value
+      }
+      // if arg has live_status
+      if (arg.hasOwnProperty('live_status')) {
+        this.base.live = arg.live_status == 1
+      }
     })
     window.jliverAPI.register(JEvent.EVENT_NEW_DANMU, (arg: DanmuMessage) => {
       this.onReceiveNewDanmu(arg)
