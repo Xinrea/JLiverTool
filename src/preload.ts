@@ -4,7 +4,7 @@ import JEvent from './lib/events'
 import RoomInitResponse from './lib/bilibili/api/room/room_init'
 import GetInfoResponse from './lib/bilibili/api/room/get_info'
 import UserInfoResponse from './lib/bilibili/api/user/user_info'
-import { GiftInitData, GiftMessage } from './lib/messages'
+import { GiftInitData, GiftMessage, SuperChatMessage } from './lib/messages'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -41,8 +41,10 @@ export type JLiverAPI = {
   backend: {
     updateRoom: (room: RoomID) => Promise<void>
     getInitGifts: () => Promise<GiftInitData>
+    getInitSuperChats: () => Promise<SuperChatMessage[]>
     removeGiftEntry: (type: string, id: string) => Promise<void>
     clearGifts: () => Promise<void>
+    clearSuperChats: () => Promise<void>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -74,6 +76,7 @@ registerListener(JEvent.EVENT_UPDATE_ONLINE)
 registerListener(JEvent.EVENT_NEW_DANMU)
 registerListener(JEvent.EVENT_NEW_GIFT)
 registerListener(JEvent.EVENT_NEW_GUARD)
+registerListener(JEvent.EVENT_NEW_SUPER_CHAT)
 registerListener(JEvent.EVENT_WINDOW_BLUR)
 registerListener(JEvent.EVENT_WINDOW_FOCUS)
 registerListener(JEvent.EVENT_STORE_WATCH)
@@ -185,6 +188,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     getInitGifts: () => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_INIT_GIFTS])
     },
+    getInitSuperChats: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_INIT_SUPERCHATS])
+    },
     removeGiftEntry: (type: string, id: string) => {
       return ipcRenderer.invoke(
         JEvent[JEvent.INVOKE_REMOVE_GIFT_ENTRY],
@@ -194,6 +200,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     clearGifts: () => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_CLEAR_GIFTS])
+    },
+    clearSuperChats: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_CLEAR_SUPERCHATS])
     },
   },
   config: {

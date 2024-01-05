@@ -4,6 +4,7 @@ import { createSuperchatEntry } from '../common/superchat'
 import JEvent from '../lib/events'
 import { WindowType } from '../lib/types'
 import { JLiverAPI } from '../preload'
+import { SuperChatMessage } from '../lib/messages'
 
 let $panel = document.getElementById('panel')
 let giftMap = new Map()
@@ -19,15 +20,6 @@ $panel.addEventListener('scroll', () => {
   // User scroll
   autoScroll =
     Math.ceil($panel.scrollTop) == $panel.scrollHeight - $panel.clientHeight
-})
-
-window.jliverAPI.register(JEvent.EVENT_NEW_SUPER_CHAT, (g) => {
-  console.log(g)
-  let scEntry = createSuperchatEntry({ id: g.id, g: g.msg, removable: true })
-  $panel.appendChild(scEntry)
-  if (autoScroll) {
-    $panel.scrollTop = lastPosition = $panel.scrollHeight - $panel.clientHeight
-  }
 })
 
 declare global {
@@ -46,15 +38,26 @@ const app = {
       this.opacity = newValue
     })
     window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
-      this.font_size= newValue
+      this.font_size = newValue
     })
     window.jliverAPI.onDidChange('config.font', (newValue: string) => {
-      this.font= newValue
+      this.font = newValue
     })
-    document.documentElement.classList.add('theme-'+(this.theme || 'light'))
+    document.documentElement.classList.add('theme-' + (this.theme || 'light'))
     window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
       this.theme = newValue
     })
+    let init_superchats = await window.jliverAPI.backend.getInitSuperChats()
+    init_superchats.forEach((sc) => {
+      this.superchatHandler(sc)
+    })
+
+    window.jliverAPI.register(
+      JEvent.EVENT_NEW_SUPER_CHAT,
+      (sc: SuperChatMessage) => {
+        this.superchatHandler(sc)
+      }
+    )
   },
   opacity: 1,
   font: 'system-ui',
@@ -64,7 +67,9 @@ const app = {
     return this._theme
   },
   set theme(newValue) {
-    document.documentElement.classList.remove('theme-' + (this._theme || 'light'))
+    document.documentElement.classList.remove(
+      'theme-' + (this._theme || 'light')
+    )
     document.documentElement.classList.add('theme-' + (newValue || 'light'))
     this._theme = newValue
   },
@@ -73,13 +78,21 @@ const app = {
       createConfirmBox('确定清空所有醒目留言记录？', () => {
         $panel.innerHTML = ''
         giftMap = new Map()
-        window.jliverAPI.send('clear-superchats')
+        window.jliverAPI.backend.clearSuperChats()
       })
     )
   },
+  superchatHandler(sc: SuperChatMessage) {
+    let scEntry = createSuperchatEntry(sc, true)
+    $panel.appendChild(scEntry)
+    if (autoScroll) {
+      $panel.scrollTop = lastPosition =
+        $panel.scrollHeight - $panel.clientHeight
+    }
+  },
   hide() {
     window.jliverAPI.window.hide(WindowType.WSUPERCHAT)
-  }
+  },
 }
 
 Alpine.data('app', () => app)

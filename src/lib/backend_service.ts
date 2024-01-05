@@ -13,13 +13,18 @@ import {
   GiftInitData,
   GiftMessage,
   GuardMessage,
+  SuperChatMessage,
 } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
 import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 import { DanmuCache } from './danmu_cache'
 import { v4 as uuidv4 } from 'uuid'
-import { GiftMockMessage, GuardMockMessage } from '../common/mock'
+import {
+  GiftMockMessage,
+  GuardMockMessage,
+  SuperChatMockMessage,
+} from '../common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
 
 const log = JLogger.getInstance('backend_service')
@@ -109,7 +114,7 @@ export default class BackendService {
     // Using mock data for testing
     if (dev) {
       CreateIntervalTask(() => {
-        this.guardHandler(GuardMockMessage)
+        this.superchatHandler(SuperChatMockMessage)
       }, 10 * 1000)
     }
   }
@@ -409,6 +414,16 @@ export default class BackendService {
       ret.guards = stored_guards
       return ret
     })
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_INIT_SUPERCHATS], async () => {
+      const stored_superchats = (await this._gift_store.Get(
+        'superchat',
+        this._room.getRealID()
+      )) as SuperChatMessage[]
+      log.info('Load stored superchats', {
+        superchat: stored_superchats.length,
+      })
+      return stored_superchats
+    })
     ipcMain.handle(
       JEvent[JEvent.INVOKE_REMOVE_GIFT_ENTRY],
       async (_, type: string, id: string) => {
@@ -418,6 +433,9 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_CLEAR_GIFTS], async () => {
       await this._gift_store.Clear('gift', this._room.getRealID())
       await this._gift_store.Clear('guard', this._room.getRealID())
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_CLEAR_SUPERCHATS], async () => {
+      await this._gift_store.Clear('superchat', this._room.getRealID())
     })
     this._config_store.onDidChange(
       'config.merge_rooms',
@@ -455,6 +473,10 @@ export default class BackendService {
       }
       if (msg.cmd.includes('USER_TOAST_MSG')) {
         this.guardHandler(msg)
+        continue
+      }
+      if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
+        this.superchatHandler(msg)
         continue
       }
     }
@@ -556,7 +578,34 @@ export default class BackendService {
     this._gift_store.Push(guard_msg)
   }
 
-  // msg handler for side connections
+  private superchatHandler(msg: any) {
+    const superchat_msg = new SuperChatMessage()
+    superchat_msg.id = msg.data.id
+    superchat_msg.room = this._room.getRealID()
+    superchat_msg.sender = new Sender()
+    superchat_msg.sender.uid = msg.data.uid
+    superchat_msg.sender.uname = msg.data.user_info.uname
+    superchat_msg.sender.face = msg.data.user_info.face
+    superchat_msg.sender.medal_info = msg.data.medal_info
+    superchat_msg.message = msg.data.message
+    superchat_msg.price = msg.data.price
+    superchat_msg.timestamp = msg.data.start_time
+
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_SUPER_CHAT,
+      superchat_msg
+    )
+    this._window_manager.SendTo(
+      WindowType.WSUPERCHAT,
+      JEvent.EVENT_NEW_SUPER_CHAT,
+      superchat_msg
+    )
+    // store superchat message
+    this._gift_store.Push(superchat_msg)
+  }
+
+  // msg handler for side connections, only handle danmu message for side connections
   private sideMsgHandlerConstructor(owner_info: MergeUserInfo) {
     return async function (packet: PackResult) {
       for (const msg of packet.body) {
