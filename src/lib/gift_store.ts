@@ -68,16 +68,22 @@ export class GiftStore {
     await this._db.write()
   }
 
-  public async Clear(type: string) {
+  public async Clear(type: string, room: number) {
     switch (type) {
       case 'gift':
-        this._db.data.gift = []
+        this._db.data.gift = this._db.data.gift.filter(
+          (item) => item.room != room
+        )
         break
       case 'guard':
-        this._db.data.guard = []
+        this._db.data.guard = this._db.data.guard.filter(
+          (item) => item.room != room
+        )
         break
       case 'superchat':
-        this._db.data.superchat = []
+        this._db.data.superchat = this._db.data.superchat.filter(
+          (item) => item.room != room
+        )
         break
       default:
         log.error('Unknown type to clear', { type })

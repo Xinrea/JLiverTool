@@ -42,6 +42,7 @@ export type JLiverAPI = {
     updateRoom: (room: RoomID) => Promise<void>
     getInitGifts: () => Promise<GiftInitData>
     removeGiftEntry: (type: string, id: string) => Promise<void>
+    clearGifts: () => Promise<void>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -190,6 +191,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
         type,
         id
       )
+    },
+    clearGifts: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_CLEAR_GIFTS])
     },
   },
   config: {

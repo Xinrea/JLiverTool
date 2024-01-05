@@ -137,8 +137,7 @@ Alpine.data('appStatus', () => ({
       createConfirmBox('确定清空所有礼物和上舰记录？', () => {
         this.gifts = []
         this.giftsCheck.clear()
-        window.jliverAPI.send('clear-gifts')
-        window.jliverAPI.send('clear-guards')
+        window.jliverAPI.backend.clearGifts()
       })
     )
   },

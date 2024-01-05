@@ -415,6 +415,10 @@ export default class BackendService {
         await this._gift_store.Delete(type, id)
       }
     )
+    ipcMain.handle(JEvent[JEvent.INVOKE_CLEAR_GIFTS], async () => {
+      await this._gift_store.Clear('gift', this._room.getRealID())
+      await this._gift_store.Clear('guard', this._room.getRealID())
+    })
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
