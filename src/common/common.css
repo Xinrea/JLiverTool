@@ -605,7 +605,6 @@ option {
 
 .sc-entry-header {
   position: relative;
-  height: 50px;
   padding: 8px 10px;
   width: 100%;
   box-sizing: border-box;
@@ -617,8 +616,6 @@ option {
 
 .sc-entry-header-left-avatar {
   position: relative;
-  width: 42px;
-  height: 42px;
   overflow: visible;
   margin-right: 10px;
 }
@@ -632,8 +629,8 @@ option {
 }
 
 .avatar {
-  width: 42px;
-  height: 42px;
+  width: calc(var(--font-size) * 1.5);
+  height: calc(var(--font-size) * 1.5);
   border-radius: 50%;
   background-color: #ffffff;
   background-size: cover;
@@ -674,6 +671,7 @@ option {
 }
 
 .sc-entry-content-text {
+  font-size: var(--font-size);
   color: white !important;
 }
 

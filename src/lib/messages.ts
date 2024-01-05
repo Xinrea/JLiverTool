@@ -98,6 +98,15 @@ export class GuardMessage {
   timestamp: number
 }
 
+export class SuperChatMessage {
+  id: string
+  room: number
+  sender: Sender
+  message: string
+  price: number
+  timestamp: number
+}
+
 export class GiftInitData {
   gifts: GiftMessage[]
   guards: GuardMessage[]

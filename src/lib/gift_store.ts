@@ -3,7 +3,8 @@ import { JSONFile } from 'lowdb/node'
 import JLogger from './logger'
 import { app } from 'electron'
 import * as types from './types'
-import { GiftMessage, GuardMessage } from './messages'
+import { GiftMessage, GuardMessage, SuperChatMessage } from './messages'
+import { SuperChat } from '../common/superchatInterface'
 
 const log = JLogger.getInstance('gift_store')
 const db_path = app.getPath('userData') + '/gift_store.json'
@@ -11,7 +12,7 @@ const db_path = app.getPath('userData') + '/gift_store.json'
 type GiftDBData = {
   gift: GiftMessage[]
   guard: GuardMessage[]
-  superchat: types.SuperChat[]
+  superchat: SuperChatMessage[]
 }
 
 export class GiftStore {
@@ -43,16 +44,16 @@ export class GiftStore {
     }
   }
 
-  public async Push(item: GiftMessage | GuardMessage | types.SuperChat) {
+  public async Push(item: GiftMessage | GuardMessage | SuperChatMessage) {
     if (item instanceof GiftMessage) {
       this._db.data.gift.push(item)
     }
     if (item instanceof GuardMessage) {
       this._db.data.guard.push(item)
     }
-    // if (item instanceof types.SuperChat) {
-    //   this._db.data.superchat.push(item)
-    // }
+    if (item instanceof SuperChatMessage) {
+      this._db.data.superchat.push(item)
+    }
     await this._db.write()
   }
 
@@ -60,6 +61,16 @@ export class GiftStore {
     switch (type) {
       case 'gift':
         this._db.data.gift = this._db.data.gift.filter((item) => item.id != id)
+        break
+      case 'guard':
+        this._db.data.guard = this._db.data.guard.filter(
+          (item) => item.id != id
+        )
+        break
+      case 'superchat':
+        this._db.data.superchat = this._db.data.superchat.filter(
+          (item) => item.id != id
+        )
         break
       default:
         log.error('Unknown type to delete', { type })

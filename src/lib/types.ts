@@ -109,16 +109,6 @@ export class MedalInfo {
   medal_name: string
 }
 
-export type SuperChat = {
-  id: number
-  room: number
-  level: number
-  message: string
-  price: number
-  sender: Sender
-  timestamp: number
-}
-
 export type EmojiContent = {
   bulge_display: number
   emoticon_unique: string

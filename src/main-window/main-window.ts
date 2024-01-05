@@ -11,7 +11,12 @@ import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
 import { MedalInfo, Sender, WindowType } from '../lib/types'
-import { DanmuMessage, GiftMessage, GuardMessage } from '../lib/messages'
+import {
+  DanmuMessage,
+  GiftMessage,
+  GuardMessage,
+  SuperChatMessage,
+} from '../lib/messages'
 
 const toggles = {
   async init() {
@@ -150,6 +155,12 @@ const appStatus = {
     window.jliverAPI.register(JEvent.EVENT_NEW_GUARD, (arg: GuardMessage) => {
       this.onReceiveGuard(arg)
     })
+    window.jliverAPI.register(
+      JEvent.EVENT_NEW_SUPER_CHAT,
+      (arg: SuperChatMessage) => {
+        this.onReceiveSuperchat(arg)
+      }
+    )
 
     console.log('Init smooth scroll')
     setInterval(() => {
@@ -283,10 +294,11 @@ const appStatus = {
     const $newEntry = createGuardEntry(msg)
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveSuperchat(id, msg) {
+  onReceiveSuperchat(msg: SuperChatMessage) {
+    console.log(msg)
     this.danmuPanel.doClean()
     // Superchat entry should not be able to remove in chat window
-    const $newEntry = createSuperchatEntry({ id, g: msg, removable: false })
+    const $newEntry = createSuperchatEntry(msg, false)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   login: false,
