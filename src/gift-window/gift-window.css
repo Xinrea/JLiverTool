@@ -31,11 +31,11 @@
   margin: 5px 10px;
   padding: 5px 10px;
   min-height: 75px;
-  width: auto;
+  width: 100%;
   color: white;
   background-color: #16161a7e;
   flex-direction: column;
-  transition: all 0.5s ease-in-out;
+  transition: all 0.2s ease-in-out;
   font-size: calc(var(--font-size) - 2px);
 }
 

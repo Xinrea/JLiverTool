@@ -8,13 +8,18 @@ import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
 import ConfigStore from './config_store'
-import { DanmuMessage, GiftMessage } from './messages'
+import {
+  DanmuMessage,
+  GiftInitData,
+  GiftMessage,
+  GuardMessage,
+} from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
 import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 import { DanmuCache } from './danmu_cache'
 import { v4 as uuidv4 } from 'uuid'
-import { GiftMockMessage } from '../common/mock'
+import { GiftMockMessage, GuardMockMessage } from '../common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
 
 const log = JLogger.getInstance('backend_service')
@@ -102,12 +107,11 @@ export default class BackendService {
     log.info('Get font list', { size: this._font_list_cached.length })
 
     // Using mock data for testing
-    // if (dev) {
-    //   CreateIntervalTask(() => {
-    //     GiftMockMessage.data.batch_combo_id = uuidv4()
-    //     this.giftHandler(GiftMockMessage)
-    //   }, 10 * 1000)
-    // }
+    if (dev) {
+      CreateIntervalTask(() => {
+        this.guardHandler(GuardMockMessage)
+      }, 10 * 1000)
+    }
   }
 
   public async Stop() {
@@ -388,12 +392,22 @@ export default class BackendService {
       }
     )
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_INIT_GIFTS], async () => {
-      const stored_gifts = await this._gift_store.Get(
+      const stored_gifts = (await this._gift_store.Get(
         'gift',
         this._room.getRealID()
-      )
-      log.info('Load stored gifts', { length: stored_gifts.length })
-      return stored_gifts
+      )) as GiftMessage[]
+      const stored_guards = (await this._gift_store.Get(
+        'guard',
+        this._room.getRealID()
+      )) as GuardMessage[]
+      log.info('Load stored gifts', {
+        gift: stored_gifts.length,
+        guard: stored_guards.length,
+      })
+      const ret = new GiftInitData()
+      ret.gifts = stored_gifts
+      ret.guards = stored_guards
+      return ret
     })
     ipcMain.handle(
       JEvent[JEvent.INVOKE_REMOVE_GIFT_ENTRY],
@@ -423,24 +437,26 @@ export default class BackendService {
   // msg handler for primary connection
   private async msgHandler(packet: PackResult) {
     for (const msg of packet.body) {
-      switch (msg.cmd) {
-        case 'DANMU_MSG': {
-          this.danmuHandler(msg)
-          break
-        }
-        case 'SEND_GIFT': {
-          this.giftHandler(msg)
-          break
-        }
+      if (!msg.cmd) {
+        continue
+      }
+      // using includes to handle special messages generated during some events
+      if (msg.cmd.includes('DANMU_MSG')) {
+        this.danmuHandler(msg)
+        continue
+      }
+      if (msg.cmd.includes('SEND_GIFT')) {
+        this.giftHandler(msg)
+        continue
+      }
+      if (msg.cmd.includes('USER_TOAST_MSG')) {
+        this.guardHandler(msg)
+        continue
       }
     }
   }
 
   private danmuHandler(msg: any) {
-    if (msg.cmd !== 'DANMU_MSG') {
-      log.error('Not a danmu message', { msg })
-      return
-    }
     const danmu_msg = new DanmuMessage(msg)
     this._window_manager.SendTo(
       WindowType.WMAIN,
@@ -451,10 +467,6 @@ export default class BackendService {
   }
 
   private async giftHandler(msg: any) {
-    if (msg.cmd !== 'SEND_GIFT') {
-      log.error('Not a gift message', { msg })
-      return
-    }
     if (msg.data.coin_type === 'silver' && msg.data.giftName == '辣条') {
       // ignore this gift
       return
@@ -508,6 +520,36 @@ export default class BackendService {
     )
     // store gift message
     this._gift_store.Push(gift_msg)
+  }
+
+  private async guardHandler(msg: any) {
+    const guard_msg = new GuardMessage()
+    guard_msg.id = msg.data.payflow_id
+    guard_msg.room = this._room.getRealID()
+    guard_msg.sender = new Sender()
+    guard_msg.sender.uid = msg.data.uid
+    guard_msg.sender.uname = msg.data.username
+    guard_msg.num = msg.data.num
+    // unit for num, should be '月'
+    guard_msg.unit = msg.data.unit
+    // guard level, should be 1, 2, 3
+    guard_msg.guard_level = msg.data.guard_level
+    guard_msg.price = msg.data.price
+    // TODO need confirm
+    guard_msg.timestamp = msg.data.start_time
+
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_GUARD,
+      guard_msg
+    )
+    this._window_manager.SendTo(
+      WindowType.WGIFT,
+      JEvent.EVENT_NEW_GUARD,
+      guard_msg
+    )
+    // store guard message
+    this._gift_store.Push(guard_msg)
   }
 
   // msg handler for side connections

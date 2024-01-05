@@ -5,7 +5,7 @@ import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'
 import { WindowType } from '../lib/types'
-import { GiftMessage } from '../lib/messages'
+import { GiftMessage, GuardMessage } from '../lib/messages'
 
 declare global {
   interface Window {
@@ -37,9 +37,12 @@ Alpine.data('appStatus', () => ({
     )
 
     console.log('init stored gifts')
-    const stored_gifts = await window.jliverAPI.backend.getInitGifts()
-    for (let i = 0; i < stored_gifts.length; i++) {
-      this.giftHandler(stored_gifts[i])
+    const gift_data = await window.jliverAPI.backend.getInitGifts()
+    for (let i = 0; i < gift_data.gifts.length; i++) {
+      this.giftHandler(gift_data.gifts[i])
+    }
+    for (let i = 0; i < gift_data.guards.length; i++) {
+      this.guardHandler(gift_data.guards[i])
     }
     setTimeout(() => {
       if (this.base.autoScroll) {
@@ -51,6 +54,16 @@ Alpine.data('appStatus', () => ({
     window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (gift: GiftMessage) => {
       console.log(gift)
       this.giftHandler(gift)
+      setTimeout(() => {
+        if (this.base.autoScroll) {
+          this.base.$panel.scrollTop = this.base.lastPosition =
+            this.base.$panel.scrollHeight - this.base.$panel.clientHeight
+        }
+      }, 10)
+    })
+    window.jliverAPI.register(JEvent.EVENT_NEW_GUARD, (guard: GuardMessage) => {
+      console.log(guard)
+      this.guardHandler(guard)
       setTimeout(() => {
         if (this.base.autoScroll) {
           this.base.$panel.scrollTop = this.base.lastPosition =
@@ -142,6 +155,13 @@ Alpine.data('appStatus', () => ({
   hide() {
     window.jliverAPI.window.hide(WindowType.WGIFT)
   },
+  typeOfGift(gift: any) {
+    // if have guard_level
+    if (gift.guard_level) {
+      return 1
+    }
+    return 0
+  },
   giftHandler(gift: GiftMessage) {
     if (this.giftsCheck.has(gift.id)) {
       for (let i = 0; i < this.gifts.length; i++) {
@@ -161,6 +181,28 @@ Alpine.data('appStatus', () => ({
           this.base.$panel.scrollHeight - this.base.$panel.clientHeight
       }
     }, 10)
+  },
+  guardHandler(guard: GuardMessage) {
+    this.gifts.push(guard)
+    // Wait for view render
+    setTimeout(() => {
+      if (this.base.autoScroll) {
+        this.base.$panel.scrollTop = this.base.lastPosition =
+          this.base.$panel.scrollHeight - this.base.$panel.clientHeight
+      }
+    }, 10)
+  },
+  levelToName(level: number) {
+    switch (level) {
+      case 1:
+        return '总督'
+      case 2:
+        return '提督'
+      case 3:
+        return '舰长'
+      default:
+        return '舰长'
+    }
   },
 }))
 

@@ -3,14 +3,14 @@ import { JSONFile } from 'lowdb/node'
 import JLogger from './logger'
 import { app } from 'electron'
 import * as types from './types'
-import { GiftMessage } from './messages'
+import { GiftMessage, GuardMessage } from './messages'
 
 const log = JLogger.getInstance('gift_store')
 const db_path = app.getPath('userData') + '/gift_store.json'
 
 type GiftDBData = {
   gift: GiftMessage[]
-  guard: types.Guard[]
+  guard: GuardMessage[]
   superchat: types.SuperChat[]
 }
 
@@ -43,13 +43,13 @@ export class GiftStore {
     }
   }
 
-  public async Push(item: GiftMessage | types.Guard | types.SuperChat) {
+  public async Push(item: GiftMessage | GuardMessage | types.SuperChat) {
     if (item instanceof GiftMessage) {
       this._db.data.gift.push(item)
     }
-    // if (item instanceof types.Guard) {
-    //   this._db.data.guard.push(item)
-    // }
+    if (item instanceof GuardMessage) {
+      this._db.data.guard.push(item)
+    }
     // if (item instanceof types.SuperChat) {
     //   this._db.data.superchat.push(item)
     // }

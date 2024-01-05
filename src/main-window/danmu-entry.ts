@@ -1,7 +1,7 @@
 import { renderContent } from '../common/content-render'
 import { createMedal } from '../common/medal'
 import JEvent from '../lib/events'
-import { GiftMessage } from '../lib/messages'
+import { GiftMessage, GuardMessage } from '../lib/messages'
 import { EmojiContent, MedalInfo, Sender } from '../lib/types'
 
 export function createDanmuEntry(
@@ -56,14 +56,7 @@ export function createDanmuEntry(
 export function createEnterEntry(medal: MedalInfo, sender: Sender) {
   // TODO: need a better way to handle this
   sender.uname = sender.uname + ' 进入直播间'
-  return createDanmuEntry(
-    -1,
-    false,
-    medal,
-    sender,
-    null,
-    null
-  )
+  return createDanmuEntry(-1, false, medal, sender, null, null)
 }
 
 export function createEffectEntry(content: string) {
@@ -81,17 +74,10 @@ export function createGiftEntry(gift: GiftMessage) {
   return entry
 }
 
-export function createGuardEntry(g) {
-  let medalInfo = null
-  if (g.medal) {
-    medalInfo = {
-      guardLevel: g.medal.guard_level,
-      name: g.medal.medal_name,
-      level: g.medal.level,
-    }
-  }
+export function createGuardEntry(g: GuardMessage) {
+  const entry = doCreateGuardEntry(g)
   // TODO handle guard message
-  return
+  return entry
 }
 
 function doCreateGiftEntry(gift: GiftMessage) {
@@ -120,8 +106,68 @@ function doCreateGiftEntry(gift: GiftMessage) {
   danmuEntry.appendChild(giftIcon)
   const giftNum = document.createElement('span')
   giftNum.className = 'gift-num'
-  giftNum.innerText = `共${gift.num}个 | ￥${(gift.gift_info.price * gift.num) / 1000}`
+  giftNum.innerText = `共${gift.num}个 | ￥${
+    (gift.gift_info.price * gift.num) / 1000
+  }`
   danmuEntry.appendChild(giftNum)
   danmuEntry.setAttribute('gift-num', gift.num.toString())
   return danmuEntry
+}
+
+function doCreateGuardEntry(g: GuardMessage) {
+  const danmuEntry = document.createElement('span')
+  danmuEntry.className = 'danmu_entry special gift'
+  // check medal
+  if (g.sender.medal_info && g.sender.medal_info.medal_level > 0) {
+    danmuEntry.appendChild(createMedal(g.sender.medal_info))
+  }
+  const danmuSender = document.createElement('span')
+  danmuSender.className = 'sender'
+  danmuSender.innerText = g.sender.uname
+  danmuEntry.appendChild(danmuSender)
+  // Content
+  const guardAction = document.createElement('span')
+  guardAction.className = 'action'
+  // TODO different action for 开通/续费
+  guardAction.innerText = '开通'
+  danmuEntry.appendChild(guardAction)
+  const guardName = document.createElement('span')
+  guardName.className = 'gift-name'
+  guardName.innerText = levelToName(g.guard_level)
+  danmuEntry.appendChild(guardName)
+  const giftIcon = document.createElement('span')
+  giftIcon.className = 'gift-icon'
+  giftIcon.style.backgroundImage = `url(${levelToIconURL(g.guard_level)})`
+  danmuEntry.appendChild(giftIcon)
+  const guardNum = document.createElement('span')
+  guardNum.className = 'gift-num'
+  guardNum.innerText = `x ${g.num}${g.unit} | ￥${g.price / 1000}`
+  danmuEntry.appendChild(guardNum)
+  return danmuEntry
+}
+
+function levelToName(level: number) {
+  switch (level) {
+    case 1:
+      return '总督'
+    case 2:
+      return '提督'
+    case 3:
+      return '舰长'
+    default:
+      return '舰长'
+  }
+}
+
+function levelToIconURL(level: number) {
+  switch (level) {
+    case 1:
+      return 'https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard1.png@44w_44h'
+    case 2:
+      return 'https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard2.png@44w_44h'
+    case 3:
+      return 'https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard3.png@44w_44h'
+    default:
+      return ''
+  }
 }

@@ -86,3 +86,19 @@ export class GiftMessage {
   num: number
   timestamp: number
 }
+
+export class GuardMessage {
+  id: string
+  room: number
+  sender: Sender
+  num: number
+  unit: string
+  guard_level: number
+  price: number
+  timestamp: number
+}
+
+export class GiftInitData {
+  gifts: GiftMessage[]
+  guards: GuardMessage[]
+}
