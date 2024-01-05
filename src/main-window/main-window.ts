@@ -321,6 +321,11 @@ const appStatus = {
       e.target.innerText = this.content
     }
   },
+  openBiliBackend() {
+    window.jliverAPI.util.openUrl(
+      'https://link.bilibili.com/p/center/index#/my-room/start-live'
+    )
+  },
 }
 
 Alpine.data('appStatus', () => appStatus)

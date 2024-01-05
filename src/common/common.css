@@ -772,7 +772,8 @@ option {
   position: fixed;
   right: 56px;
   bottom: 8px;
-  background-color: rgb(var(--main-bg));
+  color: var(--statusbar-font-color);
+  background-color: #ffffff14;
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 8px 1px 1px;
@@ -781,7 +782,6 @@ option {
 }
 
 #danmuSender > span {
-  color: var(--font-color);
   font-size: 13px;
   padding: 4px;
   text-align: left;
