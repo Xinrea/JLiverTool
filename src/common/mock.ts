@@ -2,10 +2,12 @@ export const GiftMockMessage = {
   cmd: 'SEND_GIFT',
   data: {
     action: '投喂',
-    batch_combo_id: 'batch:gift:combo_id:2129029622:51628309:31164:1674999182.0784',
+    batch_combo_id:
+      'batch:gift:combo_id:2129029622:51628309:31164:1674999182.0784',
     batch_combo_send: {
       action: '投喂',
-      batch_combo_id: 'batch:gift:combo_id:2129029622:51628309:31164:1674999182.0784',
+      batch_combo_id:
+        'batch:gift:combo_id:2129029622:51628309:31164:1674999182.0784',
       batch_combo_num: 1,
       blind_gift: null,
       gift_id: 31164,
@@ -13,7 +15,7 @@ export const GiftMockMessage = {
       gift_num: 1,
       send_master: null,
       uid: 2129029622,
-      uname: '东都月影'
+      uname: '东都月影',
     },
     beatId: '',
     biz_source: 'live',
@@ -30,7 +32,7 @@ export const GiftMockMessage = {
       gift_num: 1,
       send_master: null,
       uid: 2129029622,
-      uname: '东都月影'
+      uname: '东都月影',
     },
     combo_stay_time: 3,
     combo_total_coin: 1000,
@@ -68,7 +70,7 @@ export const GiftMockMessage = {
       medal_level: 3,
       medal_name: '轴大头',
       special: '',
-      target_id: 0
+      target_id: 0,
     },
     name_color: '',
     num: 1,
@@ -91,35 +93,48 @@ export const GiftMockMessage = {
     top_list: null,
     total_coin: 1000,
     uid: 2129029622,
-    uname: '东都月影'
-  }
+    uname: '东都月影',
+  },
 }
-
 
 export const DanmuMockMessage = {
   cmd: 'DANMU_MSG',
   info: [
     [
-      0, 1,
-      25, 5816798,
-      1675046749891, 1675046701,
-      0, 'f15d1e6d',
-      0, 0,
-      0, '',
-      0, '{}',
-      '{}', null,
-      null
+      0,
+      1,
+      25,
+      5816798,
+      1675046749891,
+      1675046701,
+      0,
+      'f15d1e6d',
+      0,
+      0,
+      0,
+      '',
+      0,
+      '{}',
+      '{}',
+      null,
+      null,
     ],
     '(╯°口°)╯打卡！',
     [37191600, '二龙岗', 0, 0, 0, 10000, 1, ''],
     [
-      17, '酷诺米',
-      '米诺高分少女', 25512465,
-      13081892, '',
-      0, 13081892,
-      13081892, 13081892,
-      0, 1,
-      1778026586
+      17,
+      '酷诺米',
+      '米诺高分少女',
+      25512465,
+      13081892,
+      '',
+      0,
+      13081892,
+      13081892,
+      13081892,
+      0,
+      1,
+      1778026586,
     ],
     [13, 0, 6406234, '>50000', 0],
     ['', ''],
@@ -132,23 +147,43 @@ export const DanmuMockMessage = {
     null,
     null,
     0,
-    56
-  ]
+    56,
+  ],
 }
 
 export const GuardMockMessage = {
-  cmd: 'GUARD_BUY',
+  cmd: 'USER_TOAST_MSG',
   data: {
-    uid: 5503568,
-    username: '好难选啊',
-    guard_level: 3,
-    num: 1,
-    price: 198000,
+    anchor_show: true,
+    color: '#00D1F1',
+    dmscore: 90,
+    effect_id: 397,
+    end_time: 1702580687,
+    face_effect_id: 44,
     gift_id: 10003,
-    gift_name: '舰长',
-    start_time: 1674663715,
-    end_time: 1674663715
-  }
+    group_name: '',
+    group_op_type: 0,
+    group_role_name: '',
+    guard_level: 3,
+    is_group: 0,
+    is_show: 0,
+    num: 1,
+    op_type: 1,
+    payflow_id: '2312150304155852173446521',
+    price: 138000,
+    role_name: '舰长',
+    room_effect_id: 590,
+    room_group_effect_id: 1337,
+    start_time: 1702580687,
+    svga_block: 0,
+    target_guard_count: 146,
+    toast_msg:
+      '<%无光之日%> 在主播Mia米娅-的直播间开通了舰长，今天是TA陪伴主播的第1天',
+    uid: 79667344,
+    unit: '月',
+    user_show: true,
+    username: '无光之日',
+  },
 }
 
 export const SuperChatMockMessage = JSON.parse(`{

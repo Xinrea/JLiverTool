@@ -109,23 +109,14 @@ export class MedalInfo {
   medal_name: string
 }
 
-export type Guard = {
-  id: number
-  room: number
-  level: number
-  price: number
-  sender: Sender
-}
-
 export type SuperChat = {
   id: number
   room: number
   level: number
   message: string
-  start_time: number
-  end_time: number
   price: number
   sender: Sender
+  timestamp: number
 }
 
 export type EmojiContent = {

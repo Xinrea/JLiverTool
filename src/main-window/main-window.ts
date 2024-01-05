@@ -11,7 +11,7 @@ import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../i18n'
 import { MedalInfo, Sender, WindowType } from '../lib/types'
-import { DanmuMessage, GiftMessage } from '../lib/messages'
+import { DanmuMessage, GiftMessage, GuardMessage } from '../lib/messages'
 
 const toggles = {
   async init() {
@@ -111,9 +111,13 @@ const appStatus = {
       this.base.font = newValue
     })
     // Set theme class in html
-    document.documentElement.classList.add('theme-'+(this.base.theme || 'light'))
+    document.documentElement.classList.add(
+      'theme-' + (this.base.theme || 'light')
+    )
     window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
-      document.documentElement.classList.remove('theme-' + (this.base.theme || 'light'))
+      document.documentElement.classList.remove(
+        'theme-' + (this.base.theme || 'light')
+      )
       document.documentElement.classList.add('theme-' + (newValue || 'light'))
       this.base.theme = newValue
     })
@@ -132,7 +136,7 @@ const appStatus = {
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ROOM, (arg: any) => {
       // Update room title
       var encodedString = arg.title
-      var textarea = document.createElement("textarea")
+      var textarea = document.createElement('textarea')
       textarea.innerHTML = encodedString
       this.base.title = textarea.value
       this.base.live = arg.live_status == 1
@@ -142,6 +146,9 @@ const appStatus = {
     })
     window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (arg: GiftMessage) => {
       this.onReceiveNewGift(arg)
+    })
+    window.jliverAPI.register(JEvent.EVENT_NEW_GUARD, (arg: GuardMessage) => {
+      this.onReceiveGuard(arg)
     })
 
     console.log('Init smooth scroll')
@@ -271,7 +278,7 @@ const appStatus = {
     const $newEntry = createGiftEntry(gift)
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveGuard(id, msg) {
+  onReceiveGuard(msg: GuardMessage) {
     this.danmuPanel.doClean()
     const $newEntry = createGuardEntry(msg)
     this.danmuPanel.handleNewEntry($newEntry)
