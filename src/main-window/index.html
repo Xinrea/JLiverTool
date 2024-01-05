@@ -8,10 +8,13 @@
   </head>
 
   <body x-data="appStatus">
-    <div id="app" :style="`--global-opacity: ${base.opacity}; --font-size: ${base.fontSize}px; --font: '${base.font}'`">
+    <div
+      id="app"
+      :style="`--global-opacity: ${base.opacity}; --font-size: ${base.fontSize}px; --font: '${base.font}'`"
+    >
       <div
         id="title-bar"
-        :style="{backgroundColor: base.live ? 'rgba(237,59,107,1)' : 'var(--title-bar-color)'}"
+        :style="{backgroundColor: base.live ? 'var(--live-color)' : 'var(--titlebar-color)'}"
       >
         <div>
           <div id="live-text">LIVE</div>
@@ -167,7 +170,7 @@
             class="icon"
             style="
               -webkit-mask-image: url('../assets/icons/link.svg');
-              background-color: var(--font-color);
+              background-color: var(--statusbar-font-color);
             "
           ></span>
         </div>

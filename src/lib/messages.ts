@@ -45,18 +45,20 @@ export class DanmuMessage {
     //   <i class="medal-deco  medal-guard" style="background-image: url(https://i0.hdslb.com/bfs/live/143f5ec3003b4080d1b5f817a9efdca46d631945.png@44w_44h.webp);"></i>
     //   <span class="fans-medal-content">轴芯</span>
     // </div>
-    this.sender.medal_info.anchor_roomid = body.info[3][3]
-    this.sender.medal_info.anchor_uname = body.info[3][2]
-    this.sender.medal_info.medal_name = body.info[3][1]
-    this.sender.medal_info.medal_level = body.info[3][0]
+    if (body.info[3]) {
+      this.sender.medal_info.anchor_roomid = body.info[3][3]
+      this.sender.medal_info.anchor_uname = body.info[3][2]
+      this.sender.medal_info.medal_name = body.info[3][1]
+      this.sender.medal_info.medal_level = body.info[3][0]
 
-    this.sender.medal_info.medal_color = body.info[3][4]
-    this.sender.medal_info.medal_color_border = body.info[3][7]
-    this.sender.medal_info.medal_color_start = body.info[3][8]
-    this.sender.medal_info.medal_color_end = body.info[3][9]
+      this.sender.medal_info.medal_color = body.info[3][4]
+      this.sender.medal_info.medal_color_border = body.info[3][7]
+      this.sender.medal_info.medal_color_start = body.info[3][8]
+      this.sender.medal_info.medal_color_end = body.info[3][9]
 
-    // TODO need confirm
-    this.sender.medal_info.guard_level = body.info[3][10]
+      // TODO need confirm
+      this.sender.medal_info.guard_level = body.info[3][10]
+    }
 
     // trim the content and remove line break
     this.content = body.info[1].trim().replace(/[\r\n]/g, '')

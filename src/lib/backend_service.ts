@@ -90,7 +90,10 @@ export default class BackendService {
 
     this._window_manager.setMainLoadedCallback(() => {
       // Setup task for updating infos
-      this.updateRoomInfo()
+      this._task_update_room_info = CreateIntervalTask(
+        () => this.updateRoomInfo(),
+        30 * 1000
+      )
     })
 
     // Everything is ready, now we start windows
@@ -101,14 +104,14 @@ export default class BackendService {
     log.info('Get font list', { size: this._font_list_cached.length })
 
     // Using mock data for testing
-    if (dev) {
-      CreateIntervalTask(() => {
-        const n = MockMessageArray.length
-        const i = Math.floor(Math.random() * n)
-        const msg = MockMessageArray[i]
-        this.doHandler(msg)
-      }, 10 * 1000)
-    }
+    // if (dev) {
+    //   CreateIntervalTask(() => {
+    //     const n = MockMessageArray.length
+    //     const i = Math.floor(Math.random() * n)
+    //     const msg = MockMessageArray[i]
+    //     this.doHandler(msg)
+    //   }, 10 * 1000)
+    // }
   }
 
   public async Stop() {
@@ -538,6 +541,10 @@ export default class BackendService {
 
   private danmuHandler(msg: any) {
     const danmu_msg = new DanmuMessage(msg)
+    if (danmu_msg.is_generated) {
+      // ignore generated danmu
+      return
+    }
     this._window_manager.SendTo(
       WindowType.WMAIN,
       JEvent.EVENT_NEW_DANMU,
