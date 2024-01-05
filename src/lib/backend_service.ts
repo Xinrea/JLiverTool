@@ -1,4 +1,4 @@
-import { app, clipboard, ipcMain, shell } from 'electron'
+import { app, clipboard, ipcMain, shell, Notification } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
@@ -20,11 +20,7 @@ import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 import { DanmuCache } from './danmu_cache'
 import { v4 as uuidv4 } from 'uuid'
-import {
-  GiftMockMessage,
-  GuardMockMessage,
-  SuperChatMockMessage,
-} from '../common/mock'
+import { MockMessageArray } from '../common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
 
 const log = JLogger.getInstance('backend_service')
@@ -94,14 +90,7 @@ export default class BackendService {
 
     this._window_manager.setMainLoadedCallback(() => {
       // Setup task for updating infos
-      this._task_update_room_info = CreateIntervalTask(
-        this.updateRoomInfo.bind(this),
-        10 * 1000
-      )
-      this._task_update_online_num = CreateIntervalTask(
-        this.updateOnlineNum.bind(this),
-        10 * 1000
-      )
+      this.updateRoomInfo()
     })
 
     // Everything is ready, now we start windows
@@ -114,7 +103,10 @@ export default class BackendService {
     // Using mock data for testing
     if (dev) {
       CreateIntervalTask(() => {
-        this.superchatHandler(SuperChatMockMessage)
+        const n = MockMessageArray.length
+        const i = Math.floor(Math.random() * n)
+        const msg = MockMessageArray[i]
+        this.doHandler(msg)
       }, 10 * 1000)
     }
   }
@@ -216,11 +208,10 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
-    this._window_manager.SendTo(
-      WindowType.WMAIN,
-      JEvent.EVENT_UPDATE_ROOM,
-      room_response.data
-    )
+    this._window_manager.SendTo(WindowType.WMAIN, JEvent.EVENT_UPDATE_ROOM, {
+      title: room_response.data.title,
+      live_status: room_response.data.live_status,
+    })
   }
 
   private async initRoomInfo(room: RoomID) {
@@ -456,28 +447,91 @@ export default class BackendService {
     })
   }
 
-  // msg handler for primary connection
   private async msgHandler(packet: PackResult) {
     for (const msg of packet.body) {
-      if (!msg.cmd) {
-        continue
+      this.doHandler(msg)
+    }
+  }
+
+  // msg handler for primary connection
+  private async doHandler(msg: any) {
+    if (!msg.cmd) {
+      return
+    }
+    // using includes to handle special messages generated during some events
+    if (msg.cmd.includes('DANMU_MSG')) {
+      this.danmuHandler(msg)
+      return
+    }
+    if (msg.cmd.includes('SEND_GIFT')) {
+      this.giftHandler(msg)
+      return
+    }
+    if (msg.cmd.includes('USER_TOAST_MSG')) {
+      this.guardHandler(msg)
+      return
+    }
+    if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
+      this.superchatHandler(msg)
+      return
+    }
+    switch (msg.cmd) {
+      case 'WARNING': {
+        log.warn('Received warning message', { msg })
+        new Notification({
+          title: '直播警告',
+          body: msg.msg,
+        }).show()
+        break
       }
-      // using includes to handle special messages generated during some events
-      if (msg.cmd.includes('DANMU_MSG')) {
-        this.danmuHandler(msg)
-        continue
+      case 'CUT_OFF': {
+        log.info('Received cutoff message', { msg })
+        new Notification({
+          title: '直播切断',
+          body: msg.msg,
+        }).show()
+        break
       }
-      if (msg.cmd.includes('SEND_GIFT')) {
-        this.giftHandler(msg)
-        continue
+      case 'ROOM_CHANGE': {
+        log.info('Received room change message', { msg })
+        // update room title
+        this._window_manager.SendTo(
+          WindowType.WMAIN,
+          JEvent.EVENT_UPDATE_ROOM,
+          msg.data
+        )
+        break
       }
-      if (msg.cmd.includes('USER_TOAST_MSG')) {
-        this.guardHandler(msg)
-        continue
+      case 'ONLINE_RANK_COUNT': {
+        log.debug('Received online rank count message', { msg })
+        this._window_manager.SendTo(
+          WindowType.WMAIN,
+          JEvent.EVENT_UPDATE_ONLINE,
+          msg.data
+        )
+        break
       }
-      if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
-        this.superchatHandler(msg)
-        continue
+      case 'LIVE': {
+        log.info('Received live start message', { msg })
+        this._window_manager.SendTo(
+          WindowType.WMAIN,
+          JEvent.EVENT_UPDATE_ROOM,
+          {
+            live_status: 1,
+          }
+        )
+        break
+      }
+      case 'PREPARING': {
+        log.info('Received live stop message', { msg })
+        this._window_manager.SendTo(
+          WindowType.WMAIN,
+          JEvent.EVENT_UPDATE_ROOM,
+          {
+            live_status: 0,
+          }
+        )
+        break
       }
     }
   }

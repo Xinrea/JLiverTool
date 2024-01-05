@@ -186,67 +186,131 @@ export const GuardMockMessage = {
   },
 }
 
-export const SuperChatMockMessage = JSON.parse(`{
-        "cmd": "SUPER_CHAT_MESSAGE",
-        "data": {
-            "background_bottom_color": "#2A60B2",
-            "background_color": "#EDF5FF",
-            "background_color_end": "#405D85",
-            "background_color_start": "#3171D2",
-            "background_icon": "",
-            "background_image": "https://i0.hdslb.com/bfs/live/a712efa5c6ebc67bafbe8352d3e74b820a00c13e.png",
-            "background_price_color": "#7497CD",
-            "color_point": 0.7,
-            "dmscore": 112,
-            "end_time": 1674809056,
-            "gift": {
-                "gift_id": 12000,
-                "gift_name": "醒目留言",
-                "num": 1
-            },
-            "id": 6246865,
-            "is_ranked": 1,
-            "is_send_audit": 0,
-            "medal_info": {
-                "anchor_roomid": 23197314,
-                "anchor_uname": "飞天狙想要努力变胖",
-                "guard_level": 0,
-                "icon_id": 0,
-                "is_lighted": 1,
-                "medal_color": "#c79d24",
-                "medal_color_border": 13081892,
-                "medal_color_end": 13081892,
-                "medal_color_start": 13081892,
-                "medal_level": 17,
-                "medal_name": "FTJ",
-                "special": "",
-                "target_id": 51628309
-            },
-            "message": "狙神我错了，放我出来吧 狙神我错了，放我出来吧 狙神我错了，放我出来吧 狙神我错",
-            "message_font_color": "#A3F6FF",
-            "message_trans": "",
-            "price": 30,
-            "rate": 1000,
-            "start_time": 1674808996,
-            "time": 60,
-            "token": "2E90DCB8",
-            "trans_mark": 0,
-            "ts": 1674808996,
-            "uid": 3462058,
-            "user_info": {
-                "face": "https://i1.hdslb.com/bfs/face/629c05c752022f738c39c8766519c07a73b4e0f7.jpg",
-                "face_frame": "",
-                "guard_level": 0,
-                "is_main_vip": 0,
-                "is_svip": 0,
-                "is_vip": 0,
-                "level_color": "#5896de",
-                "manager": 0,
-                "name_color": "#666666",
-                "title": "0",
-                "uname": "是him_",
-                "user_level": 21
-            }
-        },
-        "roomid": 23197314
-    }`)
+export const SuperChatMockMessage = {
+  cmd: 'SUPER_CHAT_MESSAGE',
+  data: {
+    background_bottom_color: '#2A60B2',
+    background_color: '#EDF5FF',
+    background_color_end: '#405D85',
+    background_color_start: '#3171D2',
+    background_icon: '',
+    background_image:
+      'https://i0.hdslb.com/bfs/live/a712efa5c6ebc67bafbe8352d3e74b820a00c13e.png',
+    background_price_color: '#7497CD',
+    color_point: 0.7,
+    dmscore: 112,
+    end_time: 1674809056,
+    gift: {
+      gift_id: 12000,
+      gift_name: '醒目留言',
+      num: 1,
+    },
+    id: 6246865,
+    is_ranked: 1,
+    is_send_audit: 0,
+    medal_info: {
+      anchor_roomid: 23197314,
+      anchor_uname: '飞天狙想要努力变胖',
+      guard_level: 0,
+      icon_id: 0,
+      is_lighted: 1,
+      medal_color: '#c79d24',
+      medal_color_border: 13081892,
+      medal_color_end: 13081892,
+      medal_color_start: 13081892,
+      medal_level: 17,
+      medal_name: 'FTJ',
+      special: '',
+      target_id: 51628309,
+    },
+    message:
+      '狙神我错了，放我出来吧 狙神我错了，放我出来吧 狙神我错了，放我出来吧 狙神我错',
+    message_font_color: '#A3F6FF',
+    message_trans: '',
+    price: 30,
+    rate: 1000,
+    start_time: 1674808996,
+    time: 60,
+    token: '2E90DCB8',
+    trans_mark: 0,
+    ts: 1674808996,
+    uid: 3462058,
+    user_info: {
+      face: 'https://i1.hdslb.com/bfs/face/629c05c752022f738c39c8766519c07a73b4e0f7.jpg',
+      face_frame: '',
+      guard_level: 0,
+      is_main_vip: 0,
+      is_svip: 0,
+      is_vip: 0,
+      level_color: '#5896de',
+      manager: 0,
+      name_color: '#666666',
+      title: '0',
+      uname: '是him_',
+      user_level: 21,
+    },
+  },
+  roomid: 23197314,
+}
+
+export const WarnMockMessage = {
+  cmd: 'WARNING',
+  msg: '图片内容不适宜，请立即调整',
+  roomid: 22195814,
+}
+
+export const CutOffMockMessage = {
+  cmd: 'CUT_OFF',
+  msg: '违反直播言论规范，请立即调整',
+  roomid: 23993070,
+}
+
+export const RoomChangeMockMessage = {
+  cmd: 'ROOM_CHANGE',
+  data: {
+    title: '测试标题',
+    area_id: 371,
+    parent_area_id: 9,
+    area_name: '虚拟主播',
+    parent_area_name: '虚拟主播',
+    live_key: '0',
+    sub_session_key: '',
+  },
+}
+
+export const OnlineRankCountMockMessage = {
+  cmd: 'ONLINE_RANK_COUNT',
+  data: {
+    count: 999,
+  },
+}
+
+export const LiveStartMockMessage = {
+  cmd: 'LIVE',
+  live_key: '234304209915761953',
+  voice_background: '',
+  sub_session_key: '234304209915761953sub_time:1651036923',
+  live_platform: 'pc',
+  live_model: 0,
+  live_time: 1651036923,
+  roomid: 23614753,
+}
+
+export const LiveStopMockMessage = {
+  cmd: 'PREPARING',
+  round: 1,
+  roomid: '6032530',
+}
+
+export const MockMessageArray = [
+  GiftMockMessage,
+  DanmuMockMessage,
+  GuardMockMessage,
+  SuperChatMockMessage,
+  WarnMockMessage,
+  CutOffMockMessage,
+  RoomChangeMockMessage,
+  OnlineRankCountMockMessage,
+  LiveStartMockMessage,
+  LiveStopMockMessage,
+]
