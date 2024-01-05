@@ -107,7 +107,7 @@ button:hover {
 }
 
 #dropdown-content a:hover {
-  background-color: rgb(var(--main-bg));
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 #statusbar {
@@ -288,11 +288,11 @@ button:hover {
 }
 
 .danmu_entry:hover {
-  box-shadow: var(--font-secolor) 0 0 0 2px;
+  box-shadow: var(--uname-color) 0 0 0 1px;
 }
 
 .danmu_entry.selected {
-  box-shadow: var(--font-secolor) 0 0 0 2px;
+  box-shadow: var(--uname-color) 0 0 0 1px;
 }
 
 #danmu {
