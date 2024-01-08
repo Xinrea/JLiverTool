@@ -128,6 +128,13 @@ export class ConfigStore {
     this._store.set('config.alwaysOnTop', b)
   }
 
+  public get CheckUpdate(): boolean {
+    return this._store.get('config.check_update', true) as boolean
+  }
+  public set CheckUpdate(b: boolean) {
+    this._store.set('config.check_update', b)
+  }
+
   public get Room(): RoomID {
     const room = this._store.get('config.room', DefaultRoomID) as RoomID
     // it might be another type in old version, need to check it here

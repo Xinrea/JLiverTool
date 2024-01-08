@@ -150,4 +150,8 @@ app.on('ready', () => {
 
   // 注册一个点击事件处理函数
   tray.on('click', () => {})
+
+  if (store.CheckUpdate) {
+    checkUpdateFromGithubAPI()
+  }
 })

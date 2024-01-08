@@ -399,6 +399,28 @@
                   </div>
                 </div>
                 <div class="group">
+                  <div class="group-label">更新设置</div>
+                  <div class="group-items">
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE777;</span>
+                        <span class="desc">
+                          <span>启动时检查更新</span>
+                          <span
+                            >启动时进行更新检查，如果有新版本则进行提示</span
+                          >
+                        </span>
+                      </span>
+                      <input
+                        id="update-check-sw"
+                        type="checkbox"
+                        class="switch"
+                        x-model="checkUpdate"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div class="group">
                   <div class="group-label">其他信息</div>
                   <div class="group-item">
                     <div style="flex-direction: column; width: 100%">
@@ -502,8 +524,10 @@
       display: flex;
       justify-content: space-between;
       padding-left: 16px;
+      width: auto;
       height: 48px;
       min-height: 48px;
+      align-items: flex-start;
       border-radius: 8px 8px 0 0;
       overflow: hidden;
       -webkit-app-region: drag;
