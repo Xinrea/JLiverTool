@@ -1,7 +1,7 @@
 import { renderContent } from '../common/content-render'
 import { createMedal } from '../common/medal'
 import JEvent from '../lib/events'
-import { GiftMessage, GuardMessage } from '../lib/messages'
+import { GiftMessage, GuardMessage, InteractMessage } from '../lib/messages'
 import { EmojiContent, MedalInfo, Sender } from '../lib/types'
 
 export function createDanmuEntry(
@@ -53,10 +53,8 @@ export function createDanmuEntry(
   return danmuEntry
 }
 
-export function createEnterEntry(medal: MedalInfo, sender: Sender) {
-  // TODO: need a better way to handle this
-  sender.uname = sender.uname + ' 进入直播间'
-  return createDanmuEntry(-1, false, medal, sender, null, null)
+export function createInteractEntry(msg: InteractMessage) {
+  return doCreateInteractEntry(msg)
 }
 
 export function createEffectEntry(content: string) {
@@ -78,6 +76,31 @@ export function createGuardEntry(g: GuardMessage) {
   const entry = doCreateGuardEntry(g)
   // TODO handle guard message
   return entry
+}
+
+function doCreateInteractEntry(msg: InteractMessage) {
+  const danmuEntry = document.createElement('span')
+  danmuEntry.className = 'danmu_entry'
+  // check medal
+  if (msg.sender.medal_info && msg.sender.medal_info.medal_level > 0) {
+    danmuEntry.appendChild(createMedal(msg.sender.medal_info))
+  }
+  const danmuSender = document.createElement('span')
+  danmuSender.className = 'sender'
+  danmuSender.innerText = msg.sender.uname
+  danmuEntry.appendChild(danmuSender)
+  // Content
+  const danmuContent = document.createElement('span')
+  danmuContent.className = 'content'
+  if (msg.action == 2) {
+    danmuContent.innerText = '关注了直播间'
+  } else {
+    danmuContent.innerText = '进入了直播间'
+  }
+  danmuContent.style.color = 'var(--uname-color)'
+  danmuContent.style.marginLeft = '8px'
+  danmuEntry.appendChild(danmuContent)
+  return danmuEntry
 }
 
 function doCreateGiftEntry(gift: GiftMessage) {

@@ -302,6 +302,44 @@ export const LiveStopMockMessage = {
   roomid: '6032530',
 }
 
+export const InteractMockMessage = {
+  cmd: 'INTERACT_WORD',
+  data: {
+    contribution: {
+      grade: 0,
+    },
+    dmscore: 4,
+    fans_medal: {
+      anchor_roomid: 890976,
+      guard_level: 0,
+      icon_id: 0,
+      is_lighted: 0,
+      medal_color: 6067854,
+      medal_color_border: 12632256,
+      medal_color_end: 12632256,
+      medal_color_start: 12632256,
+      medal_level: 1,
+      medal_name: '小豆皮',
+      score: 134,
+      special: '',
+      target_id: 6574487,
+    },
+    identities: [1],
+    is_spread: 0,
+    msg_type: 1,
+    roomid: 24143902,
+    score: 1644563948936,
+    spread_desc: '',
+    spread_info: '',
+    tail_icon: 0,
+    timestamp: 1644563948,
+    trigger_time: 1644563947876475000,
+    uid: 335979315,
+    uname: 'TIM_Init',
+    uname_color: '',
+  },
+}
+
 export const MockMessageArray = [
   GiftMockMessage,
   DanmuMockMessage,
@@ -313,4 +351,5 @@ export const MockMessageArray = [
   OnlineRankCountMockMessage,
   LiveStartMockMessage,
   LiveStopMockMessage,
+  InteractMockMessage,
 ]

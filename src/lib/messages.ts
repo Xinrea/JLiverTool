@@ -109,6 +109,11 @@ export class SuperChatMessage {
   timestamp: number
 }
 
+export class InteractMessage {
+  sender: Sender
+  action: number
+}
+
 export class GiftInitData {
   gifts: GiftMessage[]
   guards: GuardMessage[]

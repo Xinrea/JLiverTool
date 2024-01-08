@@ -13,6 +13,7 @@ import {
   GiftInitData,
   GiftMessage,
   GuardMessage,
+  InteractMessage,
   SuperChatMessage,
 } from './messages'
 import { CheckQrCodeStatus, GetNewQrCode, Logout } from './bilibili/bililogin'
@@ -104,14 +105,14 @@ export default class BackendService {
     log.info('Get font list', { size: this._font_list_cached.length })
 
     // Using mock data for testing
-    // if (dev) {
-    //   CreateIntervalTask(() => {
-    //     const n = MockMessageArray.length
-    //     const i = Math.floor(Math.random() * n)
-    //     const msg = MockMessageArray[i]
-    //     this.doHandler(msg)
-    //   }, 10 * 1000)
-    // }
+    if (dev) {
+      CreateIntervalTask(() => {
+        const n = MockMessageArray.length
+        const i = Math.floor(Math.random() * n)
+        const msg = MockMessageArray[i]
+        this.doHandler(msg)
+      }, 2 * 1000)
+    }
   }
 
   public async Stop() {
@@ -536,6 +537,11 @@ export default class BackendService {
         )
         break
       }
+      case 'INTERACT_WORD': {
+        log.debug('Received interact word message', { msg })
+        this.interactHandler(msg)
+        break
+      }
     }
   }
 
@@ -664,6 +670,21 @@ export default class BackendService {
     )
     // store superchat message
     this._gift_store.Push(superchat_msg)
+  }
+
+  private interactHandler(msg: any) {
+    const interact_msg = new InteractMessage()
+    interact_msg.sender = new Sender()
+    interact_msg.sender.uid = msg.data.uid
+    interact_msg.sender.uname = msg.data.uname
+    interact_msg.sender.medal_info = msg.data.fans_medal
+    interact_msg.action = msg.data.msg_type
+
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_INTERACT,
+      interact_msg
+    )
   }
 
   // msg handler for side connections, only handle danmu message for side connections
