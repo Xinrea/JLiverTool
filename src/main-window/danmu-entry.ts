@@ -81,7 +81,7 @@ export function createGuardEntry(g: GuardMessage) {
 
 function doCreateInteractEntry(msg: InteractMessage) {
   const danmuEntry = document.createElement('span')
-  danmuEntry.className = 'danmu_entry'
+  danmuEntry.className = 'danmu_entry interact'
   // check medal
   if (msg.sender.medal_info && msg.sender.medal_info.is_lighted) {
     danmuEntry.appendChild(createMedal(msg.sender.medal_info))

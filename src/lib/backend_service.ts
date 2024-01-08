@@ -546,7 +546,6 @@ export default class BackendService {
         break
       }
       case 'INTERACT_WORD': {
-        log.debug('Received interact word message', { msg })
         this.interactHandler(msg)
         break
       }

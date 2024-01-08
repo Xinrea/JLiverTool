@@ -296,6 +296,10 @@ button:hover {
   box-shadow: var(--uname-color) 0 0 0 1px;
 }
 
+.danmu_entry.interact {
+  display: var(--interact-display);
+}
+
 #danmu {
   position: relative;
   padding-top: 10px;
