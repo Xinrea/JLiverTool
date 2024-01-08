@@ -65,7 +65,7 @@ export default class BackendService {
 
   public async Start() {
     // load room setting
-    let room = this._config_store.Room
+    const room = this._config_store.Room
     this._room = room
 
     log.info('Starting backend service', { room })
@@ -164,7 +164,7 @@ export default class BackendService {
 
   private async releaseMergeRooms() {
     log.info('Releasing merge rooms')
-    for (const [room, conn] of this._side_conns) {
+    for (const [_, conn] of this._side_conns) {
       conn.Disconnect()
     }
     this._side_conns.clear()
@@ -180,7 +180,7 @@ export default class BackendService {
       }
     }
     // setup new connections
-    for (let room of rooms) {
+    for (const room of rooms) {
       if (room.getRealID() === this._room.getRealID()) {
         log.warn('Merge room is same as primary room, ignored', { room })
         continue

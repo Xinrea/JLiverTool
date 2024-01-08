@@ -10,7 +10,7 @@ import {
 import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
 import { Languages, LanguageType } from '../lib/i18n'
-import { MedalInfo, Sender, WindowType } from '../lib/types'
+import { WindowType } from '../lib/types'
 import {
   DanmuMessage,
   GiftMessage,
@@ -153,8 +153,8 @@ const appStatus = {
       // Update room title and status
       // if arg has title
       if (arg.hasOwnProperty('title')) {
-        var encodedString = arg.title
-        var textarea = document.createElement('textarea')
+        const encodedString = arg.title
+        const textarea = document.createElement('textarea')
         textarea.innerHTML = encodedString
         this.base.title = textarea.value
       }

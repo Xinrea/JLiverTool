@@ -4,7 +4,6 @@ import JLogger from './logger'
 import JEvent from './events'
 import ConfigStore from './config_store'
 import { DetailInfo, WindowType } from './types'
-import { AsyncFunc } from 'mocha'
 
 const log = JLogger.getInstance('window_manager')
 const dev = process.env.DEBUG === 'true'
