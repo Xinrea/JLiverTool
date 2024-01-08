@@ -44,6 +44,10 @@ Alpine.data('appStatus', () => ({
     for (let i = 0; i < gift_data.guards.length; i++) {
       this.guardHandler(gift_data.guards[i])
     }
+    // sort gifts to merge normal gifts and guard gifts
+    this.gifts.sort((a: any, b: any) => {
+      return a.timestamp - b.timestamp
+    })
     setTimeout(() => {
       if (this.base.autoScroll) {
         this.base.$panel.scrollTop = this.base.lastPosition =
