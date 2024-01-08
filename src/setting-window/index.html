@@ -5,252 +5,434 @@
     <title>setting</title>
   </head>
   <body>
-  <div id="app" x-data="app" :class="active ? 'active':''">
-    <div class="title-bar">
-      <div class="title">
-        <span class="icon">&#xE713;</span>
-        <span style="margin-left: 8px;">设置</span>
-      </div>
-      <span class="control-button close" @click="hide"> <span class="icon">&#xE8BB;</span> </span>
-    </div>
-    <div class="panel">
-      <div class="tab" x-data="tab">
-        <div class="tab-header">
-          <template x-for="item in items">
-            <div x-text="item.text" class="tab-item" :class="{'active': item.id == active}" @click="active = item.id">
-            </div>
-          </template>
+    <div id="app" x-data="app" :class="active ? 'active':''">
+      <div class="title-bar">
+        <div class="title">
+          <span class="icon">&#xE713;</span>
+          <span style="margin-left: 8px">设置</span>
         </div>
-        <div class="tab-content">
-          <div class="tab-title" x-text="items[active].text"></div>
-          <div class="tab-wrap" x-show="active == 0">
-            <div style="display: flex; flex-direction: column; width: 100%;">
-              <div class="group" x-data="account_setting">
-                <div class="dialog" x-show="qr_dialog" x-transition>
-                  <div class="dialog-content">
-                    <div class="dialog-body">
-                      <div class="dialog-title">bilibili App 扫码登录</div>
-                      <div style="display: flex; flex-direction: column; align-items: center; padding-top: 16px">
-                        <img :src="qr_image" style="width: 200px; height: 200px;"/>
-                        <span x-text="qr_prompt"></span>
+        <span class="control-button close" @click="hide">
+          <span class="icon">&#xE8BB;</span>
+        </span>
+      </div>
+      <div class="panel">
+        <div class="tab" x-data="tab">
+          <div class="tab-header">
+            <template x-for="item in items">
+              <div
+                x-text="item.text"
+                class="tab-item"
+                :class="{'active': item.id == active}"
+                @click="active = item.id"
+              ></div>
+            </template>
+          </div>
+          <div class="tab-content">
+            <div class="tab-title" x-text="items[active].text"></div>
+            <div class="tab-wrap" x-show="active == 0">
+              <div style="display: flex; flex-direction: column; width: 100%">
+                <div class="group" x-data="account_setting">
+                  <div class="dialog" x-show="qr_dialog" x-transition>
+                    <div class="dialog-content">
+                      <div class="dialog-body">
+                        <div class="dialog-title">bilibili App 扫码登录</div>
+                        <div
+                          style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            padding-top: 16px;
+                          "
+                        >
+                          <img
+                            :src="qr_image"
+                            style="width: 200px; height: 200px"
+                          />
+                          <span x-text="qr_prompt"></span>
+                        </div>
+                      </div>
+                      <div class="dialog-footer">
+                        <button @click="qr_dialog = false">关闭</button>
                       </div>
                     </div>
-                    <div class="dialog-footer">
-                      <button @click="qr_dialog = false">关闭</button>
-                    </div>
                   </div>
-                </div>
-                <template x-if="!login">
-                  <div style="display: flex; flex-direction: column">
-                    <div class="group-label">
-                      账号设置
-                    </div>
-                    <div class="group-item">
-                      <div class="group-desc">
-                        <span class="icon">&#xEE57;</span>
-                        <span class="desc">
-                          <span>登录账号</span>
-                          <span>登录后可以使用更多功能</span>
-                        </span>
-                      </div>
-                      <button @click="qrLogin">扫码登录</button>
-                    </div>
-                  </div>
-                </template>
-                <template x-if="login">
-                  <div style="display: flex; margin: 32px 0; align-items: center">
-                    <img :src="'https://'+user_info.face"
-                         style="cursor: pointer; height: 112px; width: 112px; border-radius: 50%;"
-                         @click="window.jliverAPI.util.openUrl('https://space.bilibili.com/'+user_info.mid).then()"/>
-                    <div style="display: flex; flex-direction: column; margin-left: 16px">
-                      <span x-text="user_info.uname" style="font-size: 26px;"></span>
-                      <span x-text="user_info.mid"></span>
-                      <span class="hyperlink" @click="window.jliverAPI.user.logout().then()">注销登录</span>
-                    </div>
-                  </div>
-                </template>
-              </div>
-              <div class="group" :class="owned ? 'multiple':''" x-data="room_setting">
-                <div class="group-label">直播间设置</div>
-                <div class="group-items">
-                  <div class="group-item">
-                    <span class="group-desc">
-                      <span class="icon">&#xE70A;</span>
-                      <span class="desc">
-                        <span>直播间号</span>
-                        <span>直播间的数字 ID，登录账号拥有该直播间才能进行更多设置</span>
-                      </span>
-                    </span>
-                    <input id="room" :class="error ? 'error':''" type="text" x-model="room_id"
-                           @focusout="confirmRoom"/>
-                  </div>
-                  <div class="group-item" x-show="owned">
-                  <span class="group-desc">
-                      <span class="icon">&#xE929;</span>
-                      <span class="desc">
-                        <span>直播间标题</span>
-                        <span>因审核原因标题修改可能有延迟或者失败</span>
-                      </span>
-                    </span>
-                    <input id="room_title" :class="error ? 'error':''" type="text" x-model="room_info.title"/>
-                  </div>
-                  <div class="group-item" x-show="owned">
-                  <span class="group-desc">
-                      <span class="icon">&#xE768;</span>
-                      <span class="desc">
-                        <span>开播/关播</span>
-                      </span>
-                    </span>
-                    <button>开始直播</button>
-                  </div>
-                </div>
-              </div>
-              <div class="group" :class="enable ? 'multiple':''" x-data="merge_setting">
-                <div class="group-label">弹幕聚合</div>
-                <div class="group-items">
-                  <div class="group-item">
-                  <span class="group-desc">
-                      <span class="icon">&#xEA3C;</span>
-                      <span class="desc">
-                        <span>开启聚合</span>
-                        <span>将多个直播间的弹幕集中显示，适合联动使用</span>
-                      </span>
-                    </span>
-                    <input id="merge_switch" type="checkbox" class="switch" x-model="enable"/>
-                  </div>
-                  <div class="group-item" x-show="enable">
+                  <template x-if="!login">
                     <div style="display: flex; flex-direction: column">
-                      <span class="group-desc" style="margin-bottom: 8px;">
+                      <div class="group-label">账号设置</div>
+                      <div class="group-item">
+                        <div class="group-desc">
+                          <span class="icon">&#xEE57;</span>
+                          <span class="desc">
+                            <span>登录账号</span>
+                            <span>登录后可以使用更多功能</span>
+                          </span>
+                        </div>
+                        <button @click="qrLogin">扫码登录</button>
+                      </div>
+                    </div>
+                  </template>
+                  <template x-if="login">
+                    <div
+                      style="display: flex; margin: 32px 0; align-items: center"
+                    >
+                      <img
+                        :src="'https://'+user_info.face"
+                        style="
+                          cursor: pointer;
+                          height: 112px;
+                          width: 112px;
+                          border-radius: 50%;
+                        "
+                        @click="window.jliverAPI.util.openUrl('https://space.bilibili.com/'+user_info.mid).then()"
+                      />
+                      <div
+                        style="
+                          display: flex;
+                          flex-direction: column;
+                          margin-left: 16px;
+                        "
+                      >
+                        <span
+                          x-text="user_info.uname"
+                          style="font-size: 26px"
+                        ></span>
+                        <span x-text="user_info.mid"></span>
+                        <span
+                          class="hyperlink"
+                          @click="window.jliverAPI.user.logout().then()"
+                          >注销登录</span
+                        >
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <div
+                  class="group"
+                  :class="owned ? 'multiple':''"
+                  x-data="room_setting"
+                >
+                  <div class="group-label">直播间设置</div>
+                  <div class="group-items">
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE70A;</span>
                         <span class="desc">
-                          <span>次直播间列表</span>
-                          <span>仅显示次直播间弹幕，最多支持 5 个</span>
+                          <span>直播间号</span>
+                          <span
+                            >直播间的数字
+                            ID，登录账号拥有该直播间才能进行更多设置</span
+                          >
                         </span>
                       </span>
-                      <div style="display: flex; flex-direction: row; margin-bottom: 6px; align-items: center">
-                        <input type="text" x-model="to_add" @keyup.enter="add"
-                               :class="{'error': error}"/>
-                        <button style="margin-left: 6px;" @click="add" :class="{'disable': room_list.length >= 5}"">
-                          新增
-                        </button>
+                      <input
+                        id="room"
+                        :class="error ? 'error':''"
+                        type="text"
+                        x-model="room_id"
+                        @focusout="confirmRoom"
+                      />
+                    </div>
+                    <div class="group-item" x-show="owned">
+                      <span class="group-desc">
+                        <span class="icon">&#xE929;</span>
+                        <span class="desc">
+                          <span>直播间标题</span>
+                          <span>因审核原因标题修改可能有延迟或者失败</span>
+                        </span>
+                      </span>
+                      <input
+                        id="room_title"
+                        :class="error ? 'error':''"
+                        type="text"
+                        x-model="room_info.title"
+                      />
+                    </div>
+                    <div class="group-item" x-show="owned">
+                      <span class="group-desc">
+                        <span class="icon">&#xE768;</span>
+                        <span class="desc">
+                          <span>开播/关播</span>
+                        </span>
+                      </span>
+                      <button>开始直播</button>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="group"
+                  :class="enable ? 'multiple':''"
+                  x-data="merge_setting"
+                >
+                  <div class="group-label">弹幕聚合</div>
+                  <div class="group-items">
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xEA3C;</span>
+                        <span class="desc">
+                          <span>开启聚合</span>
+                          <span>将多个直播间的弹幕集中显示，适合联动使用</span>
+                        </span>
+                      </span>
+                      <input
+                        id="merge_switch"
+                        type="checkbox"
+                        class="switch"
+                        x-model="enable"
+                      />
+                    </div>
+                    <div class="group-item" x-show="enable">
+                      <div style="display: flex; flex-direction: column">
+                        <span class="group-desc" style="margin-bottom: 8px">
+                          <span class="desc">
+                            <span>次直播间列表</span>
+                            <span>仅显示次直播间弹幕，最多支持 5 个</span>
+                          </span>
+                        </span>
+                        <div
+                          style="
+                            display: flex;
+                            flex-direction: row;
+                            margin-bottom: 6px;
+                            align-items: center;
+                          "
+                        >
+                          <input
+                            type="text"
+                            x-model="to_add"
+                            @keyup.enter="add"
+                            :class="{'error': error}"
+                          />
+                          <button
+                            style="margin-left: 6px"
+                            @click="add"
+                            :class="{'disable': room_list.length >= 5}"
+                          >
+                            新增
+                          </button>
+                        </div>
+                        <ul
+                          id="room_list"
+                          style="
+                            min-height: 190px;
+                            max-height: 400px;
+                            overflow: auto;
+                          "
+                        >
+                          <template x-for="(item, index) in room_list">
+                            <li>
+                              <div
+                                style="
+                                  display: flex;
+                                  flex-direction: row;
+                                  align-items: center;
+                                  justify-content: space-between;
+                                  width: 100%;
+                                "
+                              >
+                                <span
+                                  ><span
+                                    style="
+                                      vertical-align: middle;
+                                      margin-right: 6px;
+                                    "
+                                    :style="{color: 'var(--merge-color-' + index + ')'}"
+                                    >&#xEA3B;</span
+                                  >[<span x-text="item.room.getID()"></span>]
+                                  <span x-text="item.name"></span
+                                ></span>
+                                <button
+                                  style="margin-left: 12px; padding: 8px"
+                                  @click="remove(index)"
+                                >
+                                  &#xE74D;
+                                </button>
+                              </div>
+                            </li>
+                          </template>
+                        </ul>
                       </div>
-                      <ul id="room_list" style="min-height: 190px; max-height: 400px; overflow: auto">
-                        <template x-for="(item, index) in room_list">
-                          <li>
-                            <div style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; width: 100%">
-                              <span><span style="vertical-align: middle; margin-right: 6px;" :style="{color: 'var(--merge-color-' + index + ')'}">&#xEA3B;</span>[<span x-text="item.room.getID()"></span>] <span x-text="item.name"></span></span>
-                              <button style="margin-left:12px; padding: 8px;" @click="remove(index)">&#xE74D;
-                              </button>
-                            </div>
-                          </li>
-                        </template>
-                      </ul>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="tab-wrap" x-show="active == 1">
-            <div style="display: flex; flex-direction: column; width: 100%;">
-            <div class="group multiple" x-data="danmu_style_setting">
-              <div class="group-label">弹幕设置</div>
-              <div class="group-items">
-                <div class="group-item">
-                    <span class="group-desc">
+            <div class="tab-wrap" x-show="active == 1">
+              <div style="display: flex; flex-direction: column; width: 100%">
+                <div class="group multiple" x-data="danmu_style_setting">
+                  <div class="group-label">弹幕设置</div>
+                  <div class="group-items">
+                    <div class="group-item">
+                      <span class="group-desc">
                         <span class="icon">&#xE8D2;</span>
                         <span class="desc">
                           <span>字体</span>
                         </span>
                       </span>
-                  <select id="font" class="select" x-model="font">
-                    <template x-for="item in font_list">
-                      <option x-text="item"></option>
-                    </template>
-                  </select>
-                </div>
-                <div class="group-item">
-                  <span class="group-desc">
-                      <span class="icon">&#xE8E9;</span>
-                      <span class="desc">
-                        <span>字体大小</span>
-                        <span>范围 8px ~ 64px</span>
+                      <select id="font" class="select" x-model="font">
+                        <template x-for="item in font_list">
+                          <option x-text="item"></option>
+                        </template>
+                      </select>
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE8E9;</span>
+                        <span class="desc">
+                          <span>字体大小</span>
+                          <span>范围 8px ~ 64px</span>
+                        </span>
                       </span>
-                    </span>
-                  <div style="display: flex; flex-direction: row; align-items: center; font-size: 14px">
-                    <span style="margin-right: 6px" x-text="font_size"></span>
-                    <input type="range" min="8" max="64" x-model="font_size"/>
+                      <div
+                        style="
+                          display: flex;
+                          flex-direction: row;
+                          align-items: center;
+                          font-size: 14px;
+                        "
+                      >
+                        <span
+                          style="margin-right: 6px"
+                          x-text="font_size"
+                        ></span>
+                        <input
+                          type="range"
+                          min="8"
+                          max="64"
+                          x-model="font_size"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div class="group multiple" x-data="window_setting">
-              <div class="group-label">窗口设置</div>
-              <div class="group-item">
-                <span class="group-desc">
-                    <span class="icon">&#xE790;</span>
-                    <span class="desc">
-                      <span>主题</span>
-                      <span>窗口的主题颜色</span>
+                <div class="group multiple" x-data="window_setting">
+                  <div class="group-label">窗口设置</div>
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE790;</span>
+                      <span class="desc">
+                        <span>主题</span>
+                        <span>窗口的主题颜色</span>
+                      </span>
                     </span>
-                </span>
-                <select id="theme" class="select" x-model="theme">
-                  <template x-for="item in theme_list">
-                    <option x-text="item"></option>
-                  </template>
-                </select>
-            </div>
-              <div class="group-item">
-                  <span class="group-desc">
+                    <select id="theme" class="select" x-model="theme">
+                      <template x-for="item in theme_list">
+                        <option x-text="item"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <div class="group-item">
+                    <span class="group-desc">
                       <span class="icon">&#xF5A1;</span>
                       <span class="desc">
                         <span>透明度</span>
                         <span>除设置窗口外，其他窗口的透明度</span>
                       </span>
-                  </span>
-                <div style="display: flex; flex-direction: row; align-items: center; font-size: 14px">
-                  <span style="margin-right: 6px" x-text="Number(opacity).toFixed(2)"></span>
-                  <input type="range" x-model="opacity" min="0" max="1" step="0.01"/>
-                </div>
-              </div>
-            </div>
-              <div class="group">
-                <div class="group-label">高级设置</div>
-                <div class="group-item">
-                  <span class="group-desc">
-                      <span class="desc">
-                        <span>自定义样式</span>
-                      </span>
                     </span>
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        font-size: 14px;
+                      "
+                    >
+                      <span
+                        style="margin-right: 6px"
+                        x-text="Number(opacity).toFixed(2)"
+                      ></span>
+                      <input
+                        type="range"
+                        x-model="opacity"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="tab-wrap" x-show="active == 2">
-            <div style="display: flex; flex-direction: column; width: 100%;" x-data="about">
-              <div class="group">
-                <div style="display: flex; flex-direction: row; align-items: center; margin: 32px 0; justify-content: space-between">
-                  <div style="display: flex; flex-direction: row; align-items: center;">
-                      <img src="../assets/icons/main.png" height="102" width="102"/>
-                      <div style="display: flex; flex-direction: column; margin-left: 16px">
+            <div class="tab-wrap" x-show="active == 2">
+              <div
+                style="display: flex; flex-direction: column; width: 100%"
+                x-data="about"
+              >
+                <div class="group">
+                  <div
+                    style="
+                      display: flex;
+                      flex-direction: row;
+                      align-items: center;
+                      margin: 32px 0;
+                      justify-content: space-between;
+                    "
+                  >
+                    <div
+                      style="
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                      "
+                    >
+                      <img
+                        src="../assets/icons/main.png"
+                        height="102"
+                        width="102"
+                      />
+                      <div
+                        style="
+                          display: flex;
+                          flex-direction: column;
+                          margin-left: 16px;
+                        "
+                      >
                         <div style="font-size: 26px">JLiverTool</div>
                         <div style="font-size: 16px" x-text="'v'+version"></div>
-                        <span class="hyperlink" style="font-size: 16px" @click="window.jliverAPI.util.openUrl('https://github.com/Xinrea/JLiverTool/releases')" x-text="'最新版本：'+latest_version"></span>
+                        <span
+                          class="hyperlink"
+                          style="font-size: 16px"
+                          @click="window.jliverAPI.util.openUrl('https://github.com/Xinrea/JLiverTool/releases')"
+                          x-text="'最新版本：'+latest_version"
+                        ></span>
                       </div>
                     </div>
+                  </div>
                 </div>
-              </div>
-              <div class="group">
-                <div class="group-label">其他信息</div>
-                <div class="group-item">
-                  <div style="flex-direction: column; width: 100%">
-                    <span class="group-desc" style="margin-bottom: 16px;">
-                      <span class="desc">
-                        <span>最近日志</span>
+                <div class="group">
+                  <div class="group-label">其他信息</div>
+                  <div class="group-item">
+                    <div style="flex-direction: column; width: 100%">
+                      <span class="group-desc" style="margin-bottom: 16px">
+                        <span class="desc">
+                          <span>最近日志</span>
+                        </span>
                       </span>
-                    </span>
-                    <textarea style="height: 200px; resize: none; background-color: #202020; border: rgba(255, 255, 255, 0.3) 1px solid; color: white; font-size: 14px; outline: none; padding: 8px;"
-                              x-model="logs.join('\n')"></textarea>
-                    <div class="hyperlink" style="margin-top: 12px; text-align: end; font-size: 14px; width: fit-content;" @click="window.jliverAPI.util.openLogDir">打开日志文件夹</div>
+                      <textarea
+                        style="
+                          height: 200px;
+                          resize: none;
+                          background-color: #202020;
+                          border: rgba(255, 255, 255, 0.3) 1px solid;
+                          color: white;
+                          font-size: 14px;
+                          outline: none;
+                          padding: 8px;
+                        "
+                        x-model="logs.join('\n')"
+                      ></textarea>
+                      <div
+                        class="hyperlink"
+                        style="
+                          margin-top: 12px;
+                          text-align: end;
+                          font-size: 14px;
+                          width: fit-content;
+                        "
+                        @click="window.jliverAPI.util.openLogDir"
+                      >
+                        打开日志文件夹
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -259,7 +441,6 @@
         </div>
       </div>
     </div>
-  </div>
   </body>
   <script src="setting-window.js"></script>
   <style>
@@ -282,7 +463,12 @@
     }
 
     #app.active {
-      background: radial-gradient(ellipse at right bottom, rgb(35, 2, 18) 0%, rgb(31, 1, 16) 10%, rgb(21, 11, 4) 60%);
+      background: radial-gradient(
+        ellipse at right bottom,
+        rgb(35, 2, 18) 0%,
+        rgb(31, 1, 16) 10%,
+        rgb(21, 11, 4) 60%
+      );
     }
 
     .panel {
@@ -368,7 +554,8 @@
       border-radius: 3px;
       background-color: rgba(56, 56, 56, 0.5);
       color: white;
-      font-family: 'Microsoft YaHei', 'Microsoft Sans Serif', 'Microsoft SanSerf', 微软雅黑, serif, 'Segoe Fluent Icons';
+      font-family: 'Microsoft YaHei', 'Microsoft Sans Serif',
+        'Microsoft SanSerf', 微软雅黑, serif, 'Segoe Fluent Icons';
       font-size: 14px;
       transition: all 150ms ease-in-out;
     }
