@@ -558,6 +558,11 @@ export default class BackendService {
       // ignore generated danmu
       return
     }
+    if (danmu_msg.sender.uname === '***') {
+      // new type of generated danmu
+      log.info('Received new type of generated danmu', { msg })
+      return
+    }
     this._window_manager.SendTo(
       WindowType.WMAIN,
       JEvent.EVENT_NEW_DANMU,
