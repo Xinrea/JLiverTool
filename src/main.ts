@@ -22,7 +22,37 @@ app.on('window-all-closed', function () {
 })
 
 // fix window blink when showing from hide
-app.commandLine.appendSwitch('wm-window-animations-disabled');
+app.commandLine.appendSwitch('wm-window-animations-disabled')
+
+async function checkUpdateFromGithubAPI() {
+  const url = 'https://api.github.com/repos/xinrea/JLiverTool/releases/latest'
+  const options = {
+    method: 'GET',
+    headers: {
+      'User-Agent': 'request',
+    },
+  }
+  const resp = await fetch(url, options)
+  const json = await resp.json()
+  let version = json.tag_name
+  log.info(`Latest version [${version}], local version [${app.getVersion()}]`)
+  if (version !== 'v' + app.getVersion()) {
+    log.info('Update available')
+    dialog
+      .showMessageBox(null, {
+        type: 'info',
+        title: '更新',
+        message: '发现不同的版本 ' + version + '，是否前往下载？\n' + json.body,
+        buttons: ['是', '否'],
+      })
+      .then((result) => {
+        if (result.response === 0) {
+          log.info(`Update now with download url: ${json.html_url}`)
+          require('openurl').open(json.html_url)
+        }
+      })
+  }
+}
 
 let quitCallback = async () => {}
 app.on('ready', () => {
@@ -49,20 +79,19 @@ app.on('ready', () => {
       label: '关于',
       type: 'normal',
       click: () => {
-        dialog
-          .showMessageBox(null, {
-            type: 'info',
-            title: '关于',
-            message: 'JLiverTool 弹幕机 v' + app.getVersion(),
-            detail: '作者：@Xinrea\n赞助：https://afdian.net/a/Xinrea',
-          })
+        dialog.showMessageBox(null, {
+          type: 'info',
+          title: '关于',
+          message: 'JLiverTool 弹幕机 v' + app.getVersion(),
+          detail: '作者：@Xinrea\n赞助：https://afdian.net/a/Xinrea',
+        })
       },
     },
     {
       label: '检查更新',
       type: 'normal',
       click: () => {
-        // TODO check update
+        checkUpdateFromGithubAPI()
       },
     },
     {
