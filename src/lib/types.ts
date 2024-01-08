@@ -107,6 +107,7 @@ export class MedalInfo {
   medal_color_end: number
   medal_level: number
   medal_name: string
+  is_lighted: number
 }
 
 export type EmojiContent = {
@@ -128,9 +129,18 @@ export enum WindowType {
   WDETAIL = 'detail',
 }
 
+export enum RecordType {
+  DANMU = 0,
+  GIFT = 1,
+  SUPERCHAT = 2,
+  GUARD = 3,
+  INTERACT = 4,
+}
+
 export type DanmuRecord = {
-  timestamp: number
+  type: RecordType
   content: string
+  timestamp: number
 }
 
 export type DetailInfo = {

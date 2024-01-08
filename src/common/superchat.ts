@@ -27,7 +27,7 @@ export function createSuperchatEntry(
   scEntryHeaderLeft.appendChild(scEntryHeaderLeftAvatar)
   const scEntryHeaderLeftName = document.createElement('div')
   scEntryHeaderLeftName.classList.add('sc-entry-header-left-name')
-  if (sc.sender.medal_info && sc.sender.medal_info.medal_level > 0) {
+  if (sc.sender.medal_info && sc.sender.medal_info.is_lighted) {
     const scEntryHeaderLeftNameMedal = createMedal(sc.sender.medal_info)
     scEntryHeaderLeftName.appendChild(scEntryHeaderLeftNameMedal)
   }
