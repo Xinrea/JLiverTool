@@ -3,6 +3,7 @@ import { createMedal } from '../common/medal'
 import JEvent from '../lib/events'
 import { GiftMessage, GuardMessage, InteractMessage } from '../lib/messages'
 import { EmojiContent, MedalInfo, Sender } from '../lib/types'
+import { levelToIconURL, levelToName } from '../lib/utils'
 
 export function createDanmuEntry(
   side_index: number,
@@ -24,7 +25,7 @@ export function createDanmuEntry(
   }
 
   // might be gray medal, need to check color
-  if (medal.medal_color && medal.medal_color_border != 12632256) {
+  if (medal && medal.is_lighted) {
     danmuEntry.appendChild(createMedal(medal))
   }
   const danmuSender = document.createElement('span')
@@ -82,7 +83,7 @@ function doCreateInteractEntry(msg: InteractMessage) {
   const danmuEntry = document.createElement('span')
   danmuEntry.className = 'danmu_entry'
   // check medal
-  if (msg.sender.medal_info && msg.sender.medal_info.medal_level > 0) {
+  if (msg.sender.medal_info && msg.sender.medal_info.is_lighted) {
     danmuEntry.appendChild(createMedal(msg.sender.medal_info))
   }
   const danmuSender = document.createElement('span')
@@ -100,6 +101,9 @@ function doCreateInteractEntry(msg: InteractMessage) {
   danmuContent.style.color = 'var(--uname-color)'
   danmuContent.style.marginLeft = '8px'
   danmuEntry.appendChild(danmuContent)
+  danmuEntry.addEventListener('dblclick', () => {
+    window.jliverAPI.window.windowDetail(msg.sender.uid)
+  })
   return danmuEntry
 }
 
@@ -107,7 +111,7 @@ function doCreateGiftEntry(gift: GiftMessage) {
   const danmuEntry = document.createElement('span')
   danmuEntry.className = 'danmu_entry special gift'
   // check medal
-  if (gift.sender.medal_info && gift.sender.medal_info.medal_level > 0) {
+  if (gift.sender.medal_info && gift.sender.medal_info.is_lighted) {
     danmuEntry.appendChild(createMedal(gift.sender.medal_info))
   }
   const danmuSender = document.createElement('span')
@@ -134,6 +138,9 @@ function doCreateGiftEntry(gift: GiftMessage) {
   }`
   danmuEntry.appendChild(giftNum)
   danmuEntry.setAttribute('gift-num', gift.num.toString())
+  danmuEntry.addEventListener('dblclick', () => {
+    window.jliverAPI.window.windowDetail(gift.sender.uid)
+  })
   return danmuEntry
 }
 
@@ -141,7 +148,7 @@ function doCreateGuardEntry(g: GuardMessage) {
   const danmuEntry = document.createElement('span')
   danmuEntry.className = 'danmu_entry special gift'
   // check medal
-  if (g.sender.medal_info && g.sender.medal_info.medal_level > 0) {
+  if (g.sender.medal_info && g.sender.medal_info.is_lighted) {
     danmuEntry.appendChild(createMedal(g.sender.medal_info))
   }
   const danmuSender = document.createElement('span')
@@ -166,31 +173,8 @@ function doCreateGuardEntry(g: GuardMessage) {
   guardNum.className = 'gift-num'
   guardNum.innerText = `x ${g.num}${g.unit} | ￥${g.price / 1000}`
   danmuEntry.appendChild(guardNum)
+  danmuEntry.addEventListener('dblclick', () => {
+    window.jliverAPI.window.windowDetail(g.sender.uid)
+  })
   return danmuEntry
-}
-
-function levelToName(level: number) {
-  switch (level) {
-    case 1:
-      return '总督'
-    case 2:
-      return '提督'
-    case 3:
-      return '舰长'
-    default:
-      return '舰长'
-  }
-}
-
-function levelToIconURL(level: number) {
-  switch (level) {
-    case 1:
-      return 'https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard1.png@44w_44h'
-    case 2:
-      return 'https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard2.png@44w_44h'
-    case 3:
-      return 'https://i0.hdslb.com/bfs/activity-plat/static/20211222/627754775478985e330c25a90ec7baf0/icon-guard3.png@44w_44h'
-    default:
-      return ''
-  }
 }

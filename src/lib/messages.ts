@@ -33,7 +33,7 @@ export class DanmuMessage {
     //     2951253, -- #2d0855 medal_color_start
     //     10329087, -- #9d9bff medal_color_end
     //     3, -- guard_level
-    //     1,
+    //     1, -- is_lighted
     //     61639371 -- anchor_id (not used)
     //  ],
     // <div class="fans-medal-item" stype="border-color: #67e8ff">
@@ -58,6 +58,7 @@ export class DanmuMessage {
 
       // TODO need confirm
       this.sender.medal_info.guard_level = body.info[3][10]
+      this.sender.medal_info.is_lighted = body.info[3][11]
     }
 
     // trim the content and remove line break

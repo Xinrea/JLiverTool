@@ -3,7 +3,14 @@ import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
 import { WindowManager } from './window_manager'
-import { RoomID, WindowType, typecast, MergeUserInfo, Sender } from './types'
+import {
+  RoomID,
+  WindowType,
+  typecast,
+  MergeUserInfo,
+  Sender,
+  RecordType,
+} from './types'
 import BiliApi from './bilibili/biliapi'
 import { GiftStore } from './gift_store'
 import { Cookies } from './types'
@@ -23,6 +30,7 @@ import { DanmuCache } from './danmu_cache'
 import { v4 as uuidv4 } from 'uuid'
 import { MockMessageArray } from '../common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
+import { InteractActionToStr, levelToName } from './utils'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -105,14 +113,14 @@ export default class BackendService {
     log.info('Get font list', { size: this._font_list_cached.length })
 
     // Using mock data for testing
-    if (dev) {
-      CreateIntervalTask(() => {
-        const n = MockMessageArray.length
-        const i = Math.floor(Math.random() * n)
-        const msg = MockMessageArray[i]
-        this.doHandler(msg)
-      }, 2 * 1000)
-    }
+    // if (dev) {
+    //   CreateIntervalTask(() => {
+    //     const n = MockMessageArray.length
+    //     const i = Math.floor(Math.random() * n)
+    //     const msg = MockMessageArray[i]
+    //     this.doHandler(msg)
+    //   }, 2 * 1000)
+    // }
   }
 
   public async Stop() {
@@ -556,7 +564,11 @@ export default class BackendService {
       JEvent.EVENT_NEW_DANMU,
       danmu_msg
     )
-    this._danmu_cache.add(danmu_msg.sender.uid, danmu_msg.content)
+    this._danmu_cache.add(
+      RecordType.DANMU,
+      danmu_msg.sender.uid,
+      danmu_msg.content
+    )
   }
 
   private async giftHandler(msg: any) {
@@ -613,6 +625,11 @@ export default class BackendService {
     )
     // store gift message
     this._gift_store.Push(gift_msg)
+    this._danmu_cache.add(
+      RecordType.GIFT,
+      gift_msg.sender.uid,
+      `${gift_msg.action} ${gift_msg.num} 个 ${gift_msg.gift_info.name}`
+    )
   }
 
   private async guardHandler(msg: any) {
@@ -643,6 +660,13 @@ export default class BackendService {
     )
     // store guard message
     this._gift_store.Push(guard_msg)
+    this._danmu_cache.add(
+      RecordType.GUARD,
+      guard_msg.sender.uid,
+      `开通了 ${guard_msg.num}个${guard_msg.unit} ${levelToName(
+        guard_msg.guard_level
+      )}`
+    )
   }
 
   private superchatHandler(msg: any) {
@@ -670,6 +694,11 @@ export default class BackendService {
     )
     // store superchat message
     this._gift_store.Push(superchat_msg)
+    this._danmu_cache.add(
+      RecordType.GUARD,
+      superchat_msg.sender.uid,
+      `发送了醒目留言[${superchat_msg.price}元]: ${superchat_msg.message}`
+    )
   }
 
   private interactHandler(msg: any) {
@@ -684,6 +713,11 @@ export default class BackendService {
       WindowType.WMAIN,
       JEvent.EVENT_NEW_INTERACT,
       interact_msg
+    )
+    this._danmu_cache.add(
+      RecordType.GUARD,
+      interact_msg.sender.uid,
+      `${InteractActionToStr(interact_msg.action)} 直播间`
     )
   }
 
