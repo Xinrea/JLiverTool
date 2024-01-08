@@ -24,7 +24,7 @@ const toggles = {
     console.log('Init toggles')
     const config = await window.jliverAPI.get('config', {})
     this.values['always-on-top'] = config['always-on-top'] || false
-    this.values['enter-message'] = config['enter-message'] || false
+    this.values['interact-display'] = config['interact-display'] || false
     this.values['medal-display'] = config['medal-display'] || false
 
     // always-on-top should be set after init
@@ -40,11 +40,15 @@ const toggles = {
       '--medal-display',
       this.values['medal-display'] ? 'inline-block' : 'none'
     )
+    document.documentElement.style.setProperty(
+      '--interact-display',
+      this.values['interact-display'] ? 'inline-block' : 'none'
+    )
   },
   values: {
     'always-on-top': false,
-    'enter-message': false,
     'medal-display': false,
+    'interact-display': false,
   },
   toggle(name: string) {
     this.values[name] = !this.values[name]
@@ -56,6 +60,12 @@ const toggles = {
     if (name == 'medal-display') {
       document.documentElement.style.setProperty(
         '--medal-display',
+        this.values[name] ? 'inline-block' : 'none'
+      )
+    }
+    if (name == 'interact-display') {
+      document.documentElement.style.setProperty(
+        '--interact-display',
         this.values[name] ? 'inline-block' : 'none'
       )
     }
