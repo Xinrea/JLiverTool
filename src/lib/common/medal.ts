@@ -23,7 +23,14 @@ export function createMedal(medal_info: MedalInfo): HTMLElement {
   medalNameDiv.className = 'medal_name'
   medalNameDiv.innerText = medal_info.medal_name
   let medalLevelDiv = document.createElement('div')
-  medalLevelDiv.style.color = `${cth(medal_info.medal_color)}`
+  const color_string = String(medal_info.medal_color)
+  // if color begin with #
+  if (color_string.startsWith('#')) {
+    medalLevelDiv.style.color =
+      '#' + ('000000' + color_string.slice(1)).slice(-6)
+  } else {
+    medalLevelDiv.style.color = `${cth(medal_info.medal_color)}`
+  }
   medalLevelDiv.className = 'medal_level'
   medalLevelDiv.innerText = String(medal_info.medal_level)
   medalLabel.appendChild(medalNameDiv)

@@ -281,7 +281,15 @@ const window_setting = {
   },
   _opacity: 1,
   _theme: 'light',
-  theme_list: ['light', 'dark', 'dracula', 'catppuccin'],
+  theme_list: [
+    'light',
+    'dark',
+    'dracula',
+    'catppuccin',
+    'blueberry',
+    'ayu-light',
+    'ayu-dark',
+  ],
   get opacity() {
     return this._opacity
   },
