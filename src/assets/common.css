@@ -7,7 +7,7 @@
   -webkit-text-size-adjust: 100%;
   --font: system-ui;
   --font-size: 14px;
-  --danmu-special-bg: #53baff1a;
+  --danmu-special-bg: 20, 31, 39;
   --sc-b-level-0: rgb(237, 245, 255);
   --sc-b-level-1: rgb(219, 255, 253);
   --sc-b-level-2: rgb(255, 241, 197);
@@ -67,7 +67,7 @@
   --border: #ffffff50;
   --uname-color: #757575;
   --font-color: #020202;
-  --danmu-special-bg: #53baff1a;
+  --danmu-special-bg: 229, 241, 249;
 }
 
 .theme-dark {
@@ -80,7 +80,7 @@
   --border: #ffffff50;
   --uname-color: #999;
   --font-color: #e8e8e8;
-  --danmu-special-bg: #53baff1a;
+  --danmu-special-bg: 20, 31, 39;
 }
 
 .theme-dracula {
@@ -93,7 +93,7 @@
   --border: #5d6d98;
   --uname-color: #ac8be0;
   --font-color: #eaece9;
-  --danmu-special-bg: #53baff1a;
+  --danmu-special-bg: 20, 31, 39;
 }
 
 .theme-catppuccin {
@@ -106,7 +106,7 @@
   --border: #5d6d98;
   --uname-color: #a6d189;
   --font-color: #eaece9;
-  --danmu-special-bg: #53baff1a;
+  --danmu-special-bg: 20, 31, 39;
 }
 
 .theme-ayu-light {
@@ -119,7 +119,7 @@
   --border: #dcdee1;
   --uname-color: #ff871e;
   --font-color: #6a7681;
-  --danmu-special-bg: #f0f1f2;
+  --danmu-special-bg: 240, 241, 242;
 }
 
 .theme-ayu-dark {
@@ -132,7 +132,7 @@
   --border: #393e5a;
   --uname-color: #ff8922;
   --font-color: #b3b1ad;
-  --danmu-special-bg: #00060f;
+  --danmu-special-bg: 0, 6, 15;
 }
 
 .theme-blueberry {
@@ -145,7 +145,7 @@
   --border: #393e5a;
   --uname-color: #288260;
   --font-color: #e4ece6;
-  --danmu-special-bg: #242939;
+  --danmu-special-bg: 36, 41, 57;
 }
 
 html,

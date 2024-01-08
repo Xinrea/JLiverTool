@@ -310,6 +310,7 @@ const about = {
   version: '-',
   latest_version: '-',
   logs: [],
+  _checkUpdate: true,
   async init() {
     this.version = await window.jliverAPI.util.version()
     this.latest_version = (await window.jliverAPI.util.latestRelease()).tag_name
@@ -321,6 +322,14 @@ const about = {
       // push to front
       this.logs.unshift(msg)
     })
+    this._checkUpdate = await window.jliverAPI.get('config.check_update', true)
+  },
+  get checkUpdate() {
+    return this._checkUpdate
+  },
+  set checkUpdate(v: boolean) {
+    this._checkUpdate = v
+    window.jliverAPI.set('config.check_update', v)
   },
 }
 Alpine.data('app', (): any => app)
