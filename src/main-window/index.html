@@ -11,10 +11,7 @@
       id="app"
       :style="`--global-opacity: ${base.opacity}; --font-size: ${base.fontSize}px; --font: '${base.font}'`"
     >
-      <div
-        id="title-bar"
-        :style="{backgroundColor: base.live ? 'var(--live-color)' : 'var(--titlebar-color)'}"
-      >
+      <div :class="base.live ? 'title-bar live' : 'title-bar'">
         <div>
           <div id="live-text">LIVE</div>
           <div>

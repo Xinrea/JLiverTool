@@ -67,6 +67,7 @@
   --border: #ffffff50;
   --uname-color: #757575;
   --font-color: #020202;
+  --danmu-special-bg: #53baff1a;
 }
 
 .theme-dark {
@@ -79,6 +80,7 @@
   --border: #ffffff50;
   --uname-color: #999;
   --font-color: #e8e8e8;
+  --danmu-special-bg: #53baff1a;
 }
 
 .theme-dracula {
@@ -91,6 +93,7 @@
   --border: #5d6d98;
   --uname-color: #ac8be0;
   --font-color: #eaece9;
+  --danmu-special-bg: #53baff1a;
 }
 
 .theme-catppuccin {
@@ -103,6 +106,46 @@
   --border: #5d6d98;
   --uname-color: #a6d189;
   --font-color: #eaece9;
+  --danmu-special-bg: #53baff1a;
+}
+
+.theme-ayu-light {
+  --titlebar-color: #fcac29;
+  --titlebar-font-color: #fafafa;
+  --statusbar-color: #fafafa;
+  --statusbar-font-color: #6c7883;
+  --main-bg: 250, 250, 250;
+  --live-color: #d14047;
+  --border: #dcdee1;
+  --uname-color: #ff871e;
+  --font-color: #6a7681;
+  --danmu-special-bg: #f0f1f2;
+}
+
+.theme-ayu-dark {
+  --titlebar-color: #090e15;
+  --titlebar-font-color: white;
+  --statusbar-color: #090e15;
+  --statusbar-font-color: white;
+  --main-bg: 9, 14, 21;
+  --live-color: #c85d55;
+  --border: #393e5a;
+  --uname-color: #ff8922;
+  --font-color: #b3b1ad;
+  --danmu-special-bg: #00060f;
+}
+
+.theme-blueberry {
+  --titlebar-color: #191d28;
+  --titlebar-font-color: #dcecfb;
+  --statusbar-color: #191d28;
+  --statusbar-font-color: #dcecfb;
+  --main-bg: 29, 33, 48;
+  --live-color: #df4577;
+  --border: #393e5a;
+  --uname-color: #288260;
+  --font-color: #e4ece6;
+  --danmu-special-bg: #242939;
 }
 
 html,
@@ -525,7 +568,7 @@ option {
   border-bottom-right-radius: 1px;
 }
 
-#title-bar {
+.title-bar {
   font-size: 14px;
   width: 100%;
   min-height: 25px;
@@ -537,6 +580,10 @@ option {
   -webkit-app-region: drag;
   transition: all 0.5s ease-in-out;
   border-bottom: 1px solid var(--border);
+}
+
+.live {
+  background-color: var(--live-color);
 }
 
 #title {
