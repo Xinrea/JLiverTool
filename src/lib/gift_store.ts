@@ -4,7 +4,7 @@ import JLogger from './logger'
 import { app } from 'electron'
 import * as types from './types'
 import { GiftMessage, GuardMessage, SuperChatMessage } from './messages'
-import { SuperChat } from '../common/superchatInterface'
+import { SuperChat } from './common/superchatInterface'
 
 const log = JLogger.getInstance('gift_store')
 const db_path = app.getPath('userData') + '/gift_store.json'

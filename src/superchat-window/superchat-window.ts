@@ -1,6 +1,6 @@
 import Alpine from 'alpinejs'
-import { createConfirmBox } from '../common/confirmbox'
-import { createSuperchatEntry } from '../common/superchat'
+import { createConfirmBox } from '../lib/common/confirmbox'
+import { createSuperchatEntry } from '../lib/common/superchat'
 import JEvent from '../lib/events'
 import { WindowType } from '../lib/types'
 import { JLiverAPI } from '../preload'

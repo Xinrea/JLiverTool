@@ -1,4 +1,4 @@
-import { MedalInfo } from '../lib/types'
+import { MedalInfo } from '../types'
 
 function cth(dColor: number) {
   return '#' + ('000000' + dColor.toString(16)).slice(-6)

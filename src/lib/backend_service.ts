@@ -28,7 +28,7 @@ import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 import { DanmuCache } from './danmu_cache'
 import { v4 as uuidv4 } from 'uuid'
-import { MockMessageArray } from '../common/mock'
+import { MockMessageArray } from './common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
 import { InteractActionToStr, levelToName } from './utils'
 
