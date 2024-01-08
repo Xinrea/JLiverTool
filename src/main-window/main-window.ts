@@ -1,4 +1,4 @@
-import { createSuperchatEntry } from '../common/superchat'
+import { createSuperchatEntry } from '../lib/common/superchat'
 import {
   createDanmuEntry,
   createGiftEntry,
@@ -9,7 +9,7 @@ import {
 } from './danmu-entry'
 import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
-import { Languages, LanguageType } from '../i18n'
+import { Languages, LanguageType } from '../lib/i18n'
 import { MedalInfo, Sender, WindowType } from '../lib/types'
 import {
   DanmuMessage,

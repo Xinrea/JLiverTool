@@ -1,6 +1,6 @@
 import * as moment from 'moment'
 import 'moment/locale/zh-cn'
-import { createConfirmBox } from '../common/confirmbox'
+import { createConfirmBox } from '../lib/common/confirmbox'
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
 import JEvent from '../lib/events'

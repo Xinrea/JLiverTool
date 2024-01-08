@@ -2,7 +2,7 @@ import * as moment from 'moment/moment'
 import { renderContent } from './content-render'
 import { createMedal } from './medal'
 import { SuperChat } from './superchatInterface'
-import { SuperChatMessage } from '../lib/messages'
+import { SuperChatMessage } from '../messages'
 
 // Create Superchat HTML entry for display
 export function createSuperchatEntry(

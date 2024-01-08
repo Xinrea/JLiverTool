@@ -1,5 +1,5 @@
-import { renderContent } from '../common/content-render'
-import { createMedal } from '../common/medal'
+import { renderContent } from '../lib/common/content-render'
+import { createMedal } from '../lib/common/medal'
 import JEvent from '../lib/events'
 import { GiftMessage, GuardMessage, InteractMessage } from '../lib/messages'
 import { EmojiContent, MedalInfo, Sender } from '../lib/types'
