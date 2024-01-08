@@ -40,10 +40,6 @@ const toggles = {
       '--medal-display',
       this.values['medal-display'] ? 'inline-block' : 'none'
     )
-    document.documentElement.style.setProperty(
-      '--interact-display',
-      this.values['interact-display'] ? 'inline-block' : 'none'
-    )
   },
   values: {
     'always-on-top': false,
@@ -60,12 +56,6 @@ const toggles = {
     if (name == 'medal-display') {
       document.documentElement.style.setProperty(
         '--medal-display',
-        this.values[name] ? 'inline-block' : 'none'
-      )
-    }
-    if (name == 'interact-display') {
-      document.documentElement.style.setProperty(
-        '--interact-display',
         this.values[name] ? 'inline-block' : 'none'
       )
     }
@@ -113,6 +103,7 @@ const appStatus = {
     this.base.font = initialConfig['font'] || 'system-ui'
     this.login = initialConfig.login || false
     this.base.theme = initialConfig.theme || 'light'
+    this.base.interact_display = initialConfig['interact-display'] || false
 
     window.jliverAPI.onDidChange('config.login', (v: boolean) => {
       this.login = v
@@ -137,6 +128,21 @@ const appStatus = {
       document.documentElement.classList.add('theme-' + (newValue || 'light'))
       this.base.theme = newValue
     })
+    window.jliverAPI.onDidChange(
+      'config.interact-display',
+      (newValue: boolean) => {
+        this.base.interact_display = newValue
+        if (!newValue) {
+          // clean previous interact entries
+          const interactEntries = document.querySelectorAll(
+            '#danmu > span.interact'
+          )
+          interactEntries.forEach((entry) => {
+            $danmuArea.removeChild(entry)
+          })
+        }
+      }
+    )
 
     console.log('Init events')
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg: any) => {
@@ -209,6 +215,7 @@ const appStatus = {
     font: '',
     opacity: 1,
     theme: 'light',
+    interact_display: false,
   },
   windowStatus: {
     gift: false,
@@ -277,6 +284,9 @@ const appStatus = {
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveInteract(interact_msg: InteractMessage) {
+    if (!this.base.interact_display) {
+      return
+    }
     this.danmuPanel.doClean()
     const $newEntry = createInteractEntry(interact_msg)
     this.danmuPanel.handleNewEntry($newEntry)

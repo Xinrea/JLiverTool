@@ -42,9 +42,13 @@
   margin: 12px;
 }
 
+#user-name:hover {
+  text-decoration: underline;
+}
+
 #user-rate {
   align-items: center;
-  font-size: 24px;
+  font-size: 14px;
   color: var(--font-color);
   margin: 12px;
 }
@@ -63,13 +67,27 @@
   font-family: var(--font);
   font-size: var(--font-size);
   transition: all 0.2s ease 0s;
-  cursor: pointer;
 }
 
 .danmu-item:hover {
   padding: 6px;
-  font-weight: bold;
   box-sizing: content-box;
+}
+
+.copy-btn {
+  color: transparent;
+  margin-left: 12px;
+  font-family: 'Segoe Fluent Icons';
+  align-items: flex-end;
+  cursor: pointer;
+}
+
+.danmu-item:hover .copy-btn {
+  color: inherit;
+}
+
+.copy-btn:hover {
+  font-weight: bold;
 }
 
 .danmu-time {
