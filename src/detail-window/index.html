@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="zh">
-
   <head>
     <meta charset="UTF-8" />
     <title>详情</title>
@@ -8,7 +7,10 @@
   </head>
 
   <body x-data="appStatus">
-    <div id="app" :style="`--global-opacity: ${opacity}; --font: ${font}; --font-size: ${font_size}`">
+    <div
+      id="app"
+      :style="`--global-opacity: ${opacity}; --font: ${font}; --font-size: ${font_size}`"
+    >
       <div id="title-bar">
         <div>
           <div id="title">DETAIL</div>
@@ -16,39 +18,69 @@
         <div>
           <div id="hide-button" class="title-button" @click="hide">
             <svg viewBox="0 0 24 24">
-              <path fill="white"
-                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+              <path
+                fill="white"
+                d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+              />
             </svg>
           </div>
         </div>
       </div>
       <div id="panel">
         <template x-if="detail_info">
-            <div style="display: flex; flex-direction: column; width: 100%; height: 100%;">
-                <div id="user-info">
-                    <div @click="open" style="cursor: pointer;">
-                        <div id="user-avatar">
-                            <img :src="detail_info.sender.face" />
-                          </div>
-                          <div id="user-name" x-text="detail_info.sender.uname"></div>
-                    </div>
-                    <div>
-                        <div id="user-rate" style="margin: 12px;">弹幕频率：<span x-text="rate"></span>/min</div>
-                    </div>
+          <div
+            style="
+              display: flex;
+              flex-direction: column;
+              width: 100%;
+              height: 100%;
+            "
+          >
+            <div id="user-info">
+              <div>
+                <div id="user-avatar">
+                  <img :src="detail_info.sender.face" />
                 </div>
-                <div style="width: 100%; height: 24px; align-items: center; justify-content: center; opacity: 0.5; color: var(--font-color);">双击可复制弹幕</div>
-                <div id="danmu-list">
-                    <template x-for="item in detail_info.danmus">
-                        <div class="danmu-item" style="display: flex; justify-content: space-between; padding: 2px 10px;" @dblclick="copy(item.content)">
-                            <div class="danmu-time" x-text="timestamp2date(item.timestamp)"></div>
-                            <div class="danmu-content" x-text="item.content"></div>
-                        </div>
-                    </template>
+                <div
+                  id="user-name"
+                  x-text="detail_info.sender.uname"
+                  @click="open"
+                  style="cursor: pointer"
+                ></div>
+              </div>
+              <div>
+                <div id="user-rate" style="margin: 12px">
+                  弹幕频率：<span x-text="rate"></span>/min
                 </div>
+              </div>
             </div>
+            <div id="danmu-list">
+              <template x-for="item in detail_info.danmus">
+                <div
+                  class="danmu-item"
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 2px 10px;
+                  "
+                >
+                  <div
+                    class="danmu-time"
+                    x-text="timestamp2date(item.timestamp)"
+                  ></div>
+                  <div>
+                    <div class="danmu-content" x-text="item.content"></div>
+                    <div class="copy-btn" @click="copy(item.content)">
+                      &#xE8C8;
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
         </template>
+      </div>
     </div>
   </body>
   <script src="detail-window.js"></script>
-
 </html>
