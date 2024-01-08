@@ -3,9 +3,9 @@ import {
   createDanmuEntry,
   createGiftEntry,
   createEffectEntry,
-  createEnterEntry,
   createGuardEntry,
   giftCache,
+  createInteractEntry,
 } from './danmu-entry'
 import Alpine from 'alpinejs'
 import JEvent from '../lib/events'
@@ -15,6 +15,7 @@ import {
   DanmuMessage,
   GiftMessage,
   GuardMessage,
+  InteractMessage,
   SuperChatMessage,
 } from '../lib/messages'
 
@@ -161,6 +162,12 @@ const appStatus = {
         this.onReceiveSuperchat(arg)
       }
     )
+    window.jliverAPI.register(
+      JEvent.EVENT_NEW_INTERACT,
+      (arg: InteractMessage) => {
+        this.onReceiveInteract(arg)
+      }
+    )
 
     console.log('Init smooth scroll')
     setInterval(() => {
@@ -259,9 +266,9 @@ const appStatus = {
     )
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveInteract(medalInfo: MedalInfo, sender: Sender) {
+  onReceiveInteract(interact_msg: InteractMessage) {
     this.danmuPanel.doClean()
-    const $newEntry = createEnterEntry(medalInfo, sender)
+    const $newEntry = createInteractEntry(interact_msg)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveEffect(content: string) {
