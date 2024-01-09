@@ -17,7 +17,7 @@ const appStatus = {
         // calculate rate
         const n = detail_info.danmus.length
         if (n < 2) {
-          this.rate = 0
+          this.rate = 0.0
           return
         }
         this.rate =
@@ -26,6 +26,16 @@ const appStatus = {
               detail_info.danmus[0].timestamp)) *
           1000 *
           60
+        if (this.rate == 'NaN') {
+          this.rate = 0
+        }
+        if (this.rate == 'Infinity') {
+          this.rate = 0
+        }
+        // if > 999
+        if (this.rate > 999) {
+          this.rate = 999
+        }
         this.rate = this.rate.toFixed(1)
       }
     )
