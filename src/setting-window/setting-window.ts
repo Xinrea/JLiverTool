@@ -55,6 +55,11 @@ const room_setting = {
       this.owned = true
     }
     this.room_id = room.getID()
+    const room_info = await window.jliverAPI.room.info(parseInt(this.room_id))
+    if (room_info.code != 0) {
+      return
+    }
+    this.room_info = room_info.data
   },
   async confirmRoom() {
     const prev_room = typecast(RoomID, await window.jliverAPI.config.room())
@@ -82,7 +87,6 @@ const room_setting = {
     // new room id is set, check if it's valid
     const room_info = await window.jliverAPI.room.info(parseInt(this.room_id))
     if (room_info.code != 0) {
-      console.log(room_info)
       this.error = true
       this.room_id = prev_room.getID()
       return
