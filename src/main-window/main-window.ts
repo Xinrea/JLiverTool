@@ -104,6 +104,7 @@ const appStatus = {
     this.login = initialConfig.login || false
     this.base.theme = initialConfig.theme || 'light'
     this.base.interact_display = initialConfig['interact-display'] || false
+    this.base.ignore_free = initialConfig['ignore_free'] || true
 
     window.jliverAPI.onDidChange('config.login', (v: boolean) => {
       this.login = v
@@ -116,6 +117,9 @@ const appStatus = {
     })
     window.jliverAPI.onDidChange('config.font', (newValue: string) => {
       this.base.font = newValue
+    })
+    window.jliverAPI.onDidChange('config.ignore_free', (newValue: boolean) => {
+      this.base.ignore_free = newValue
     })
     // Set theme class in html
     document.documentElement.classList.add(
@@ -216,6 +220,7 @@ const appStatus = {
     opacity: 1,
     theme: 'light',
     interact_display: false,
+    ignore_free: true,
   },
   windowStatus: {
     gift: false,
@@ -298,7 +303,7 @@ const appStatus = {
   },
   onReceiveNewGift(gift: GiftMessage) {
     // if ignore free gift
-    if (window.jliverAPI.get('config.ignore_free', true)) {
+    if (this.base.ignore_free) {
       if (gift.gift_info.coin_type != 'gold') {
         return
       }
@@ -330,15 +335,12 @@ const appStatus = {
   },
   login: false,
   content: '',
-  async sendDanmu(e) {
+  async invokeCommand(e: any) {
     if (this.content != '') {
       e.target.innerText = ''
       this.content = this.content.slice(0, -2)
-      if (this.content[0] == '/') {
-        await window.jliverAPI.invoke('callCommand', this.content)
-      } else {
-        await window.jliverAPI.invoke('sendDanmu', this.content)
-      }
+      console.log("Invoke command: '" + this.content + "'")
+      window.jliverAPI.backend.callCommand(this.content)
     }
   },
   async handleContentEdit(e) {

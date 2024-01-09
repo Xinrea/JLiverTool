@@ -47,6 +47,7 @@ export type JLiverAPI = {
     removeGiftEntry: (type: string, id: string) => Promise<void>
     clearGifts: () => Promise<void>
     clearSuperChats: () => Promise<void>
+    callCommand: (command: string) => Promise<void>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -210,6 +211,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     clearSuperChats: () => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_CLEAR_SUPERCHATS])
+    },
+    callCommand: (command: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_CALL_COMMAND], command)
     },
   },
   config: {
