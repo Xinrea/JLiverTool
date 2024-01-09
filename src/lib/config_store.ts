@@ -19,16 +19,16 @@ DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [800, 400]
 DEFAULT_WINDOWSIZE[WindowType.WDETAIL] = [400, 300]
 
+const config_path = path.join(app.getPath('userData'), 'config_v2.json')
+
 class Store {
   private web_contents: Electron.WebContents[]
-  private config_path: string
   private registered_callbacks: Map<string, Function[]>
   constructor() {
-    this.config_path = path.join(app.getPath('userData'), 'config_v2.json')
     this.web_contents = []
     this.registered_callbacks = new Map()
     this.initConfigHandlers()
-    log.debug('Config store initialized', { path: this.config_path })
+    log.debug('Config store initialized', { path: config_path })
   }
 
   private initConfigHandlers() {
@@ -51,10 +51,10 @@ class Store {
   }
 
   get(key: string, default_value: any = null) {
-    if (!fs.existsSync(this.config_path)) {
-      fs.writeFileSync(this.config_path, '{}')
+    if (!fs.existsSync(config_path)) {
+      fs.writeFileSync(config_path, '{}')
     }
-    const configJson = fs.readFileSync(this.config_path, 'utf8')
+    const configJson = fs.readFileSync(config_path, 'utf8')
     let configJs = JSON.parse(configJson)
     const keys = key.split('.')
     let cur = configJs
@@ -69,11 +69,10 @@ class Store {
   }
 
   set(key: string, value: any) {
-    const configPath = path.join(app.getPath('userData'), 'config.json')
-    if (!fs.existsSync(configPath)) {
-      fs.writeFileSync(configPath, '{}')
+    if (!fs.existsSync(config_path)) {
+      fs.writeFileSync(config_path, '{}')
     }
-    const configJson = fs.readFileSync(configPath, 'utf8')
+    const configJson = fs.readFileSync(config_path, 'utf8')
     const configJs = JSON.parse(configJson)
     const keys = key.split('.')
     let cur = configJs
@@ -86,7 +85,7 @@ class Store {
     }
     cur[keys[keys.length - 1]] = value
     const newConfigJson = JSON.stringify(configJs)
-    fs.writeFileSync(configPath, newConfigJson)
+    fs.writeFileSync(config_path, newConfigJson)
     this.web_contents.forEach((wc) => {
       wc.send(JEvent[JEvent.EVENT_STORE_WATCH], key, value)
     })
