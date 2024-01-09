@@ -313,7 +313,10 @@ const appStatus = {
       const old = giftCache.get(gift.id)
       const oldNum = parseInt(old.getAttribute('gift-num'))
       const newNum = oldNum + gift.num
-      old.querySelector('.gift-num').innerText = `共${newNum}个`
+      const price = gift.gift_info.price * newNum
+      old.querySelector('.gift-num').innerText = `共${newNum}个 | ￥${
+        price / 1000
+      }`
       old.setAttribute('gift-num', String(newNum))
       return
     }

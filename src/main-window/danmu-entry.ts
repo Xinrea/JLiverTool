@@ -133,9 +133,11 @@ function doCreateGiftEntry(gift: GiftMessage) {
   danmuEntry.appendChild(giftIcon)
   const giftNum = document.createElement('span')
   giftNum.className = 'gift-num'
-  giftNum.innerText = `共${gift.num}个 | ￥${
-    (gift.gift_info.price * gift.num) / 1000
-  }`
+  if (gift.gift_info.coin_type == 'gold') {
+    giftNum.innerText = `x ${gift.num} | ￥${gift.gift_info.price / 1000}`
+  } else {
+    giftNum.innerText = `x ${gift.num}`
+  }
   danmuEntry.appendChild(giftNum)
   danmuEntry.setAttribute('gift-num', gift.num.toString())
   danmuEntry.addEventListener('dblclick', () => {
