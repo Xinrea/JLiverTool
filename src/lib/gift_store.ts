@@ -7,7 +7,7 @@ import { GiftMessage, GuardMessage, SuperChatMessage } from './messages'
 import { SuperChat } from './common/superchatInterface'
 
 const log = JLogger.getInstance('gift_store')
-const db_path = app.getPath('userData') + '/gift_store.json'
+const db_path = app.getPath('userData') + '/gift_store_v2.json'
 
 type GiftDBData = {
   gift: GiftMessage[]
