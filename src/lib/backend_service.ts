@@ -456,6 +456,47 @@ export default class BackendService {
         )
       }
     )
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_CALL_COMMAND],
+      async (_, command: string) => {
+        log.info('Call command', { command })
+        let args = command.split(' ')
+        if (args.length < 1) {
+          log.warn('Invalid command', { command })
+          return
+        }
+        let cmd = args[0]
+        if (!cmd.startsWith('/')) {
+          // not a command, send danmu
+          await BiliApi.SendDanmu(
+            this._config_store.Cookies,
+            this._room,
+            command
+          )
+          return
+        }
+        cmd = cmd.slice(1)
+        args = args.slice(1)
+        switch (cmd) {
+          case 'title': {
+            const title = args.join(' ')
+            if (title === '') {
+              log.warn('Invalid title', { title })
+              return
+            }
+            await BiliApi.UpdateRoomTitle(
+              this._config_store.Cookies,
+              this._room,
+              title
+            )
+            break
+          }
+          case 'bye': {
+            await BiliApi.StopRoomLive(this._config_store.Cookies, this._room)
+          }
+        }
+      }
+    )
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {

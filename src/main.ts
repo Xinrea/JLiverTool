@@ -155,3 +155,7 @@ app.on('ready', () => {
     checkUpdateFromGithubAPI()
   }
 })
+
+app.on('quit', () => {
+  log.info('App quit')
+})
