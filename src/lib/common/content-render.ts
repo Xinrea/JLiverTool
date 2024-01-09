@@ -14,7 +14,7 @@ export function renderContent(content_string: String): HTMLElement {
       a.className = 'bv-link'
       let url = 'https://www.bilibili.com/video/' + segment
       a.addEventListener('click', () => {
-        window.jliverAPI.send('openURL', url)
+        window.jliverAPI.util.openUrl(url)
       })
       a.innerText = segment
       node.append(a)
