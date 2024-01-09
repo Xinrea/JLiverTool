@@ -42,9 +42,6 @@ const room_setting = {
     window.jliverAPI.onDidChange('config.cookies', async () => {
       await this.settingUpdate()
     })
-    window.jliverAPI.onDidChange('config.room', async () => {
-      await this.settingUpdate()
-    })
   },
   room_id: '',
   room_info: {},
@@ -85,6 +82,7 @@ const room_setting = {
     // new room id is set, check if it's valid
     const room_info = await window.jliverAPI.room.info(parseInt(this.room_id))
     if (room_info.code != 0) {
+      console.log(room_info)
       this.error = true
       this.room_id = prev_room.getID()
       return
@@ -97,6 +95,7 @@ const room_setting = {
         room_info.data.uid
       )
     )
+    await this.settingUpdate()
   },
 }
 
