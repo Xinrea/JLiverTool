@@ -43,6 +43,7 @@ enum JEvent {
   INVOKE_CLEAR_GIFTS,
   INVOKE_CLEAR_SUPERCHATS,
   INVOKE_GET_GOALS,
+  INVOKE_SET_ROOM_TITLE,
 }
 
 export default JEvent

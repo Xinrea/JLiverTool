@@ -145,6 +145,7 @@
                         :class="error ? 'error':''"
                         type="text"
                         x-model="room_info.title"
+                        @focusout="confirmTitle"
                       />
                     </div>
                     <div class="group-item" x-show="owned">
