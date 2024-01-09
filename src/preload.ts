@@ -41,6 +41,7 @@ export type JLiverAPI = {
   }
   backend: {
     updateRoom: (room: RoomID) => Promise<void>
+    setRoomTitle: (title: string) => Promise<void>
     getInitGifts: () => Promise<GiftInitData>
     getInitSuperChats: () => Promise<SuperChatMessage[]>
     removeGiftEntry: (type: string, id: string) => Promise<void>
@@ -187,6 +188,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
   backend: {
     updateRoom: (room: RoomID) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_UPDATE_ROOM], room)
+    },
+    setRoomTitle: (title: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_SET_ROOM_TITLE], title)
     },
     getInitGifts: () => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_INIT_GIFTS])

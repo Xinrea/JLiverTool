@@ -446,6 +446,16 @@ export default class BackendService {
       log.debug('Get sponsor progress', { resp })
       return resp
     })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_SET_ROOM_TITLE],
+      async (_, title: string) => {
+        await BiliApi.UpdateRoomTitle(
+          this._config_store.Cookies,
+          this._room,
+          title
+        )
+      }
+    )
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {

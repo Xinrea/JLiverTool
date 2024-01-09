@@ -101,6 +101,9 @@ const room_setting = {
     )
     await this.settingUpdate()
   },
+  async confirmTitle() {
+    await window.jliverAPI.backend.setRoomTitle(this.room_info.title)
+  },
 }
 
 const account_setting = {
