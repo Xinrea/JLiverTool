@@ -5,6 +5,7 @@ import RoomInitResponse from './lib/bilibili/api/room/room_init'
 import GetInfoResponse from './lib/bilibili/api/room/get_info'
 import UserInfoResponse from './lib/bilibili/api/user/user_info'
 import { GiftInitData, GiftMessage, SuperChatMessage } from './lib/messages'
+import { GetGoalsResponse } from './lib/afdian/afdianapi'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -53,6 +54,7 @@ export type JLiverAPI = {
     version: () => Promise<string>
     latestRelease: () => Promise<any>
     setClipboard: (text: string) => Promise<any>
+    getGoals: () => Promise<GetGoalsResponse>
   }
 }
 
@@ -242,6 +244,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     setClipboard(text: string) {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_SET_CLIPBOARD], text)
+    },
+    getGoals() {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_GOALS])
     },
   },
 })

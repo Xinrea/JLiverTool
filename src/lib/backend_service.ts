@@ -31,6 +31,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { MockMessageArray } from './common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
 import { InteractActionToStr, levelToName } from './utils'
+import { AfdianAPI } from './afdian/afdianapi'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -439,6 +440,11 @@ export default class BackendService {
     })
     ipcMain.handle(JEvent[JEvent.INVOKE_CLEAR_SUPERCHATS], async () => {
       await this._gift_store.Clear('superchat', this._room.getRealID())
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_GOALS], async (_, uid: number) => {
+      const resp = await AfdianAPI.GetGoals()
+      log.debug('Get sponsor progress', { resp })
+      return resp
     })
     this._config_store.onDidChange(
       'config.merge_rooms',

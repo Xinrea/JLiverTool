@@ -411,6 +411,11 @@
                         width="32"
                       />
                       <span>赞助 @Xinrea</span>
+                      <progress
+                        style="accent-color: #936be5"
+                        :value="goals[0].sum_income"
+                        :max="goals[0].monthly_income"
+                      ></progress>
                     </div>
                   </div>
                 </div>
