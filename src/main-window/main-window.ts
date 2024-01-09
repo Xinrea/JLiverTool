@@ -284,7 +284,8 @@ const appStatus = {
       danmu_msg.sender.medal_info,
       danmu_msg.sender,
       danmu_msg.content,
-      danmu_msg.emoji_content
+      danmu_msg.emoji_content,
+      danmu_msg.reply_uname
     )
     this.danmuPanel.handleNewEntry($newEntry)
   },

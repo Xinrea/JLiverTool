@@ -11,7 +11,8 @@ export function createDanmuEntry(
   medal: MedalInfo,
   sender: Sender,
   content: string,
-  emoji_content: EmojiContent
+  emoji_content: EmojiContent,
+  reply_uname: string = null
 ) {
   const danmuEntry = document.createElement('span')
   if (special) {
@@ -43,6 +44,12 @@ export function createDanmuEntry(
       danmuContent.style.height = 'calc(var(--danmu-size) + 32px)'
       danmuEntry.appendChild(danmuContent)
     } else {
+      if (reply_uname && reply_uname != '') {
+        const danmuContent = document.createElement('span')
+        danmuContent.className = 'content reply'
+        danmuContent.innerText = `@${reply_uname}`
+        danmuEntry.appendChild(danmuContent)
+      }
       danmuEntry.appendChild(renderContent(content))
     }
   }

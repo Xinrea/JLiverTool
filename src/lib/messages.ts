@@ -1,5 +1,5 @@
 import { GiftType } from './bilibili/api/room/gift_config'
-import { EmojiContent, Sender, MergeUserInfo } from './types'
+import { EmojiContent, Sender, MergeUserInfo, DmExtraInfo } from './types'
 
 export class DanmuMessage {
   sender: Sender = new Sender()
@@ -8,6 +8,7 @@ export class DanmuMessage {
   is_special: boolean = false
   emoji_content: EmojiContent = null
   side_index: number = -1
+  reply_uname: string = null
 
   constructor(body: any, user_info: MergeUserInfo = null) {
     // basic info
@@ -18,6 +19,11 @@ export class DanmuMessage {
     this.sender.uname = body.info[2][1]
     // TODO maybe need the backend service to offer a face cache
     this.sender.face = ''
+
+    const extra_info = body.info[0][15] as DmExtraInfo
+    if (extra_info.show_reply && extra_info.reply_uname != '') {
+      this.reply_uname = extra_info.reply_uname
+    }
 
     // medalinfo
     // there is an example of medalinfo (info[3]) and its final html structure.

@@ -147,3 +147,40 @@ export type DetailInfo = {
   sender: Sender
   danmus: DanmuRecord[]
 }
+
+export type DmExtraInfo = {
+  send_from_me: boolean
+  mode: number
+  color: number
+  dm_type: number
+  font_size: number
+  player_mode: number
+  show_player_type: number
+  content: string
+  user_hash: string
+  emoticon_unique: string
+  bulge_display: number
+  recommend_score: number
+  main_state_dm_color: string
+  objective_state_dm_color: string
+  direction: number
+  pk_direction: number
+  quartet_direction: number
+  anniversary_crowd: number
+  yeah_space_type: string
+  yeah_space_url: string
+  jump_to_url: string
+  space_type: string
+  space_url: string
+  animation: {}
+  emots: any
+  is_audited: boolean
+  id_str: string
+  icon: any
+  show_reply: boolean
+  reply_mid: number
+  reply_uname: string
+  reply_uname_color: string
+  reply_is_mystery: boolean
+  hit_combo: number
+}
