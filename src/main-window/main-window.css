@@ -272,6 +272,12 @@ button:hover {
   margin-right: 8px;
 }
 
+.reply {
+  color: var(--uname-color);
+  font-weight: bold;
+  margin-right: 6px;
+}
+
 .emoji {
   display: inline-block;
   background-size: contain;
