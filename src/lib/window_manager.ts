@@ -171,6 +171,10 @@ class Window {
       this._closed_callback = closed_callback
     }
 
+    if (this._store.OnTop) {
+      this.top = true
+    }
+
     if (dev) {
       this._window.webContents.openDevTools()
     }
@@ -261,7 +265,6 @@ export class WindowManager {
       WindowType.WDETAIL,
       this._config_store
     )
-
     this.registerEvents()
   }
 
