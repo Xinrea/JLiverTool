@@ -727,7 +727,7 @@ export default class BackendService {
     this._danmu_cache.add(
       RecordType.GUARD,
       interact_msg.sender.uid,
-      `${InteractActionToStr(interact_msg.action)} 直播间`
+      `${InteractActionToStr(interact_msg.action)}直播间`
     )
   }
 

@@ -50,7 +50,7 @@
               </div>
               <div>
                 <div id="user-rate" style="margin: 12px">
-                  弹幕频率：<span x-text="rate"></span>/min
+                  互动频率：<span x-text="rate"></span>/min
                 </div>
               </div>
             </div>
@@ -58,6 +58,7 @@
               <template x-for="item in detail_info.danmus">
                 <div
                   class="danmu-item"
+                  :class="{'special': item.type != 0}"
                   style="
                     display: flex;
                     justify-content: space-between;

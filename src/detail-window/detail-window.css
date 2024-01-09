@@ -74,6 +74,10 @@
   box-sizing: content-box;
 }
 
+.danmu-item.special {
+  font-style: italic;
+}
+
 .copy-btn {
   color: transparent;
   margin-left: 12px;
