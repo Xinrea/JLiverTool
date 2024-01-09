@@ -743,7 +743,11 @@ export default class BackendService {
               JEvent.EVENT_NEW_DANMU,
               danmu_msg
             )
-            this._danmu_cache.add(danmu_msg.sender.uid, danmu_msg.content)
+            this._danmu_cache.add(
+              RecordType.DANMU,
+              danmu_msg.sender.uid,
+              danmu_msg.content
+            )
           }
         }
       }
