@@ -311,6 +311,12 @@ const about = {
   latest_version: '-',
   logs: [],
   _checkUpdate: true,
+  goals: [
+    {
+      sum_income: '0',
+      monthly_income: '0',
+    },
+  ],
   async init() {
     this.version = await window.jliverAPI.util.version()
     this.latest_version = (await window.jliverAPI.util.latestRelease()).tag_name
@@ -323,6 +329,8 @@ const about = {
       this.logs.unshift(msg)
     })
     this._checkUpdate = await window.jliverAPI.get('config.check_update', true)
+    this.goals = (await window.jliverAPI.util.getGoals()).data.list
+    console.log(this.goals)
   },
   get checkUpdate() {
     return this._checkUpdate
