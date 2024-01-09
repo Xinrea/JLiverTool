@@ -53,6 +53,8 @@ const room_setting = {
       .DedeUserID
     if (room.getOwnerID() == user_id) {
       this.owned = true
+    } else {
+      this.owned = false
     }
     this.room_id = room.getID()
     const room_info = await window.jliverAPI.room.info(parseInt(this.room_id))
