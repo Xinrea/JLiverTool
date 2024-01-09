@@ -36,24 +36,7 @@ Alpine.data('appStatus', () => ({
       true
     )
 
-    console.log('init stored gifts')
-    const gift_data = await window.jliverAPI.backend.getInitGifts()
-    for (let i = 0; i < gift_data.gifts.length; i++) {
-      this.giftHandler(gift_data.gifts[i])
-    }
-    for (let i = 0; i < gift_data.guards.length; i++) {
-      this.guardHandler(gift_data.guards[i])
-    }
-    // sort gifts to merge normal gifts and guard gifts
-    this.gifts.sort((a: any, b: any) => {
-      return a.timestamp - b.timestamp
-    })
-    setTimeout(() => {
-      if (this.base.autoScroll) {
-        this.base.$panel.scrollTop = this.base.lastPosition =
-          this.base.$panel.scrollHeight - this.base.$panel.clientHeight
-      }
-    }, 10)
+    await this.initGifts()
 
     window.jliverAPI.register(JEvent.EVENT_NEW_GIFT, (gift: GiftMessage) => {
       console.log(gift)
@@ -95,6 +78,12 @@ Alpine.data('appStatus', () => ({
       document.documentElement.classList.add('theme-' + (newValue || 'light'))
       this.base.theme = newValue
     })
+    window.jliverAPI.onDidChange('config.room', () => {
+      // clear all gifts and reinit
+      this.gifts = []
+      this.giftsCheck.clear()
+      this.initGifts()
+    })
   },
   base: {
     $panel: null,
@@ -127,6 +116,26 @@ Alpine.data('appStatus', () => ({
   },
   gifts: [],
   giftsCheck: new Map(),
+  async initGifts() {
+    console.log('init stored gifts')
+    const gift_data = await window.jliverAPI.backend.getInitGifts()
+    for (let i = 0; i < gift_data.gifts.length; i++) {
+      this.giftHandler(gift_data.gifts[i])
+    }
+    for (let i = 0; i < gift_data.guards.length; i++) {
+      this.guardHandler(gift_data.guards[i])
+    }
+    // sort gifts to merge normal gifts and guard gifts
+    this.gifts.sort((a: any, b: any) => {
+      return a.timestamp - b.timestamp
+    })
+    setTimeout(() => {
+      if (this.base.autoScroll) {
+        this.base.$panel.scrollTop = this.base.lastPosition =
+          this.base.$panel.scrollHeight - this.base.$panel.clientHeight
+      }
+    }, 10)
+  },
   giftRemove(id: string) {
     window.jliverAPI.backend.removeGiftEntry('gift', id)
     for (let i = 0; i < this.gifts.length; i++) {

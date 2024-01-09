@@ -47,17 +47,19 @@ const app = {
     window.jliverAPI.onDidChange('config.theme', (newValue: string) => {
       this.theme = newValue
     })
-    let init_superchats = await window.jliverAPI.backend.getInitSuperChats()
-    init_superchats.forEach((sc) => {
-      this.superchatHandler(sc)
-    })
-
+    await this.initSuperchats()
     window.jliverAPI.register(
       JEvent.EVENT_NEW_SUPER_CHAT,
       (sc: SuperChatMessage) => {
         this.superchatHandler(sc)
       }
     )
+    window.jliverAPI.onDidChange('config.room', () => {
+      // clear superchats when room changed
+      $panel.innerHTML = ''
+      giftMap = new Map()
+      this.initSuperchats()
+    })
   },
   opacity: 1,
   font: 'system-ui',
@@ -72,6 +74,12 @@ const app = {
     )
     document.documentElement.classList.add('theme-' + (newValue || 'light'))
     this._theme = newValue
+  },
+  async initSuperchats() {
+    let init_superchats = await window.jliverAPI.backend.getInitSuperChats()
+    init_superchats.forEach((sc) => {
+      this.superchatHandler(sc)
+    })
   },
   notifyClear() {
     document.body.appendChild(
