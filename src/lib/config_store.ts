@@ -16,7 +16,7 @@ const DEFAULT_WINDOWSIZE = new Map()
 DEFAULT_WINDOWSIZE[WindowType.WMAIN] = [400, 800]
 DEFAULT_WINDOWSIZE[WindowType.WGIFT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
-DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [400, 300]
+DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [800, 400]
 DEFAULT_WINDOWSIZE[WindowType.WDETAIL] = [400, 300]
 
 class Store {
@@ -24,7 +24,7 @@ class Store {
   private config_path: string
   private registered_callbacks: Map<string, Function[]>
   constructor() {
-    this.config_path = path.join(app.getPath('userData'), 'config.json')
+    this.config_path = path.join(app.getPath('userData'), 'config_v2.json')
     this.web_contents = []
     this.registered_callbacks = new Map()
     this.initConfigHandlers()
