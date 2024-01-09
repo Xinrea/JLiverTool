@@ -115,10 +115,12 @@
                     <div class="gift-name" x-text="gift.gift_info.name"></div>
                     <div class="gift-count" x-text="'x'+gift.num"></div>
                     <div class="gift-price">
-                      <div
-                        class="gift-price-value"
-                        x-text="'￥'+(gift.gift_info.price * gift.num) / 1000"
-                      ></div>
+                      <template x-if="gift.gift_info.coin_type == 'gold'">
+                        <div
+                          class="gift-price-value"
+                          x-text="'￥'+(gift.gift_info.price * gift.num) / 1000"
+                        ></div>
+                      </template>
                     </div>
                   </div>
                 </div>
