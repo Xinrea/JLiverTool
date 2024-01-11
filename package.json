@@ -1,12 +1,15 @@
 {
   "name": "jlivertool",
-  "version": "2.0.0",
+  "version": "2.0.0-rc",
   "description": "Simple Bilibili Danmaku Tool",
   "homepage": "https://github.com/Xinrea/JLiveTool",
   "main": "src/main.js",
   "scripts": {
     "start": "npx webpack && cross-env DEBUG=true electron .",
     "build": "npx webpack && electron-builder build -lmw --publish=never",
+    "build-win": "npx webpack && electron-builder build --win -p never",
+    "build-mac": "npx webpack && electron-builder build --mac -p never",
+    "build-linux": "npx webpack && electron-builder build --linux -p never",
     "test": "mocha --require ts-node/register 'src/**/*.test.ts'"
   },
   "build": {
