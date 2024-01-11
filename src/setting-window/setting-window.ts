@@ -42,11 +42,34 @@ const room_setting = {
     window.jliverAPI.onDidChange('config.cookies', async () => {
       await this.settingUpdate()
     })
+    window.jliverAPI.register(JEvent.EVENT_UPDATE_ROOM, (arg: any) => {
+      // Update room title and status
+      // if arg has title
+      if (arg.hasOwnProperty('title')) {
+        console.log('update title', arg.title)
+        const encodedString = arg.title
+        const textarea = document.createElement('textarea')
+        textarea.innerHTML = encodedString
+        this.room_info.title = textarea.value
+      }
+      // if arg has live_status
+      if (arg.hasOwnProperty('live_status')) {
+        console.log('update live_status', arg.live_status)
+        this.room_info.live_status = arg.live_status
+      }
+    })
   },
   room_id: '',
-  room_info: {},
+  room_info: {
+    title: '',
+    live_status: 0,
+  },
   owned: false,
   error: false,
+  face_dialog: {
+    show: false,
+    face_auth_image: '',
+  },
   async settingUpdate() {
     const room = typecast(RoomID, await window.jliverAPI.config.room())
     const user_id = (await window.jliverAPI.get('config.cookies', {}))
@@ -105,6 +128,30 @@ const room_setting = {
   },
   async confirmTitle() {
     await window.jliverAPI.backend.setRoomTitle(this.room_info.title)
+  },
+  async toggleLive() {
+    if (this.room_info.live_status == 1) {
+      console.log('stop live')
+      const stop_live_response = await window.jliverAPI.backend.stopLive()
+      console.log(stop_live_response)
+    } else {
+      console.log('start live with area_v2', this.room_info.area_id)
+      const start_live_response = await window.jliverAPI.backend.startLive(
+        this.room_info.area_id
+      )
+      console.log(start_live_response)
+      if (
+        start_live_response.code != 0 &&
+        start_live_response.data['need_face_auth']
+      ) {
+        // need face auth
+        const face_auth_url = start_live_response.data['qr']
+        const face_auth_image = await QrCode.toDataURL(face_auth_url)
+        this.face_dialog.face_auth_image = face_auth_image
+        this.face_dialog.show = true
+        return
+      }
+    }
   },
 }
 

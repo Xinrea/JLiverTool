@@ -9,6 +9,10 @@ import SendDanmuResponse from './api/room/send_danmu'
 import UpdateRoomTitleResponse from './api/room/update_room_title'
 import StopLiveResponse from './api/room/stop_live'
 import { NavResponse } from './api/nav_response'
+import StartLiveResponse from './api/room/start_live'
+import JLogger from '../logger'
+
+const log = JLogger.getInstance('biliapi')
 
 // WARN: All these api should be checked regularly, any api change will broke this tool
 class BiliApi {
@@ -156,6 +160,31 @@ class BiliApi {
     }
     const raw_response = await fetch(url, options)
     return (await raw_response.json()) as UpdateRoomTitleResponse
+  }
+
+  public static async StartRoomLive(
+    cookies: Cookies,
+    room: RoomID,
+    area_v2: string
+  ): Promise<StartLiveResponse> {
+    // Build form of room title updating
+    const post_data = new URLSearchParams()
+    post_data.append('room_id', room.getRealID().toString())
+    post_data.append('platform', 'pc')
+    post_data.append('area_v2', area_v2)
+    post_data.append('csrf', cookies.bili_jct)
+    post_data.append('csrf_token', cookies.bili_jct)
+    // post form data
+    const url = `https://api.live.bilibili.com/room/v1/Room/startLive`
+    const options = {
+      method: 'POST',
+      headers: {
+        Cookie: cookies.str(),
+      },
+      body: post_data,
+    }
+    const raw_response = await fetch(url, options)
+    return (await raw_response.json()) as StartLiveResponse
   }
 
   public static async StopRoomLive(

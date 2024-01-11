@@ -497,6 +497,19 @@ export default class BackendService {
         }
       }
     )
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_START_LIVE],
+      async (_, area_v2: string) => {
+        return await BiliApi.StartRoomLive(
+          this._config_store.Cookies,
+          this._room,
+          area_v2
+        )
+      }
+    )
+    ipcMain.handle(JEvent[JEvent.INVOKE_STOP_LIVE], async () => {
+      return await BiliApi.StopRoomLive(this._config_store.Cookies, this._room)
+    })
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
@@ -569,6 +582,11 @@ export default class BackendService {
           JEvent.EVENT_UPDATE_ROOM,
           msg.data
         )
+        this._window_manager.SendTo(
+          WindowType.WSETTING,
+          JEvent.EVENT_UPDATE_ROOM,
+          msg.data
+        )
         break
       }
       case 'ONLINE_RANK_COUNT': {
@@ -589,12 +607,26 @@ export default class BackendService {
             live_status: 1,
           }
         )
+        this._window_manager.SendTo(
+          WindowType.WSETTING,
+          JEvent.EVENT_UPDATE_ROOM,
+          {
+            live_status: 1,
+          }
+        )
         break
       }
       case 'PREPARING': {
         log.info('Received live stop message', { msg })
         this._window_manager.SendTo(
           WindowType.WMAIN,
+          JEvent.EVENT_UPDATE_ROOM,
+          {
+            live_status: 0,
+          }
+        )
+        this._window_manager.SendTo(
+          WindowType.WSETTING,
           JEvent.EVENT_UPDATE_ROOM,
           {
             live_status: 0,
