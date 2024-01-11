@@ -48,7 +48,10 @@
                             :src="qr_image"
                             style="width: 200px; height: 200px"
                           />
-                          <span x-text="qr_prompt"></span>
+                          <span
+                            style="margin-top: 16px"
+                            x-text="qr_prompt"
+                          ></span>
                         </div>
                       </div>
                       <div class="dialog-footer">
@@ -153,9 +156,41 @@
                         <span class="icon">&#xE768;</span>
                         <span class="desc">
                           <span>开播/关播</span>
+                          <span
+                            >当前不支持分区选择，开播会使用上次直播使用的分区</span
+                          >
                         </span>
                       </span>
-                      <button>开始直播</button>
+                      <button
+                        @click="toggleLive"
+                        x-text="room_info.live_status == 1 ? '关闭直播' : '开始直播'"
+                      ></button>
+                    </div>
+                  </div>
+                  <div class="dialog" x-show="face_dialog.show" x-transition>
+                    <div class="dialog-content">
+                      <div class="dialog-body">
+                        <div class="dialog-title">bilibili App 人脸认证</div>
+                        <div
+                          style="
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            padding-top: 16px;
+                          "
+                        >
+                          <img
+                            :src="face_dialog.face_auth_image"
+                            style="width: 200px; height: 200px"
+                          />
+                          <span style="margin-top: 16px"
+                            >验证完成后请关闭此窗口</span
+                          >
+                        </div>
+                      </div>
+                      <div class="dialog-footer">
+                        <button @click="face_dialog.show = false">关闭</button>
+                      </div>
                     </div>
                   </div>
                 </div>

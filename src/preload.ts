@@ -6,6 +6,8 @@ import GetInfoResponse from './lib/bilibili/api/room/get_info'
 import UserInfoResponse from './lib/bilibili/api/user/user_info'
 import { GiftInitData, GiftMessage, SuperChatMessage } from './lib/messages'
 import { GetGoalsResponse } from './lib/afdian/afdianapi'
+import StartLiveResponse from './lib/bilibili/api/room/start_live'
+import StopLiveResponse from './lib/bilibili/api/room/stop_live'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -48,6 +50,8 @@ export type JLiverAPI = {
     clearGifts: () => Promise<void>
     clearSuperChats: () => Promise<void>
     callCommand: (command: string) => Promise<void>
+    startLive: (area_v2: string) => Promise<StartLiveResponse>
+    stopLive: () => Promise<StopLiveResponse>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -214,6 +218,12 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     callCommand: (command: string) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_CALL_COMMAND], command)
+    },
+    startLive: (area_v2: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_START_LIVE], area_v2)
+    },
+    stopLive: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_STOP_LIVE])
     },
   },
   config: {
