@@ -82,6 +82,7 @@ button:hover {
 }
 
 #dropdown-content {
+  font-size: 14px;
   top: 26px;
   right: 24px;
   flex-direction: column;
@@ -121,7 +122,7 @@ button:hover {
   justify-content: space-between;
   color: var(--statusbar-font-color);
   background-color: var(--statusbar-color);
-  border-radius: 0 0 10px 10px;
+  border-radius: 0 0 6px 6px;
   box-sizing: border-box;
   border-top: 1px solid var(--border);
 }
