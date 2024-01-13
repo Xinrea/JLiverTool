@@ -306,7 +306,7 @@ button:hover {
   display: var(--interact-display);
 }
 
-#danmu {
+.danmu {
   position: relative;
   padding-top: 10px;
   flex-direction: column;
@@ -315,7 +315,11 @@ button:hover {
   overflow-y: auto;
 }
 
-#bottom-indicator {
+.danmu.lite {
+  height: 100%;
+}
+
+.bottom-indicator {
   cursor: pointer;
   align-items: center;
   justify-content: center;
@@ -327,6 +331,11 @@ button:hover {
   color: white;
   background-color: #00afeb;
   z-index: 2;
+}
+
+.bottom-indicator.lite {
+  bottom: 3px;
+  border-radius: 0 0 10px 10px;
 }
 
 .action {

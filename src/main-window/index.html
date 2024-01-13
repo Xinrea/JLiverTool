@@ -9,9 +9,12 @@
   <body x-data="appStatus">
     <div
       id="app"
-      :style="`--global-opacity: ${base.opacity}; --font-size: ${base.fontSize}px; --font: '${base.font}'`"
+      :style="`--global-opacity: ${base.opacity}; --font-size: ${base.fontSize}px; --font: '${base.font}';`"
     >
-      <div :class="base.live ? 'title-bar live' : 'title-bar'">
+      <div
+        class="title-bar"
+        :class="{'live': base.live, 'lite': base.lite_mode}"
+      >
         <div>
           <div id="live-text">LIVE</div>
           <div>
@@ -75,6 +78,18 @@
               style="-webkit-mask-image: url('../assets/icons/minimize.svg')"
             ></span>
           </div>
+          <div
+            id="lite-button"
+            class="title-button tooltip"
+            :class="values['lite-mode'] && 'enabled'"
+            @click="toggle('lite-mode')"
+          >
+            <span class="tooltip-text">精简模式</span>
+            <span
+              class="icon"
+              style="-webkit-mask-image: url('../assets/icons/lite.svg')"
+            ></span>
+          </div>
           <div id="dropdown" x-data="menu">
             <div
               id="cover"
@@ -124,7 +139,11 @@
           </div>
         </div>
       </div>
-      <div id="danmuSender" x-show="login" style="z-index: 90">
+      <div
+        id="danmuSender"
+        x-show="login && !base.lite_mode"
+        style="z-index: 90"
+      >
         <span>></span>
         <span
           class="input"
@@ -136,19 +155,21 @@
         </span>
       </div>
       <div
-        id="danmu"
+        class="danmu"
+        :class="base.lite_mode ? 'lite' : ''"
         @wheel="danmuPanel.scrollHandler()"
         :style="`--danmu-size: ${base.fontSize}px;`"
       ></div>
       <div
-        id="bottom-indicator"
+        class="bottom-indicator"
         @click="danmuPanel.enableAutoScroll()"
+        :class="base.lite_mode ? 'lite' : ''"
         x-show="!danmuPanel.autoScroll && danmuPanel.newDanmuCount>0"
       >
         <span id="danmu-count" x-text="danmuPanel.newDanmuCount">0</span>
         条新弹幕
       </div>
-      <div id="statusbar">
+      <div id="statusbar" x-show="!base.lite_mode">
         <div id="live-title" x-text="base.title"></div>
         <div
           class="tooltip"
