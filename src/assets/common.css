@@ -290,7 +290,7 @@ input[type='text']:focus {
   border-bottom: rgba(64, 84, 113, 0.6) 2px inset;
 }
 
-input[type='number'],
+input[type='number'].error,
 input[type='text'].error {
   border: rgba(122, 4, 35, 0.64) 1px solid;
   border-bottom: rgba(122, 4, 35, 0.64) 2px inset;
