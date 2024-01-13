@@ -22,9 +22,13 @@ export class DanmuCache {
       timestamp: Date.now(),
       content: content,
     })
-    if (cache.length > this._max_entries) {
+    while (cache.length > this._max_entries) {
       cache.shift()
     }
+  }
+
+  public updateMaxEntries(max_entries: number): void {
+    this._max_entries = max_entries
   }
 
   public remove(uid: number): void {

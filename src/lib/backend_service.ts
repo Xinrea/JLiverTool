@@ -57,11 +57,15 @@ export default class BackendService {
 
   private _font_list_cached: FontList = []
 
-  private _danmu_cache: DanmuCache = new DanmuCache()
+  private _danmu_cache: DanmuCache = null
 
   public constructor(store: ConfigStore, window_manager: WindowManager) {
     this._config_store = store
     this._window_manager = window_manager
+    this._danmu_cache = new DanmuCache(this._config_store.MaxDetailEntry)
+    this._config_store.onDidChange('config.max_detail_entry', (max: number) => {
+      this._danmu_cache.updateMaxEntries(max)
+    })
   }
 
   public async Start() {

@@ -392,7 +392,55 @@
               <div
                 style="display: flex; flex-direction: column; width: 100%"
                 x-data="advanced_setting"
-              ></div>
+              >
+                <div class="group multiple">
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE8A4;</span>
+                      <span class="desc">
+                        <span>主窗口最大弹幕数</span>
+                        <span>主窗口显示的弹幕最大数量，范围 50 ~ 5000</span>
+                      </span>
+                    </span>
+                    <input
+                      type="number"
+                      min="50"
+                      max="5000"
+                      :value="max_main_entry"
+                      @change="handleMaxMainEntry"
+                    />
+                  </div>
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE8A4;</span>
+                      <span class="desc">
+                        <span>详情窗口最大弹幕数</span>
+                        <span>详情窗口显示的弹幕最大数量，范围 50 ~ 5000</span>
+                      </span>
+                    </span>
+                    <input
+                      type="number"
+                      min="50"
+                      max="5000"
+                      :value="max_detail_entry"
+                      @change="handleMaxDetailEntry"
+                    />
+                  </div>
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE946;</span>
+                      <span class="desc">
+                        <span>日志等级</span>
+                      </span>
+                    </span>
+                    <select id="log_level" class="select" x-model="log_level">
+                      <template x-for="item in log_level_list">
+                        <option x-text="item"></option>
+                      </template>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="tab-wrap" x-show="active == 3">
               <div

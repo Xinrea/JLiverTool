@@ -28,17 +28,19 @@ class Store {
     this.web_contents = []
     this.registered_callbacks = new Map()
     this.initConfigHandlers()
-    log.debug('Config store initialized', { path: config_path })
+    // initialize log level
+    JLogger.updateLogLevel(this.get('config.log_level', 'info') as string)
+    this.onDidChange('config.log_level', (level: string) => {
+      JLogger.updateLogLevel(level)
+    })
   }
 
   private initConfigHandlers() {
     ipcMain.handle(JEvent[JEvent.INVOKE_STORE_GET], (_, key, d) => {
-      log.debug('store-get called', { key, d })
       return this.get(key, d)
     })
 
     ipcMain.handle(JEvent[JEvent.INVOKE_STORE_SET], (_, key, value) => {
-      log.debug('store-set called', { key, value })
       return this.set(key, value)
     })
 
@@ -165,6 +167,14 @@ export class ConfigStore {
   public get MergeRooms(): RoomID[] {
     const rooms = this._store.get('config.merge_rooms', []) as RoomID[]
     return rooms.map((room) => typecast(RoomID, room))
+  }
+
+  public get MaxDetailEntry(): number {
+    return this._store.get('config.max_detail_entry', 100) as number
+  }
+
+  public set MaxDetailEntry(n: number) {
+    this._store.set('config.max_detail_entry', n)
   }
 
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {

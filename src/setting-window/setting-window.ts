@@ -361,7 +361,84 @@ const window_setting = {
   },
 }
 
-const advanced_setting = {}
+const advanced_setting = {
+  _max_main_entry: 500,
+  _max_detail_entry: 100,
+  _log_level: 'info',
+  log_level_list: ['info', 'debug'],
+  async init() {
+    this._max_main_entry = await window.jliverAPI.get(
+      'config.max_main_entry',
+      200
+    )
+    this._max_detail_entry = await window.jliverAPI.get(
+      'config.max_detail_entry',
+      100
+    )
+    this._log_level = await window.jliverAPI.get('config.log_level', 'info')
+  },
+  get max_main_entry() {
+    return this._max_main_entry
+  },
+  set max_main_entry(v: number) {
+    this._max_main_entry = v
+    window.jliverAPI.set('config.max_main_entry', v)
+  },
+  get max_detail_entry() {
+    return this._max_detail_entry
+  },
+  set max_detail_entry(v: number) {
+    this._max_detail_entry = v
+    window.jliverAPI.set('config.max_detail_entry', v)
+  },
+  get log_level() {
+    return this._log_level
+  },
+  set log_level(v: string) {
+    this._log_level = v
+    window.jliverAPI.set('config.log_level', v)
+  },
+  handleMaxMainEntry(e: Event) {
+    const target = e.target as HTMLInputElement
+    let value = parseInt(target.value)
+    if (isNaN(value)) {
+      target.value = this.max_main_entry.toString()
+      return
+    }
+
+    if (value < 50) {
+      value = 50
+      target.value = '50'
+    }
+
+    if (value > 5000) {
+      value = 5000
+      target.value = '5000'
+    }
+
+    this.max_main_entry = value
+  },
+  handleMaxDetailEntry(e: Event) {
+    const target = e.target as HTMLInputElement
+    let value = parseInt(target.value)
+    if (isNaN(value)) {
+      target.value = this.max_detail_entry.toString()
+      return
+    }
+
+    if (value < 50) {
+      value = 50
+      target.value = '50'
+    }
+
+    if (value > 5000) {
+      value = 5000
+      target.value = '5000'
+    }
+
+    this.max_detail_entry = value
+  },
+}
 
 const about = {
   version: '-',

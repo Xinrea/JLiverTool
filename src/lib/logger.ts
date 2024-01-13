@@ -15,17 +15,18 @@ import JEvent from './events'
 // Initialize logger
 const logPath = app.getPath('logs')
 const logFilePath = path.join(logPath, 'JLiverTool.log')
-const dev = process.env.DEBUG === 'true'
 
 console.log('log file path:', logFilePath)
 
 class JLogger {
   private constructor() {}
+  private static loggerInstanceList: Logger[] = []
+  private static level: string = INFO
 
   public static getInstance(name: string): Logger {
-    return new Logger({
+    const instance = new Logger({
       name,
-      level: dev ? DEBUG : INFO,
+      level: this.level,
       outputs: [
         eventOutput(),
         consoleOutput(),
@@ -40,10 +41,19 @@ class JLogger {
         }),
       ],
     })
+    this.loggerInstanceList.push(instance)
+    return instance
   }
 
   public static getLogPath(): string {
     return logPath
+  }
+
+  public static updateLogLevel(level: string): void {
+    this.level = level
+    this.loggerInstanceList.forEach((logger) => {
+      logger.setLevel(level)
+    })
   }
 }
 

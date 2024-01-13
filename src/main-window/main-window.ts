@@ -105,6 +105,7 @@ const appStatus = {
     this.base.theme = initialConfig.theme || 'light'
     this.base.interact_display = initialConfig['interact-display'] || false
     this.base.ignore_free = initialConfig['ignore_free'] || true
+    this.danmuPanel.max_entries = initialConfig['max_main_entry'] || 200
 
     window.jliverAPI.onDidChange('config.login', (v: boolean) => {
       this.login = v
@@ -121,6 +122,12 @@ const appStatus = {
     window.jliverAPI.onDidChange('config.ignore_free', (newValue: boolean) => {
       this.base.ignore_free = newValue
     })
+    window.jliverAPI.onDidChange(
+      'config.max_main_entry',
+      (newValue: number) => {
+        this.danmuPanel.max_entries = newValue
+      }
+    )
     // Set theme class in html
     document.documentElement.classList.add(
       'theme-' + (this.base.theme || 'light')
@@ -232,6 +239,7 @@ const appStatus = {
     newDanmuCount: 0,
     autoScroll: true,
     scrollRemain: 0,
+    max_entries: 200,
     enableAutoScroll() {
       $danmuArea.scrollTop = $danmuArea.scrollHeight - $danmuArea.clientHeight
       this.scrollRemain = 0
@@ -267,8 +275,7 @@ const appStatus = {
     },
     doClean() {
       if (!this.autoScroll) this.newDanmuCount++
-      // Only display max 200 entries
-      if ($danmuArea.children.length > 200) {
+      while ($danmuArea.children.length > this.max_entries) {
         $danmuArea.removeChild($danmuArea.children[0])
       }
     },
