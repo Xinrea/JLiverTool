@@ -361,6 +361,8 @@ const window_setting = {
   },
 }
 
+const advanced_setting = {}
+
 const about = {
   version: '-',
   latest_version: '-',
@@ -401,6 +403,7 @@ Alpine.data('account_setting', (): any => account_setting)
 Alpine.data('merge_setting', (): any => merge_setting)
 Alpine.data('danmu_style_setting', (): any => danmu_style_setting)
 Alpine.data('window_setting', (): any => window_setting)
+Alpine.data('advanced_setting', (): any => advanced_setting)
 Alpine.data('about', (): any => about)
 Alpine.data('tab', (): any => ({
   active: 0,
@@ -415,6 +418,10 @@ Alpine.data('tab', (): any => ({
     },
     {
       id: 2,
+      text: '高级设置',
+    },
+    {
+      id: 3,
       text: '关于',
     },
   ],
