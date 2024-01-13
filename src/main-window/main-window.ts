@@ -26,6 +26,7 @@ const toggles = {
     this.values['always-on-top'] = config['always-on-top'] || false
     this.values['interact-display'] = config['interact-display'] || false
     this.values['medal-display'] = config['medal-display'] || false
+    this.values['lite-mode'] = config['lite-mode'] || false
 
     // always-on-top should be set after init
     window.jliverAPI.window.alwaysOnTop(
@@ -45,8 +46,10 @@ const toggles = {
     'always-on-top': false,
     'medal-display': false,
     'interact-display': false,
+    'lite-mode': false,
   },
   toggle(name: string) {
+    console.log('Toggle ' + name)
     this.values[name] = !this.values[name]
     window.jliverAPI.set(`config.${name}`, this.values[name])
     if (name == 'always-on-top') {
@@ -105,6 +108,7 @@ const appStatus = {
     this.base.theme = initialConfig.theme || 'light'
     this.base.interact_display = initialConfig['interact-display'] || false
     this.base.ignore_free = initialConfig['ignore_free'] || true
+    this.base.lite_mode = initialConfig['lite-mode'] || false
     this.danmuPanel.max_entries = initialConfig['max_main_entry'] || 200
 
     window.jliverAPI.onDidChange('config.login', (v: boolean) => {
@@ -128,6 +132,9 @@ const appStatus = {
         this.danmuPanel.max_entries = newValue
       }
     )
+    window.jliverAPI.onDidChange('config.lite-mode', (newValue: boolean) => {
+      this.base.lite_mode = newValue
+    })
     // Set theme class in html
     document.documentElement.classList.add(
       'theme-' + (this.base.theme || 'light')
@@ -228,6 +235,7 @@ const appStatus = {
     theme: 'light',
     interact_display: false,
     ignore_free: true,
+    lite_mode: false,
   },
   windowStatus: {
     gift: false,
@@ -373,4 +381,4 @@ Alpine.data('toggles', () => toggles)
 Alpine.data('menu', () => menu)
 Alpine.start()
 
-const $danmuArea = document.getElementById('danmu')
+const $danmuArea = document.getElementsByClassName('danmu')[0]

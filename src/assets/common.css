@@ -589,8 +589,12 @@ option {
   border-bottom: 1px solid var(--border);
 }
 
-.live {
+.title-bar.live {
   background-color: var(--live-color);
+}
+
+.title-bar.lite {
+  background-color: transparent;
 }
 
 #title {
