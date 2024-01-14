@@ -134,7 +134,7 @@ class Window {
       width: setting.size[0],
       height: setting.size[1],
       minHeight: 200,
-      minWidth: 380,
+      minWidth: 200,
       transparent: should_transparent,
       frame: should_frame,
       show: false,
