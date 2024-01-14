@@ -60,10 +60,15 @@ const app = {
       giftMap = new Map()
       this.initSuperchats()
     })
+    this.lite_mode = await window.jliverAPI.get('config.lite-mode', false)
+    window.jliverAPI.onDidChange('config.lite-mode', (newValue: boolean) => {
+      this.lite_mode = newValue
+    })
   },
   opacity: 1,
   font: 'system-ui',
   font_size: 14,
+  lite_mode: false,
   _theme: 'light',
   get theme() {
     return this._theme

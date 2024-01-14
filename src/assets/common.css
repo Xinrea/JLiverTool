@@ -594,7 +594,7 @@ option {
 }
 
 .title-bar.lite {
-  font-size: 6px;
+  font-size: 10px;
   min-height: 16px;
   background-color: rgba(0, 0, 0, 0.25);
 }
