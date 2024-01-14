@@ -109,5 +109,8 @@
     "uuid": "^8.3.2",
     "ws": "^8.14.2",
     "yaml": "^2.2.1"
+  },
+  "optionalDependencies": {
+    "dmg-license": "^1.0.11"
   }
 }
