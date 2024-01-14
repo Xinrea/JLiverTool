@@ -11,7 +11,7 @@
       id="app"
       :style="`--global-opacity: ${base.opacity}; --font: ${base.font}; --font-size: ${base.font_size}px; --filter-free: ${base.filterFree ? 'none' : 'flex'}`"
     >
-      <div class="title-bar">
+      <div class="title-bar" :class="{'lite': base.lite_mode}">
         <div>
           <div id="title">GIFT</div>
           <div

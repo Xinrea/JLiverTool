@@ -63,6 +63,10 @@ const appStatus = {
     window.jliverAPI.onDidChange('config.font_size', (newValue: number) => {
       this.font_size = newValue
     })
+    this.lite_mode = await window.jliverAPI.get('config.lite-mode', false)
+    window.jliverAPI.onDidChange('config.lite-mode', (newValue: boolean) => {
+      this.lite_mode = newValue
+    })
   },
   opacity: 1,
   font: 'system-ui',
@@ -70,6 +74,7 @@ const appStatus = {
   theme: 'light',
   detail_info: null,
   rate: 0,
+  lite_mode: false,
   hide() {
     window.jliverAPI.window.hide(WindowType.WDETAIL)
   },

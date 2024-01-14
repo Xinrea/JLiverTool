@@ -84,6 +84,10 @@ Alpine.data('appStatus', () => ({
       this.giftsCheck.clear()
       this.initGifts()
     })
+    this.base.lite_mode = await window.jliverAPI.get('config.lite-mode', false)
+    window.jliverAPI.onDidChange('config.lite-mode', (newValue: boolean) => {
+      this.base.lite_mode = newValue
+    })
   },
   base: {
     $panel: null,
@@ -101,6 +105,7 @@ Alpine.data('appStatus', () => ({
     lastSelected: null,
     lastPosition: 0,
     autoScroll: true,
+    lite_mode: false,
     _filter_free: true,
     scroll() {
       if (Math.ceil(this.$panel.scrollTop) == this.lastPosition) {
