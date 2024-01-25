@@ -127,6 +127,7 @@ export enum WindowType {
   WSUPERCHAT = 'superchat',
   WSETTING = 'setting',
   WDETAIL = 'detail',
+  WRANK = 'rank',
 }
 
 export enum RecordType {

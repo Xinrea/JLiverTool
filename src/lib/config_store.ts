@@ -18,6 +18,7 @@ DEFAULT_WINDOWSIZE[WindowType.WGIFT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [800, 400]
 DEFAULT_WINDOWSIZE[WindowType.WDETAIL] = [400, 300]
+DEFAULT_WINDOWSIZE[WindowType.WRANK] = [400, 300]
 
 const config_path = path.join(app.getPath('userData'), 'config_v2.json')
 

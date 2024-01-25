@@ -8,6 +8,7 @@ import { GiftInitData, GiftMessage, SuperChatMessage } from './lib/messages'
 import { GetGoalsResponse } from './lib/afdian/afdianapi'
 import StartLiveResponse from './lib/bilibili/api/room/start_live'
 import StopLiveResponse from './lib/bilibili/api/room/stop_live'
+import GetOnlineGoldRankResponse from './lib/bilibili/api/room/get_online_gold_rank'
 
 export type JLiverAPI = {
   get: (key: string, d: any) => any
@@ -52,6 +53,10 @@ export type JLiverAPI = {
     callCommand: (command: string) => Promise<void>
     startLive: (area_v2: string) => Promise<StartLiveResponse>
     stopLive: () => Promise<StopLiveResponse>
+    getRankList: (
+      page: number,
+      page_size: number
+    ) => Promise<GetOnlineGoldRankResponse>
   }
   util: {
     openUrl: (url: string) => Promise<any>
@@ -225,6 +230,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     stopLive: () => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_STOP_LIVE])
+    },
+    getRankList: (page: number, page_size: number) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_RANK], page, page_size)
     },
   },
   config: {

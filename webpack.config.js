@@ -12,6 +12,7 @@ const frontendConfig = {
     './src/setting-window/setting-window':
       './src/setting-window/setting-window.ts',
     './src/detail-window/detail-window': './src/detail-window/detail-window.ts',
+    './src/rank-window/rank-window': './src/rank-window/rank-window.ts',
   },
   module: {
     rules: [

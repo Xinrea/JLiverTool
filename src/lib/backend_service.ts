@@ -143,7 +143,6 @@ export default class BackendService {
     this._room = room
     this._config_store.Room = room
     this.updateRoomInfo()
-    this.updateOnlineNum()
     // if room is in merge rooms, release it
     for (const [merge_room, conn] of this._side_conns) {
       if (merge_room.getRealID() === room.getRealID()) {
@@ -280,21 +279,6 @@ export default class BackendService {
   private async releaseWebSocket() {
     this._primary_conn.Disconnect()
     log.debug('Websocket released', { room: this._room })
-  }
-
-  private async updateOnlineNum() {
-    const online_response = await BiliApi.GetOnlineGoldRank(
-      this._config_store.Cookies,
-      this._room
-    )
-    log.debug('Updating online number', {
-      online: online_response.data.onlineNum,
-    })
-    this._window_manager.SendTo(
-      WindowType.WMAIN,
-      JEvent.EVENT_UPDATE_ONLINE,
-      online_response.data
-    )
   }
 
   private async updateGiftList() {
@@ -515,6 +499,18 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_STOP_LIVE], async () => {
       return await BiliApi.StopRoomLive(this._config_store.Cookies, this._room)
     })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_GET_RANK],
+      async (_, page: number, page_size: number) => {
+        const resp = await BiliApi.GetOnlineGoldRank(
+          this._config_store.Cookies,
+          this._room,
+          page,
+          page_size
+        )
+        return resp
+      }
+    )
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
@@ -601,6 +597,9 @@ export default class BackendService {
           JEvent.EVENT_UPDATE_ONLINE,
           msg.data
         )
+        break
+      }
+      case 'ONLINE_RANK_V2': {
         break
       }
       case 'LIVE': {
@@ -824,8 +823,6 @@ export default class BackendService {
   }
 
   private entryEffectHandler(msg: any) {
-    log.debug('Received entry effect message', { msg })
-    this._danmu_cache.add(RecordType.ENTRY_EFFECT, msg.data.uid, `进入直播间`)
     // 荣耀等级进场特效
     if (msg.data.privilege_type === 0 && !this._config_store.LevelEffect) {
       return

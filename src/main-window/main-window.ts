@@ -117,6 +117,10 @@ const menu = {
           window.jliverAPI.window.show(WindowType.WSUPERCHAT)
           break
         }
+        case 'rank-window': {
+          window.jliverAPI.window.show(WindowType.WRANK)
+          break
+        }
         case 'setting-window': {
           window.jliverAPI.window.show(WindowType.WSETTING)
           break

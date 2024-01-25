@@ -48,6 +48,7 @@ enum JEvent {
   INVOKE_CALL_COMMAND,
   INVOKE_START_LIVE,
   INVOKE_STOP_LIVE,
+  INVOKE_GET_RANK,
 }
 
 export default JEvent
