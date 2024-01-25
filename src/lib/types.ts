@@ -127,6 +127,7 @@ export enum WindowType {
   WSUPERCHAT = 'superchat',
   WSETTING = 'setting',
   WDETAIL = 'detail',
+  WRANK = 'rank',
 }
 
 export enum RecordType {
@@ -135,6 +136,7 @@ export enum RecordType {
   SUPERCHAT = 2,
   GUARD = 3,
   INTERACT = 4,
+  ENTRY_EFFECT = 5,
 }
 
 export type DanmuRecord = {

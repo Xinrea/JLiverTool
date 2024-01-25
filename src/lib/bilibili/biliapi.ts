@@ -78,9 +78,11 @@ class BiliApi {
 
   public static async GetOnlineGoldRank(
     cookies: Cookies,
-    room: RoomID
+    room: RoomID,
+    page: number,
+    pageSize: number
   ): Promise<GetOnlineGoldRankResponse> {
-    const url = `https://api.live.bilibili.com/xlive/general-interface/v1/rank/getOnlineGoldRank?ruid=${room.getOwnerID()}&roomId=${room.getRealID()}&page=1&pageSize=1`
+    const url = `https://api.live.bilibili.com/xlive/general-interface/v1/rank/queryContributionRank?ruid=${room.getOwnerID()}&room_id=${room.getRealID()}&page=${page}&page_size=${pageSize}&type=online_rank&switch=contribution_rank`
     const options = {
       method: 'GET',
       headers: {

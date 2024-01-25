@@ -17,6 +17,7 @@ import { Cookies } from './types'
 import ConfigStore from './config_store'
 import {
   DanmuMessage,
+  EntryEffectMessage,
   GiftInitData,
   GiftMessage,
   GuardMessage,
@@ -142,7 +143,6 @@ export default class BackendService {
     this._room = room
     this._config_store.Room = room
     this.updateRoomInfo()
-    this.updateOnlineNum()
     // if room is in merge rooms, release it
     for (const [merge_room, conn] of this._side_conns) {
       if (merge_room.getRealID() === room.getRealID()) {
@@ -279,21 +279,6 @@ export default class BackendService {
   private async releaseWebSocket() {
     this._primary_conn.Disconnect()
     log.debug('Websocket released', { room: this._room })
-  }
-
-  private async updateOnlineNum() {
-    const online_response = await BiliApi.GetOnlineGoldRank(
-      this._config_store.Cookies,
-      this._room
-    )
-    log.debug('Updating online number', {
-      online: online_response.data.onlineNum,
-    })
-    this._window_manager.SendTo(
-      WindowType.WMAIN,
-      JEvent.EVENT_UPDATE_ONLINE,
-      online_response.data
-    )
   }
 
   private async updateGiftList() {
@@ -514,6 +499,18 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_STOP_LIVE], async () => {
       return await BiliApi.StopRoomLive(this._config_store.Cookies, this._room)
     })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_GET_RANK],
+      async (_, page: number, page_size: number) => {
+        const resp = await BiliApi.GetOnlineGoldRank(
+          this._config_store.Cookies,
+          this._room,
+          page,
+          page_size
+        )
+        return resp
+      }
+    )
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
@@ -544,24 +541,23 @@ export default class BackendService {
     if (!msg.cmd) {
       return
     }
-    // using includes to handle special messages generated during some events
-    if (msg.cmd.includes('DANMU_MSG')) {
-      this.danmuHandler(msg)
-      return
-    }
-    if (msg.cmd.includes('SEND_GIFT')) {
-      this.giftHandler(msg)
-      return
-    }
-    if (msg.cmd.includes('USER_TOAST_MSG')) {
-      this.guardHandler(msg)
-      return
-    }
-    if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
-      this.superchatHandler(msg)
-      return
-    }
     switch (msg.cmd) {
+      case 'DANMU_MSG': {
+        this.danmuHandler(msg)
+        break
+      }
+      case 'SEND_GIFT': {
+        this.giftHandler(msg)
+        break
+      }
+      case 'USER_TOAST_MSG': {
+        this.guardHandler(msg)
+        break
+      }
+      case 'SUPER_CHAT_MESSAGE': {
+        this.superchatHandler(msg)
+        break
+      }
       case 'WARNING': {
         log.warn('Received warning message', { msg })
         new Notification({
@@ -602,6 +598,9 @@ export default class BackendService {
         )
         break
       }
+      case 'ONLINE_RANK_V2': {
+        break
+      }
       case 'LIVE': {
         log.info('Received live start message', { msg })
         this._window_manager.SendTo(
@@ -640,6 +639,10 @@ export default class BackendService {
       }
       case 'INTERACT_WORD': {
         this.interactHandler(msg)
+        break
+      }
+      case 'ENTRY_EFFECT': {
+        this.entryEffectHandler(msg)
         break
       }
     }
@@ -792,7 +795,7 @@ export default class BackendService {
     // store superchat message
     this._gift_store.Push(superchat_msg)
     this._danmu_cache.add(
-      RecordType.GUARD,
+      RecordType.SUPERCHAT,
       superchat_msg.sender.uid,
       `发送了醒目留言[${superchat_msg.price}元]: ${superchat_msg.message}`
     )
@@ -812,9 +815,31 @@ export default class BackendService {
       interact_msg
     )
     this._danmu_cache.add(
-      RecordType.GUARD,
+      RecordType.INTERACT,
       interact_msg.sender.uid,
       `${InteractActionToStr(interact_msg.action)}直播间`
+    )
+  }
+
+  private entryEffectHandler(msg: any) {
+    // 荣耀等级进场特效
+    if (msg.data.privilege_type === 0 && !this._config_store.LevelEffect) {
+      return
+    }
+    // 舰队进场特效
+    if (!this._config_store.GuardEffect) {
+      return
+    }
+    const entry_effect_msg = new EntryEffectMessage()
+    entry_effect_msg.sender = new Sender()
+    entry_effect_msg.sender.uid = msg.data.uid
+    entry_effect_msg.sender.uname = msg.data.uinfo.base.name
+    entry_effect_msg.sender.face = msg.data.face
+    entry_effect_msg.privilege_type = msg.data.privilege_type
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_ENTRY_EFFECT,
+      entry_effect_msg
     )
   }
 

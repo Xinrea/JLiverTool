@@ -20,6 +20,8 @@ function WindowTypeTitle(win_type: WindowType): string {
       return 'setting'
     case WindowType.WDETAIL:
       return 'detail'
+    case WindowType.WRANK:
+      return 'rank'
     default:
   }
   throw new Error('Invalid WindowType')
@@ -221,6 +223,7 @@ export class WindowManager {
   private _superchat_window: Window
   private _setting_window: Window
   private _detail_windows: Window
+  private _rank_window: Window
   private _main_loaded_callback: Function
   private _gift_loaded_callback: Function
   private _superchat_loaded_callback: Function
@@ -265,6 +268,11 @@ export class WindowManager {
       WindowType.WDETAIL,
       this._config_store
     )
+    this._rank_window = new Window(
+      this._main_window,
+      WindowType.WRANK,
+      this._config_store
+    )
     this.registerEvents()
   }
 
@@ -306,6 +314,14 @@ export class WindowManager {
       }
       case WindowType.WSETTING: {
         target_window = this._setting_window
+        break
+      }
+      case WindowType.WDETAIL: {
+        target_window = this._detail_windows
+        break
+      }
+      case WindowType.WRANK: {
+        target_window = this._rank_window
         break
       }
       default: {
@@ -413,6 +429,10 @@ export class WindowManager {
         this._detail_windows.show = show
         return
       }
+      case WindowType.WRANK: {
+        this._rank_window.show = show
+        return
+      }
     }
   }
 
@@ -432,6 +452,10 @@ export class WindowManager {
       }
       case WindowType.WSETTING: {
         this._setting_window.setIgnoreMouseEvents(click_through)
+        return
+      }
+      case WindowType.WDETAIL: {
+        this._detail_windows.setIgnoreMouseEvents(click_through)
         return
       }
     }
@@ -455,6 +479,14 @@ export class WindowManager {
         this._setting_window.minimize()
         return
       }
+      case WindowType.WDETAIL: {
+        this._detail_windows.minimize()
+        return
+      }
+      case WindowType.WRANK: {
+        this._rank_window.minimize()
+        return
+      }
     }
   }
 
@@ -470,5 +502,6 @@ export class WindowManager {
     this._superchat_window.close()
     this._setting_window.close()
     this._detail_windows.close()
+    this._rank_window.close()
   }
 }

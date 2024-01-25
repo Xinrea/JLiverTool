@@ -201,91 +201,95 @@
                 >
                   <div class="group-label">弹幕聚合</div>
                   <div class="group-items">
-                    <div class="group-item">
-                      <span class="group-desc">
-                        <span class="icon">&#xEA3C;</span>
-                        <span class="desc">
-                          <span>开启聚合</span>
-                          <span>将多个直播间的弹幕集中显示，适合联动使用</span>
-                        </span>
-                      </span>
-                      <input
-                        id="merge_switch"
-                        type="checkbox"
-                        class="switch"
-                        x-model="enable"
-                      />
-                    </div>
-                    <div class="group-item" x-show="enable">
-                      <div style="display: flex; flex-direction: column">
-                        <span class="group-desc" style="margin-bottom: 8px">
+                    <div class="item-group">
+                      <div class="group-item">
+                        <span class="group-desc">
+                          <span class="icon">&#xEA3C;</span>
                           <span class="desc">
-                            <span>次直播间列表</span>
-                            <span>仅显示次直播间弹幕，最多支持 5 个</span>
+                            <span>开启聚合</span>
+                            <span
+                              >将多个直播间的弹幕集中显示，适合联动使用</span
+                            >
                           </span>
                         </span>
-                        <div
-                          style="
-                            display: flex;
-                            flex-direction: row;
-                            margin-bottom: 6px;
-                            align-items: center;
-                          "
-                        >
-                          <input
-                            type="text"
-                            x-model="to_add"
-                            @keyup.enter="add"
-                            :class="{'error': error}"
-                          />
-                          <button
-                            style="margin-left: 6px"
-                            @click="add"
-                            :class="{'disable': room_list.length >= 5}"
+                        <input
+                          id="merge_switch"
+                          type="checkbox"
+                          class="switch"
+                          x-model="enable"
+                        />
+                      </div>
+                      <div class="group-item" x-show="enable">
+                        <div style="display: flex; flex-direction: column">
+                          <span class="group-desc" style="margin-bottom: 8px">
+                            <span class="desc">
+                              <span>次直播间列表</span>
+                              <span>仅显示次直播间弹幕，最多支持 5 个</span>
+                            </span>
+                          </span>
+                          <div
+                            style="
+                              display: flex;
+                              flex-direction: row;
+                              margin-bottom: 6px;
+                              align-items: center;
+                            "
                           >
-                            新增
-                          </button>
-                        </div>
-                        <ul
-                          id="room_list"
-                          style="
-                            min-height: 190px;
-                            max-height: 400px;
-                            overflow: auto;
-                          "
-                        >
-                          <template x-for="(item, index) in room_list">
-                            <li>
-                              <div
-                                style="
-                                  display: flex;
-                                  flex-direction: row;
-                                  align-items: center;
-                                  justify-content: space-between;
-                                  width: 100%;
-                                "
-                              >
-                                <span
-                                  ><span
-                                    style="
-                                      vertical-align: middle;
-                                      margin-right: 6px;
-                                    "
-                                    :style="{color: 'var(--merge-color-' + index + ')'}"
-                                    >&#xEA3B;</span
-                                  >[<span x-text="item.room.getID()"></span>]
-                                  <span x-text="item.name"></span
-                                ></span>
-                                <button
-                                  style="margin-left: 12px; padding: 8px"
-                                  @click="remove(index)"
+                            <input
+                              type="text"
+                              x-model="to_add"
+                              @keyup.enter="add"
+                              :class="{'error': error}"
+                            />
+                            <button
+                              style="margin-left: 6px"
+                              @click="add"
+                              :class="{'disable': room_list.length >= 5}"
+                            >
+                              新增
+                            </button>
+                          </div>
+                          <ul
+                            id="room_list"
+                            style="
+                              min-height: 190px;
+                              max-height: 400px;
+                              overflow: auto;
+                            "
+                          >
+                            <template x-for="(item, index) in room_list">
+                              <li>
+                                <div
+                                  style="
+                                    display: flex;
+                                    flex-direction: row;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    width: 100%;
+                                  "
                                 >
-                                  &#xE74D;
-                                </button>
-                              </div>
-                            </li>
-                          </template>
-                        </ul>
+                                  <span
+                                    ><span
+                                      style="
+                                        vertical-align: middle;
+                                        margin-right: 6px;
+                                      "
+                                      :style="{color: 'var(--merge-color-' + index + ')'}"
+                                      >&#xEA3B;</span
+                                    >[<span x-text="item.room.getID()"></span>]
+                                    <span x-text="item.name"></span
+                                  ></span>
+                                  <button
+                                    style="margin-left: 12px; padding: 8px"
+                                    @click="remove(index)"
+                                  >
+                                    &#xE74D;
+                                  </button>
+                                </div>
+                              </li>
+                            </template>
+                          </ul>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -293,6 +297,110 @@
               </div>
             </div>
             <div class="tab-wrap" x-show="active == 1">
+              <div style="display: flex; flex-direction: column; width: 100%">
+                <div class="group" x-data="window_display_setting">
+                  <div class="group-label">弹幕窗口设置</div>
+                  <div class="group-items">
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span
+                          class="icon"
+                          style="
+                            background-color: white;
+                            scale: 1.2;
+                            -webkit-mask-image: url('../assets/icons/lite.svg');
+                          "
+                        ></span>
+                        <span class="desc">
+                          <span>精简模式</span>
+                          <span>简化弹幕窗口的显示</span>
+                        </span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        class="switch"
+                        x-model="lite_mode"
+                      />
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span
+                          class="icon"
+                          style="
+                            background-color: white;
+                            scale: 1.2;
+                            -webkit-mask-image: url('../assets/icons/medal.svg');
+                          "
+                        ></span>
+                        <span class="desc">
+                          <span>勋章显示</span>
+                          <span>如果弹幕佩戴了粉丝勋章则进行显示</span>
+                        </span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        class="switch"
+                        x-model="medal_display"
+                      />
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE8B0;</span>
+                        <span class="desc">
+                          <span>交互信息</span>
+                          <span
+                            >是否显示普通用户进入直播间或者关注直播间的提示</span
+                          >
+                        </span>
+                      </span>
+                      <input
+                        type="checkbox"
+                        class="switch"
+                        x-model="interact_display"
+                      />
+                    </div>
+                    <div class="item-group">
+                      <div class="group-item">
+                        <span class="group-desc">
+                          <span class="icon">&#xF4A5;</span>
+                          <span class="desc">
+                            <span>入场特效</span>
+                            <span>特殊的进入直播间提示</span>
+                          </span>
+                        </span>
+                      </div>
+                      <div class="group-item">
+                        <span class="group-desc">
+                          <span class="desc">
+                            <span>舰长特效</span>
+                            <span>大航海进入直播间提示</span>
+                          </span>
+                        </span>
+                        <input
+                          type="checkbox"
+                          class="switch"
+                          x-model="guard_effect"
+                        />
+                      </div>
+                      <div class="group-item">
+                        <span class="group-desc">
+                          <span class="desc">
+                            <span>荣耀等级特效</span>
+                            <span>荣耀等级进入直播间提示</span>
+                          </span>
+                        </span>
+                        <input
+                          type="checkbox"
+                          class="switch"
+                          x-model="level_effect"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-wrap" x-show="active == 2">
               <div style="display: flex; flex-direction: column; width: 100%">
                 <div class="group multiple" x-data="danmu_style_setting">
                   <div class="group-label">弹幕设置</div>
@@ -388,7 +496,7 @@
                 </div>
               </div>
             </div>
-            <div class="tab-wrap" x-show="active == 2">
+            <div class="tab-wrap" x-show="active == 3">
               <div
                 style="display: flex; flex-direction: column; width: 100%"
                 x-data="advanced_setting"
@@ -442,7 +550,7 @@
                 </div>
               </div>
             </div>
-            <div class="tab-wrap" x-show="active == 3">
+            <div class="tab-wrap" x-show="active == 4">
               <div
                 style="display: flex; flex-direction: column; width: 100%"
                 x-data="about"

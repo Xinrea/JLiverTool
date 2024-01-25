@@ -43,18 +43,6 @@
             ></span>
           </div>
           <div
-            id="enter-button"
-            class="title-button tooltip"
-            :class="values['interact-display'] && 'enabled'"
-            @click="toggle('interact-display')"
-          >
-            <span class="tooltip-text" x-text="l.texts.ENTER_INFO"></span>
-            <span
-              class="icon"
-              style="-webkit-mask-image: url('../assets/icons/enter.svg')"
-            ></span>
-          </div>
-          <div
             id="top-button"
             class="title-button tooltip"
             :class="values['always-on-top'] && 'enabled'"
@@ -127,6 +115,12 @@
                 href="#"
                 @click="click"
                 x-text="l.texts.SUPERCHAT_WINDOW"
+              ></a>
+              <a
+                id="rank-window"
+                href="#"
+                @click="click"
+                x-text="l.texts.RANK_WINDOW"
               ></a>
               <a
                 id="setting-window"

@@ -18,6 +18,7 @@ DEFAULT_WINDOWSIZE[WindowType.WGIFT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSUPERCHAT] = [400, 300]
 DEFAULT_WINDOWSIZE[WindowType.WSETTING] = [800, 400]
 DEFAULT_WINDOWSIZE[WindowType.WDETAIL] = [400, 300]
+DEFAULT_WINDOWSIZE[WindowType.WRANK] = [400, 300]
 
 const config_path = path.join(app.getPath('userData'), 'config_v2.json')
 
@@ -74,6 +75,7 @@ class Store {
     if (!fs.existsSync(config_path)) {
       fs.writeFileSync(config_path, '{}')
     }
+    log.debug('update config', { key, value })
     const configJson = fs.readFileSync(config_path, 'utf8')
     const configJs = JSON.parse(configJson)
     const keys = key.split('.')
@@ -175,6 +177,14 @@ export class ConfigStore {
 
   public set MaxDetailEntry(n: number) {
     this._store.set('config.max_detail_entry', n)
+  }
+
+  public get GuardEffect(): boolean {
+    return this._store.get('config.guard-effect', true) as boolean
+  }
+
+  public get LevelEffect(): boolean {
+    return this._store.get('config.level-effect', true) as boolean
   }
 
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {

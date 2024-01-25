@@ -8,6 +8,7 @@ const zh = {
   PINNED: '置顶',
   GIFT_WINDOW: '礼物窗口',
   SUPERCHAT_WINDOW: '醒目留言窗口',
+  RANK_WINDOW: '高能榜窗口',
   SETTING: '设置',
   EXPORT_GIFT: '导出礼物记录',
   QUIT: '退出',

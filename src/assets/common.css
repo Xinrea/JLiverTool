@@ -203,7 +203,7 @@ textarea,
 
 .group-label {
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 
 .group-items {
@@ -215,6 +215,7 @@ textarea,
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-top: 6px;
   padding: 16px;
   background-color: rgba(56, 56, 56, 0.4);
   border-radius: 4px;
@@ -222,16 +223,23 @@ textarea,
   overflow: hidden;
 }
 
-.group.multiple .group-item {
-  border-radius: 0;
-  margin-bottom: 2px;
+.item-group {
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
 }
 
-.group.multiple .group-item:first-child {
+.item-group .group-item {
+  border-radius: 0;
+  margin-bottom: 2px;
+  margin-top: 0;
+}
+
+.item-group .group-item:first-child {
   border-radius: 4px 4px 0 0;
 }
 
-.group.multiple .group-item:last-child {
+.item-group .group-item:last-child {
   border-radius: 0 0 4px 4px;
 }
 
@@ -696,6 +704,7 @@ option {
   margin: 10px;
   cursor: pointer;
   transition: all 0.3s ease-in-out;
+  content-visibility: auto;
 }
 
 .sc-entry:hover {

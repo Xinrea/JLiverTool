@@ -213,6 +213,7 @@ button:hover {
   animation: ani 0.5s;
   animation-fill-mode: forwards;
   word-break: break-all;
+  content-visibility: auto;
 }
 
 .danmu_entry.special {
@@ -271,6 +272,16 @@ button:hover {
   border-radius: 50%;
   background-color: var(--merge-color-4);
   margin-right: 8px;
+}
+
+.sender-icon {
+  display: inline-block;
+  width: calc(var(--danmu-size) + 4px);
+  height: calc(var(--danmu-size) + 4px);
+  margin-left: 2px;
+  margin-right: 2px;
+  background-size: contain;
+  vertical-align: middle;
 }
 
 .reply {

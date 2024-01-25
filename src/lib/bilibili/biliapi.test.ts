@@ -43,7 +43,9 @@ describe('BiliApi', function () {
     it('🤔should get response with correct value', async function () {
       const resp = await BiliApi.GetOnlineGoldRank(
         new Cookies({}),
-        DefaultRoomID
+        DefaultRoomID,
+        1,
+        1
       )
       resp.code.should.eq(0)
     })
