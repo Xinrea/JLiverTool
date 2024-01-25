@@ -3,6 +3,9 @@
 #app {
   flex-direction: column;
   background-color: rgba(var(--main-bg), var(--global-opacity));
+  box-sizing: border-box;
+  border: 2px solid var(--border);
+  border-radius: 10px;
 }
 
 .title-bar {
