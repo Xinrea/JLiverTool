@@ -541,24 +541,23 @@ export default class BackendService {
     if (!msg.cmd) {
       return
     }
-    // using includes to handle special messages generated during some events
-    if (msg.cmd.includes('DANMU_MSG')) {
-      this.danmuHandler(msg)
-      return
-    }
-    if (msg.cmd.includes('SEND_GIFT')) {
-      this.giftHandler(msg)
-      return
-    }
-    if (msg.cmd.includes('USER_TOAST_MSG')) {
-      this.guardHandler(msg)
-      return
-    }
-    if (msg.cmd.includes('SUPER_CHAT_MESSAGE')) {
-      this.superchatHandler(msg)
-      return
-    }
     switch (msg.cmd) {
+      case 'DANMU_MSG': {
+        this.danmuHandler(msg)
+        break
+      }
+      case 'SEND_GIFT': {
+        this.giftHandler(msg)
+        break
+      }
+      case 'USER_TOAST_MSG': {
+        this.guardHandler(msg)
+        break
+      }
+      case 'SUPER_CHAT_MESSAGE': {
+        this.superchatHandler(msg)
+        break
+      }
       case 'WARNING': {
         log.warn('Received warning message', { msg })
         new Notification({
