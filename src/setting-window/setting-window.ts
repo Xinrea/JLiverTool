@@ -303,6 +303,80 @@ const merge_setting = {
   },
 }
 
+const window_display_setting = {
+  async init() {
+    this._lite_mode = await window.jliverAPI.get('config.lite-mode', false)
+    this._medal_display = await window.jliverAPI.get(
+      'config.medal-display',
+      true
+    )
+    this._interact_display = await window.jliverAPI.get(
+      'config.interact-display',
+      false
+    )
+    this._guard_effect = await window.jliverAPI.get('config.guard-effect', true)
+    this._level_effect = await window.jliverAPI.get(
+      'config.level-effect',
+      false
+    )
+    window.jliverAPI.onDidChange('config.lite-mode', (v: boolean) => {
+      this._lite_mode = v
+    })
+    window.jliverAPI.onDidChange('config.medal-display', (v: boolean) => {
+      this._medal_display = v
+    })
+    window.jliverAPI.onDidChange('config.interact-display', (v: boolean) => {
+      this._interact_display = v
+    })
+    window.jliverAPI.onDidChange('config.guard-effect', (v: boolean) => {
+      this._guard_effect = v
+    })
+    window.jliverAPI.onDidChange('config.level-effect', (v: boolean) => {
+      this._level_effect = v
+    })
+  },
+  _lite_mode: false,
+  _medal_display: true,
+  _interact_display: false,
+  _guard_effect: true,
+  _level_effect: false,
+  get lite_mode() {
+    return this._lite_mode
+  },
+  set lite_mode(v: boolean) {
+    this._lite_mode = v
+    window.jliverAPI.set('config.lite-mode', v)
+  },
+  get medal_display() {
+    return this._medal_display
+  },
+  set medal_display(v: boolean) {
+    this._medal_display = v
+    window.jliverAPI.set('config.medal-display', v)
+  },
+  get interact_display() {
+    return this._interact_display
+  },
+  set interact_display(v: boolean) {
+    this._interact_display = v
+    window.jliverAPI.set('config.interact-display', v)
+  },
+  get guard_effect() {
+    return this._guard_effect
+  },
+  set guard_effect(v: boolean) {
+    this._guard_effect = v
+    window.jliverAPI.set('config.guard-effect', v)
+  },
+  get level_effect() {
+    return this._level_effect
+  },
+  set level_effect(v: boolean) {
+    this._level_effect = v
+    window.jliverAPI.set('config.level-effect', v)
+  },
+}
+
 const danmu_style_setting = {
   async init() {
     // get all fonts in web
@@ -477,6 +551,7 @@ const about = {
 Alpine.data('app', (): any => app)
 Alpine.data('room_setting', (): any => room_setting)
 Alpine.data('account_setting', (): any => account_setting)
+Alpine.data('window_display_setting', (): any => window_display_setting)
 Alpine.data('merge_setting', (): any => merge_setting)
 Alpine.data('danmu_style_setting', (): any => danmu_style_setting)
 Alpine.data('window_setting', (): any => window_setting)
@@ -491,14 +566,18 @@ Alpine.data('tab', (): any => ({
     },
     {
       id: 1,
-      text: '外观设置',
+      text: '窗口设置',
     },
     {
       id: 2,
-      text: '高级设置',
+      text: '外观设置',
     },
     {
       id: 3,
+      text: '高级设置',
+    },
+    {
+      id: 4,
       text: '关于',
     },
   ],

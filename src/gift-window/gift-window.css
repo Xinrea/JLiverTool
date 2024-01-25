@@ -37,6 +37,7 @@
   flex-direction: column;
   transition: all 0.2s ease-in-out;
   font-size: calc(var(--font-size) - 2px);
+  content-visibility: auto;
 }
 
 .gift-entry.free {

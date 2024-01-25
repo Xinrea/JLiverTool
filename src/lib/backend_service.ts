@@ -17,6 +17,7 @@ import { Cookies } from './types'
 import ConfigStore from './config_store'
 import {
   DanmuMessage,
+  EntryEffectMessage,
   GiftInitData,
   GiftMessage,
   GuardMessage,
@@ -642,6 +643,10 @@ export default class BackendService {
         this.interactHandler(msg)
         break
       }
+      case 'ENTRY_EFFECT': {
+        this.entryEffectHandler(msg)
+        break
+      }
     }
   }
 
@@ -792,7 +797,7 @@ export default class BackendService {
     // store superchat message
     this._gift_store.Push(superchat_msg)
     this._danmu_cache.add(
-      RecordType.GUARD,
+      RecordType.SUPERCHAT,
       superchat_msg.sender.uid,
       `发送了醒目留言[${superchat_msg.price}元]: ${superchat_msg.message}`
     )
@@ -812,9 +817,33 @@ export default class BackendService {
       interact_msg
     )
     this._danmu_cache.add(
-      RecordType.GUARD,
+      RecordType.INTERACT,
       interact_msg.sender.uid,
       `${InteractActionToStr(interact_msg.action)}直播间`
+    )
+  }
+
+  private entryEffectHandler(msg: any) {
+    log.debug('Received entry effect message', { msg })
+    this._danmu_cache.add(RecordType.ENTRY_EFFECT, msg.data.uid, `进入直播间`)
+    // 荣耀等级进场特效
+    if (msg.data.privilege_type === 0 && !this._config_store.LevelEffect) {
+      return
+    }
+    // 舰队进场特效
+    if (!this._config_store.GuardEffect) {
+      return
+    }
+    const entry_effect_msg = new EntryEffectMessage()
+    entry_effect_msg.sender = new Sender()
+    entry_effect_msg.sender.uid = msg.data.uid
+    entry_effect_msg.sender.uname = msg.data.uinfo.base.name
+    entry_effect_msg.sender.face = msg.data.face
+    entry_effect_msg.privilege_type = msg.data.privilege_type
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_NEW_ENTRY_EFFECT,
+      entry_effect_msg
     )
   }
 

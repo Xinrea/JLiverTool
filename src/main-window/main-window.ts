@@ -13,6 +13,7 @@ import { Languages, LanguageType } from '../lib/i18n'
 import { WindowType } from '../lib/types'
 import {
   DanmuMessage,
+  EntryEffectMessage,
   GiftMessage,
   GuardMessage,
   InteractMessage,
@@ -22,25 +23,48 @@ import {
 const toggles = {
   async init() {
     console.log('Init toggles')
-    const config = await window.jliverAPI.get('config', {})
-    this.values['always-on-top'] = config['always-on-top'] || false
-    this.values['interact-display'] = config['interact-display'] || false
-    this.values['medal-display'] = config['medal-display'] || false
-    this.values['lite-mode'] = config['lite-mode'] || false
+    this.values['always-on-top'] = await window.jliverAPI.get(
+      'config.always-on-top',
+      false
+    )
+    window.jliverAPI.onDidChange(
+      'config.always-on-top',
+      (newValue: boolean) => {
+        this.values['always-on-top'] = newValue
+      }
+    )
+    this.values['interact-display'] = await window.jliverAPI.get(
+      'config.interact-display',
+      false
+    )
+    window.jliverAPI.onDidChange(
+      'config.interact-display',
+      (newValue: boolean) => {
+        this.values['interact-display'] = newValue
+      }
+    )
+    this.values['medal-display'] = await window.jliverAPI.get(
+      'config.medal-display',
+      false
+    )
+    window.jliverAPI.onDidChange(
+      'config.medal-display',
+      (newValue: boolean) => {
+        this.values['medal-display'] = newValue
+        this.updateMedalDisplay()
+      }
+    )
+    this.values['lite-mode'] = await window.jliverAPI.get(
+      'config.lite-mode',
+      false
+    )
+    window.jliverAPI.onDidChange('config.lite-mode', (newValue: boolean) => {
+      this.values['lite-mode'] = newValue
+    })
 
     // always-on-top should be set after init
-    window.jliverAPI.window.alwaysOnTop(
-      WindowType.WMAIN,
-      this.values['always-on-top']
-    )
-    window.jliverAPI.window.minimizable(
-      WindowType.WMAIN,
-      !this.values['always-on-top']
-    )
-    document.documentElement.style.setProperty(
-      '--medal-display',
-      this.values['medal-display'] ? 'inline-block' : 'none'
-    )
+    this.updateWindowSetting()
+    this.updateMedalDisplay()
   },
   values: {
     'always-on-top': false,
@@ -51,17 +75,30 @@ const toggles = {
   toggle(name: string) {
     console.log('Toggle ' + name)
     this.values[name] = !this.values[name]
-    window.jliverAPI.set(`config.${name}`, this.values[name])
     if (name == 'always-on-top') {
-      window.jliverAPI.window.alwaysOnTop(WindowType.WMAIN, this.values[name])
-      window.jliverAPI.window.minimizable(WindowType.WMAIN, !this.values[name])
+      this.updateWindowSetting()
+      return
     }
+    window.jliverAPI.set('config.' + name, this.values[name])
     if (name == 'medal-display') {
-      document.documentElement.style.setProperty(
-        '--medal-display',
-        this.values[name] ? 'inline-block' : 'none'
-      )
+      this.updateMedalDisplay()
     }
+  },
+  updateWindowSetting() {
+    window.jliverAPI.window.alwaysOnTop(
+      WindowType.WMAIN,
+      this.values['always-on-top']
+    )
+    window.jliverAPI.window.minimizable(
+      WindowType.WMAIN,
+      !this.values['always-on-top']
+    )
+  },
+  updateMedalDisplay() {
+    document.documentElement.style.setProperty(
+      '--medal-display',
+      this.values['medal-display'] ? 'inline-block' : 'none'
+    )
   },
 }
 
@@ -202,6 +239,12 @@ const appStatus = {
         this.onReceiveInteract(arg)
       }
     )
+    window.jliverAPI.register(
+      JEvent.EVENT_NEW_ENTRY_EFFECT,
+      (arg: EntryEffectMessage) => {
+        this.onReceiveEffect(arg)
+      }
+    )
 
     console.log('Init smooth scroll')
     setInterval(() => {
@@ -312,9 +355,9 @@ const appStatus = {
     const $newEntry = createInteractEntry(interact_msg)
     this.danmuPanel.handleNewEntry($newEntry)
   },
-  onReceiveEffect(content: string) {
+  onReceiveEffect(entry_effect_msg: EntryEffectMessage) {
     this.danmuPanel.doClean()
-    const $newEntry = createEffectEntry(content)
+    const $newEntry = createEffectEntry(entry_effect_msg)
     this.danmuPanel.handleNewEntry($newEntry)
   },
   onReceiveNewGift(gift: GiftMessage) {

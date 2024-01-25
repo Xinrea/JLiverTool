@@ -67,6 +67,7 @@
   font-family: var(--font);
   font-size: var(--font-size);
   transition: all 0.2s ease 0s;
+  content-visibility: auto;
 }
 
 .danmu-item:hover {

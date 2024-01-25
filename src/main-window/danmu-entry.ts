@@ -1,7 +1,12 @@
 import { renderContent } from '../lib/common/content-render'
 import { createMedal } from '../lib/common/medal'
 import JEvent from '../lib/events'
-import { GiftMessage, GuardMessage, InteractMessage } from '../lib/messages'
+import {
+  EntryEffectMessage,
+  GiftMessage,
+  GuardMessage,
+  InteractMessage,
+} from '../lib/messages'
 import { EmojiContent, MedalInfo, Sender } from '../lib/types'
 import { levelToIconURL, levelToName } from '../lib/utils'
 
@@ -65,11 +70,8 @@ export function createInteractEntry(msg: InteractMessage) {
   return doCreateInteractEntry(msg)
 }
 
-export function createEffectEntry(content: string) {
-  // TODO: need a better way to handle this
-  const fake_sender = new Sender()
-  fake_sender.uname = content
-  return createDanmuEntry(-1, false, null, fake_sender, null, null)
+export function createEffectEntry(msg: EntryEffectMessage) {
+  return doCreateEnterEffectEntry(msg)
 }
 
 export const giftCache = new Map()
@@ -89,13 +91,10 @@ export function createGuardEntry(g: GuardMessage) {
 function doCreateInteractEntry(msg: InteractMessage) {
   const danmuEntry = document.createElement('span')
   danmuEntry.className = 'danmu_entry interact'
-  // check medal
-  if (msg.sender.medal_info && msg.sender.medal_info.is_lighted) {
-    danmuEntry.appendChild(createMedal(msg.sender.medal_info))
-  }
   const danmuSender = document.createElement('span')
   danmuSender.className = 'sender'
   danmuSender.innerText = msg.sender.uname
+  danmuSender.style.color = 'var(--font-color)'
   danmuEntry.appendChild(danmuSender)
   // Content
   const danmuContent = document.createElement('span')
@@ -105,8 +104,32 @@ function doCreateInteractEntry(msg: InteractMessage) {
   } else {
     danmuContent.innerText = '进入了直播间'
   }
-  danmuContent.style.color = 'var(--uname-color)'
   danmuContent.style.marginLeft = '8px'
+  danmuEntry.appendChild(danmuContent)
+  danmuEntry.addEventListener('dblclick', () => {
+    window.jliverAPI.window.windowDetail(msg.sender.uid)
+  })
+  return danmuEntry
+}
+
+function doCreateEnterEffectEntry(msg: EntryEffectMessage) {
+  const danmuEntry = document.createElement('span')
+  danmuEntry.className = 'danmu_entry interact'
+  if (msg.privilege_type !== 0) {
+    const effectIcon = document.createElement('span')
+    effectIcon.className = 'sender-icon'
+    effectIcon.style.backgroundImage = `url(${levelToIconURL(
+      msg.privilege_type
+    )})`
+    danmuEntry.appendChild(effectIcon)
+  }
+  // Content
+  const danmuContent = document.createElement('span')
+  danmuContent.className = 'content'
+  danmuContent.innerText = `${levelToName(msg.privilege_type)} ${
+    msg.sender.uname
+  } 进入直播间`
+  danmuContent.style.color = 'var(--uname-color)'
   danmuEntry.appendChild(danmuContent)
   danmuEntry.addEventListener('dblclick', () => {
     window.jliverAPI.window.windowDetail(msg.sender.uid)

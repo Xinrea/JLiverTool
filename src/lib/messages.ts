@@ -121,6 +121,11 @@ export class InteractMessage {
   action: number
 }
 
+export class EntryEffectMessage {
+  sender: Sender
+  privilege_type: number
+}
+
 export class GiftInitData {
   gifts: GiftMessage[]
   guards: GuardMessage[]

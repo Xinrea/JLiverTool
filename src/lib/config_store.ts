@@ -74,6 +74,7 @@ class Store {
     if (!fs.existsSync(config_path)) {
       fs.writeFileSync(config_path, '{}')
     }
+    log.debug('update config', { key, value })
     const configJson = fs.readFileSync(config_path, 'utf8')
     const configJs = JSON.parse(configJson)
     const keys = key.split('.')
@@ -175,6 +176,14 @@ export class ConfigStore {
 
   public set MaxDetailEntry(n: number) {
     this._store.set('config.max_detail_entry', n)
+  }
+
+  public get GuardEffect(): boolean {
+    return this._store.get('config.guard-effect', true) as boolean
+  }
+
+  public get LevelEffect(): boolean {
+    return this._store.get('config.level-effect', true) as boolean
   }
 
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {
