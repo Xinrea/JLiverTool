@@ -32,25 +32,30 @@ async function checkUpdateFromGithubAPI() {
       'User-Agent': 'request',
     },
   }
-  const resp = await fetch(url, options)
-  const json = await resp.json()
-  let version = json.tag_name
-  log.info(`Latest version [${version}], local version [${app.getVersion()}]`)
-  if (version !== 'v' + app.getVersion()) {
-    log.info('Update available')
-    dialog
-      .showMessageBox(null, {
-        type: 'info',
-        title: '更新',
-        message: '发现不同的版本 ' + version + '，是否前往下载？\n' + json.body,
-        buttons: ['是', '否'],
-      })
-      .then((result) => {
-        if (result.response === 0) {
-          log.info(`Update now with download url: ${json.html_url}`)
-          require('openurl').open(json.html_url)
-        }
-      })
+  try {
+    const resp = await fetch(url, options)
+    const json = await resp.json()
+    let version = json.tag_name
+    log.info(`Latest version [${version}], local version [${app.getVersion()}]`)
+    if (version !== 'v' + app.getVersion()) {
+      log.info('Update available')
+      dialog
+        .showMessageBox(null, {
+          type: 'info',
+          title: '更新',
+          message:
+            '发现不同的版本 ' + version + '，是否前往下载？\n' + json.body,
+          buttons: ['是', '否'],
+        })
+        .then((result) => {
+          if (result.response === 0) {
+            log.info(`Update now with download url: ${json.html_url}`)
+            require('openurl').open(json.html_url)
+          }
+        })
+    }
+  } catch (e) {
+    log.warn('Check update failed', { error: e })
   }
 }
 
