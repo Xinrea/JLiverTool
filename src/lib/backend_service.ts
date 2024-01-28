@@ -822,8 +822,17 @@ export default class BackendService {
   }
 
   private entryEffectHandler(msg: any) {
+    // string contains 舰长/提督/总督
+    const isGuardEntry =
+      msg.data.copy_writing.includes('舰长') ||
+      msg.data.copy_writing.includes('提督') ||
+      msg.data.copy_writing.includes('总督')
+    // fix privilege_type for none guard entry
+    if (!isGuardEntry) {
+      msg.data.privilege_type = 0
+    }
     // 荣耀等级进场特效
-    if (msg.data.privilege_type === 0 && !this._config_store.LevelEffect) {
+    if (!isGuardEntry && !this._config_store.LevelEffect) {
       return
     }
     // 舰队进场特效
