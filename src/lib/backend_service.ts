@@ -220,7 +220,7 @@ export default class BackendService {
         log.debug('Merge user info', { merge_user_info })
         conn.msg_handler =
           this.sideMsgHandlerConstructor(merge_user_info).bind(this)
-        conn.Connect(true)
+        conn.Connect()
         this._side_conns.set(room, conn)
       }
     }
@@ -294,7 +294,7 @@ export default class BackendService {
       token: danmu_server_info.data.token,
     })
     this._primary_conn.msg_handler = this.msgHandler.bind(this)
-    this._primary_conn.Connect(true)
+    this._primary_conn.Connect()
     log.debug('Websocket connected', { room: this._room })
   }
 

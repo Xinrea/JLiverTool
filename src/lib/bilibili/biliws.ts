@@ -214,7 +214,7 @@ export class BiliWebSocket {
     this._ws_info = ws_info
   }
 
-  public Connect(reconnect?: boolean) {
+  public Connect() {
     log.info('Connecting to room websocket', this._ws_info)
     // Clean up old connection
     this.Disconnect()
@@ -258,19 +258,11 @@ export class BiliWebSocket {
 
     this._ws.on('close', () => {
       log.info('Websocket closed', this._ws_info)
-      if (this._heartbeat_task) {
-        clearInterval(this._heartbeat_task)
-        this._heartbeat_task = null
-      }
-      if (!this._is_manual_close && reconnect) {
-        if (this._try_reconnect_count < 5) {
-          this._try_reconnect_count++
-        }
-        setTimeout(() => {
-          log.info('Reconnecting to room websocket', this._ws_info)
-          this.Connect(true)
-        }, 1000 * this._try_reconnect_count)
-      }
+      this.reconnect()
+    })
+    this._ws.on('error', (err) => {
+      log.error('Websocket error', { error: err })
+      // this will trigger close event, so we don't need to reconnect here
     })
   }
 
@@ -279,6 +271,23 @@ export class BiliWebSocket {
     if (this._ws) {
       this._ws.close()
       this._ws = null
+    }
+    this._is_manual_close = false
+  }
+
+  private reconnect() {
+    if (this._heartbeat_task) {
+      clearInterval(this._heartbeat_task)
+      this._heartbeat_task = null
+    }
+    if (!this._is_manual_close) {
+      if (this._try_reconnect_count < 5) {
+        this._try_reconnect_count++
+      }
+      setTimeout(() => {
+        log.info('Reconnecting to room websocket', this._ws_info)
+        this.Connect()
+      }, 1000 * this._try_reconnect_count)
     }
   }
 }
