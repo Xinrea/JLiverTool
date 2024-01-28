@@ -5,7 +5,7 @@
   "homepage": "https://github.com/Xinrea/JLiveTool",
   "main": "src/main.js",
   "scripts": {
-    "start": "npx webpack && cross-env DEBUG=true electron .",
+    "start": "npx webpack && cross-env DEBUG=true electron . --trace-warnings",
     "build": "npx webpack && electron-builder build -lmw --publish=never",
     "build-win": "npx webpack && electron-builder build --win -p never",
     "build-mac": "npx webpack && electron-builder build --mac -p never",

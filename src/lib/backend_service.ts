@@ -79,9 +79,16 @@ export default class BackendService {
     log.info('Loading cookies', { uid: this._config_store.Cookies.DedeUserID })
 
     // Check cookies status
-    const nav_response = await BiliApi.Nav(this._config_store.Cookies)
+    let nav_response = await BiliApi.Nav(this._config_store.Cookies)
+    while (nav_response === null) {
+      // retry
+      log.warn('Cookies is invalid or network failed, retrying')
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      nav_response = await BiliApi.Nav(this._config_store.Cookies)
+    }
+
     if (nav_response.code !== 0 || !nav_response.data.isLogin) {
-      log.warn('Cookies is invalid, take as logout')
+      log.warn('Cookies is invalid or network failed, take as logout')
       this._config_store.IsLogin = false
       this._config_store.Cookies = new Cookies({})
     } else {
@@ -225,6 +232,11 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
+    if (room_response === null) {
+      log.warn('GetRoomInfo failed, retrying')
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      return await this.updateRoomInfo()
+    }
     this._window_manager.SendTo(WindowType.WMAIN, JEvent.EVENT_UPDATE_ROOM, {
       title: room_response.data.title,
       live_status: room_response.data.live_status,
@@ -236,6 +248,11 @@ export default class BackendService {
       this._config_store.Cookies,
       room
     )
+    if (status_response === null) {
+      log.warn('RoomInit failed, retrying')
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      return await this.initRoomInfo(room)
+    }
     if (this._room.getRealID() !== status_response.data.room_id) {
       log.warn("Real room id doesn't match room id, updated", {
         room: this._room,
@@ -265,6 +282,11 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
+    if (danmu_server_info === null) {
+      log.warn('GetDanmuInfo failed, retrying')
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      return await this.setupWebSocket()
+    }
     this._primary_conn = new BiliWebSocket({
       room_id: this._room.getRealID(),
       uid: parseInt(this._config_store.Cookies.DedeUserID),
@@ -286,6 +308,11 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
+    if (gift_response === null) {
+      log.error('GetGiftConfig failed, retrying')
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+      return await this.updateGiftList()
+    }
     for (const gift of gift_response.data.list) {
       this._gift_list_cache.set(gift.id, gift)
     }

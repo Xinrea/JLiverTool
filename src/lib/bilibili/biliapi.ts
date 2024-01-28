@@ -27,8 +27,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as RoomInitResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as RoomInitResponse
+    } catch (e) {
+      log.error(`RoomInit failed: ${e}`)
+      return null
+    }
   }
 
   public static async GetRoomInfo(
@@ -42,8 +47,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as GetInfoResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as GetInfoResponse
+    } catch (e) {
+      log.error(`GetRoomInfo failed: ${e}`)
+      return null
+    }
   }
 
   public static async GetGiftConfig(
@@ -57,8 +67,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as GiftConfigResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as GiftConfigResponse
+    } catch (e) {
+      log.error(`GetGiftConfig failed: ${e}`)
+      return null
+    }
   }
 
   public static async GetDanmuInfo(
@@ -72,8 +87,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as GetDanmuInfoResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as GetDanmuInfoResponse
+    } catch (e) {
+      log.error(`GetDanmuInfo failed: ${e}`)
+      return null
+    }
   }
 
   public static async GetOnlineGoldRank(
@@ -89,8 +109,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as GetOnlineGoldRankResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as GetOnlineGoldRankResponse
+    } catch (e) {
+      log.error(`GetOnlineGoldRank failed: ${e}`)
+      return null
+    }
   }
 
   public static async GetUserInfo(
@@ -104,8 +129,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as UserInfoResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as UserInfoResponse
+    } catch (e) {
+      log.error(`GetUserInfo failed: ${e}`)
+      return null
+    }
   }
 
   /** Valid cookies must be provided to send danmu. */
@@ -135,8 +165,13 @@ class BiliApi {
       },
       body: params,
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as SendDanmuResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as SendDanmuResponse
+    } catch (e) {
+      log.error(`SendDanmu failed: ${e}`)
+      return null
+    }
   }
 
   public static async UpdateRoomTitle(
@@ -160,8 +195,13 @@ class BiliApi {
       },
       body: params,
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as UpdateRoomTitleResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as UpdateRoomTitleResponse
+    } catch (e) {
+      log.error(`UpdateRoomTitle failed: ${e}`)
+      return null
+    }
   }
 
   public static async StartRoomLive(
@@ -185,8 +225,13 @@ class BiliApi {
       },
       body: post_data,
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as StartLiveResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as StartLiveResponse
+    } catch (e) {
+      log.error(`StartRoomLive failed: ${e}`)
+      return null
+    }
   }
 
   public static async StopRoomLive(
@@ -207,8 +252,13 @@ class BiliApi {
       },
       body: params,
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as StopLiveResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as StopLiveResponse
+    } catch (e) {
+      log.error(`StopRoomLive failed: ${e}`)
+      return null
+    }
   }
 
   public static async Nav(cookies: Cookies): Promise<NavResponse> {
@@ -219,8 +269,13 @@ class BiliApi {
         Cookie: cookies.str(),
       },
     }
-    const raw_response = await fetch(url, options)
-    return (await raw_response.json()) as NavResponse
+    try {
+      const raw_response = await fetch(url, options)
+      return (await raw_response.json()) as NavResponse
+    } catch (e) {
+      log.error(`Nav failed: ${e}`)
+      return null
+    }
   }
 }
 
