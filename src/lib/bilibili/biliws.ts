@@ -272,7 +272,6 @@ export class BiliWebSocket {
       this._ws.close()
       this._ws = null
     }
-    this._is_manual_close = false
   }
 
   private reconnect() {
@@ -288,6 +287,8 @@ export class BiliWebSocket {
         log.info('Reconnecting to room websocket', this._ws_info)
         this.Connect()
       }, 1000 * this._try_reconnect_count)
+    } else {
+      this._is_manual_close = false
     }
   }
 }
