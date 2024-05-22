@@ -596,116 +596,107 @@ export default class BackendService {
     }
   }
 
+  private handlers = {
+    'DANMU_MSG': this.danmuHandler,
+    'SEND_GIFT': this.giftHandler,
+    'USER_TOAST_MSG': this.guardHandler,
+    'SUPER_CHAT_MESSAGE': this.superchatHandler,
+    'LIVE': this.liveHandler,
+    'WARNING': this.warningHandler,
+    'CUT_OFF': this.cutoffHandler,
+    'PREPARING': this.prepareHandler,
+    'ROOM_CHANGE': this.roomChangeHandler,
+    'INTERACT_WORD': this.interactHandler,
+    'ENTRY_EFFECT': this.entryEffectHandler,
+    'ONLINE_RANK_COUNT': this.rankCountHandler,
+  }
+
   // msg handler for primary connection
   private async doHandler(msg: any) {
     if (!msg.cmd) {
       return
     }
-    switch (msg.cmd) {
-      case 'DANMU_MSG': {
-        this.danmuHandler(msg)
-        break
-      }
-      case 'SEND_GIFT': {
-        this.giftHandler(msg)
-        break
-      }
-      case 'USER_TOAST_MSG': {
-        this.guardHandler(msg)
-        break
-      }
-      case 'SUPER_CHAT_MESSAGE': {
-        this.superchatHandler(msg)
-        break
-      }
-      case 'WARNING': {
-        log.warn('Received warning message', { msg })
-        new Notification({
-          title: '直播警告',
-          body: msg.msg,
-        }).show()
-        break
-      }
-      case 'CUT_OFF': {
-        log.info('Received cutoff message', { msg })
-        new Notification({
-          title: '直播切断',
-          body: msg.msg,
-        }).show()
-        break
-      }
-      case 'ROOM_CHANGE': {
-        log.info('Received room change message', { msg })
-        // update room title
-        this._window_manager.SendTo(
-          WindowType.WMAIN,
-          JEvent.EVENT_UPDATE_ROOM,
-          msg.data
-        )
-        this._window_manager.SendTo(
-          WindowType.WSETTING,
-          JEvent.EVENT_UPDATE_ROOM,
-          msg.data
-        )
-        break
-      }
-      case 'ONLINE_RANK_COUNT': {
-        log.debug('Received online rank count message', { msg })
-        this._window_manager.SendTo(
-          WindowType.WMAIN,
-          JEvent.EVENT_UPDATE_ONLINE,
-          msg.data
-        )
-        break
-      }
-      case 'ONLINE_RANK_V2': {
-        break
-      }
-      case 'LIVE': {
-        log.info('Received live start message', { msg })
-        this._window_manager.SendTo(
-          WindowType.WMAIN,
-          JEvent.EVENT_UPDATE_ROOM,
-          {
-            live_status: 1,
-          }
-        )
-        this._window_manager.SendTo(
-          WindowType.WSETTING,
-          JEvent.EVENT_UPDATE_ROOM,
-          {
-            live_status: 1,
-          }
-        )
-        break
-      }
-      case 'PREPARING': {
-        log.info('Received live stop message', { msg })
-        this._window_manager.SendTo(
-          WindowType.WMAIN,
-          JEvent.EVENT_UPDATE_ROOM,
-          {
-            live_status: 0,
-          }
-        )
-        this._window_manager.SendTo(
-          WindowType.WSETTING,
-          JEvent.EVENT_UPDATE_ROOM,
-          {
-            live_status: 0,
-          }
-        )
-        break
-      }
-      case 'INTERACT_WORD': {
-        this.interactHandler(msg)
-        break
-      }
-      case 'ENTRY_EFFECT': {
-        this.entryEffectHandler(msg)
-        break
-      }
+    const handler = this.handlers[msg.cmd]
+    if (handler) {
+      handler.bind(this)(msg)
     }
+    log.debug('Received unhandled message', { msg })
+  }
+
+  private rankCountHandler(msg: any) {
+    log.debug('Received online rank count message', { msg })
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_UPDATE_ONLINE,
+      msg.data
+    )
+  }
+
+  private roomChangeHandler(msg: any) {
+    log.info('Received room change message', { msg })
+    // update room title
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_UPDATE_ROOM,
+      msg.data
+    )
+    this._window_manager.SendTo(
+      WindowType.WSETTING,
+      JEvent.EVENT_UPDATE_ROOM,
+      msg.data
+    )
+  }
+
+  private cutoffHandler(msg: any) {
+    log.info('Received cutoff message', { msg })
+    new Notification({
+      title: '直播切断',
+      body: msg.msg,
+    }).show()
+  }
+
+  private warningHandler(msg: any) {
+    log.warn('Received warning message', { msg })
+    new Notification({
+      title: '直播警告',
+      body: msg.msg,
+    }).show()
+  }
+
+  private prepareHandler(msg: any) {
+    log.info('Received live stop message', { msg })
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_UPDATE_ROOM,
+      {
+        live_status: 0,
+      }
+    )
+    this._window_manager.SendTo(
+      WindowType.WSETTING,
+      JEvent.EVENT_UPDATE_ROOM,
+      {
+        live_status: 0,
+      }
+    )
+  }
+
+  private liveHandler(msg: any) {
+    log.info('Received live start message', { msg })
+    this._window_manager.SendTo(
+      WindowType.WMAIN,
+      JEvent.EVENT_UPDATE_ROOM,
+      {
+        live_status: 1,
+      }
+    )
+    this._window_manager.SendTo(
+      WindowType.WSETTING,
+      JEvent.EVENT_UPDATE_ROOM,
+      {
+        live_status: 1,
+      }
+    )
   }
 
   private danmuHandler(msg: any) {
