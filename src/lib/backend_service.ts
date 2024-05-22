@@ -324,29 +324,9 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_REQUEST_GIFT_DATA], (_, ...args) => {
       return this._gift_store.Get(args[0], this._room.getRealID())
     })
-    ipcMain.handle(JEvent[JEvent.INVOKE_QR_CODE], async () => {
-      return await GetNewQrCode()
-    })
-    ipcMain.handle(JEvent[JEvent.INVOKE_QR_CODE_UPDATE], async (_, key) => {
-      return await CheckQrCodeStatus(key)
-    })
-    ipcMain.handle(JEvent[JEvent.INVOKE_LOGOUT], async () => {
-      const resp = await Logout(this._config_store.Cookies)
-      log.info('Logout', { resp })
-      this._config_store.Cookies = new Cookies({})
-      this._config_store.IsLogin = false
-    })
-    ipcMain.handle(
-      JEvent[JEvent.INVOKE_GET_USER_INFO],
-      async (_, user_id: number) => {
-        const resp = await BiliApi.GetUserInfo(
-          this._config_store.Cookies,
-          user_id
-        )
-        log.debug('Get user info', { resp })
-        return resp
-      }
-    )
+
+    this.qrEventInit()
+
     ipcMain.handle(JEvent[JEvent.INVOKE_OPEN_URL], async (_, url: string) => {
       return shell.openExternal(url)
     })
@@ -416,6 +396,57 @@ export default class BackendService {
         clipboard.writeText(text)
       }
     )
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_GOALS], async (_, uid: number) => {
+      const resp = await AfdianAPI.GetGoals()
+      log.debug('Get sponsor progress', { resp })
+      return resp
+    })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_SET_ROOM_TITLE],
+      async (_, title: string) => {
+        await BiliApi.UpdateRoomTitle(
+          this._config_store.Cookies,
+          this._room,
+          title
+        )
+      }
+    )
+
+    this.commandEventInit()
+
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_START_LIVE],
+      async (_, area_v2: string) => {
+        return await BiliApi.StartRoomLive(
+          this._config_store.Cookies,
+          this._room,
+          area_v2
+        )
+      }
+    )
+    ipcMain.handle(JEvent[JEvent.INVOKE_STOP_LIVE], async () => {
+      return await BiliApi.StopRoomLive(this._config_store.Cookies, this._room)
+    })
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_GET_RANK],
+      async (_, page: number, page_size: number) => {
+        const resp = await BiliApi.GetOnlineGoldRank(
+          this._config_store.Cookies,
+          this._room,
+          page,
+          page_size
+        )
+        return resp
+      }
+    )
+
+    this.mergeEventInit()
+    this.userEventInit()
+    this.giftEventInit()
+
+  }
+
+  private giftEventInit() {
     ipcMain.handle(JEvent[JEvent.INVOKE_GET_INIT_GIFTS], async () => {
       const stored_gifts = (await this._gift_store.Get(
         'gift',
@@ -457,21 +488,39 @@ export default class BackendService {
     ipcMain.handle(JEvent[JEvent.INVOKE_CLEAR_SUPERCHATS], async () => {
       await this._gift_store.Clear('superchat', this._room.getRealID())
     })
-    ipcMain.handle(JEvent[JEvent.INVOKE_GET_GOALS], async (_, uid: number) => {
-      const resp = await AfdianAPI.GetGoals()
-      log.debug('Get sponsor progress', { resp })
-      return resp
+  }
+
+  private userEventInit() {
+    ipcMain.handle(JEvent[JEvent.INVOKE_LOGOUT], async () => {
+      const resp = await Logout(this._config_store.Cookies)
+      log.info('Logout', { resp })
+      this._config_store.Cookies = new Cookies({})
+      this._config_store.IsLogin = false
     })
     ipcMain.handle(
-      JEvent[JEvent.INVOKE_SET_ROOM_TITLE],
-      async (_, title: string) => {
-        await BiliApi.UpdateRoomTitle(
+      JEvent[JEvent.INVOKE_GET_USER_INFO],
+      async (_, user_id: number) => {
+        const resp = await BiliApi.GetUserInfo(
           this._config_store.Cookies,
-          this._room,
-          title
+          user_id
         )
+        log.debug('Get user info', { resp })
+        return resp
       }
     )
+    this._config_store.onDidChange('config.login', async (login: boolean) => {
+      if (login) {
+        // reconnect primary websocket
+        await this.releaseWebSocket()
+        await this.setupWebSocket()
+        // reconnect merge websockets
+        await this.releaseMergeRooms()
+        await this.initMergeRooms()
+      }
+    })
+  }
+
+  private commandEventInit() {
     ipcMain.handle(
       JEvent[JEvent.INVOKE_CALL_COMMAND],
       async (_, command: string) => {
@@ -513,31 +562,18 @@ export default class BackendService {
         }
       }
     )
-    ipcMain.handle(
-      JEvent[JEvent.INVOKE_START_LIVE],
-      async (_, area_v2: string) => {
-        return await BiliApi.StartRoomLive(
-          this._config_store.Cookies,
-          this._room,
-          area_v2
-        )
-      }
-    )
-    ipcMain.handle(JEvent[JEvent.INVOKE_STOP_LIVE], async () => {
-      return await BiliApi.StopRoomLive(this._config_store.Cookies, this._room)
+  }
+
+  private qrEventInit() {
+    ipcMain.handle(JEvent[JEvent.INVOKE_QR_CODE], async () => {
+      return await GetNewQrCode()
     })
-    ipcMain.handle(
-      JEvent[JEvent.INVOKE_GET_RANK],
-      async (_, page: number, page_size: number) => {
-        const resp = await BiliApi.GetOnlineGoldRank(
-          this._config_store.Cookies,
-          this._room,
-          page,
-          page_size
-        )
-        return resp
-      }
-    )
+    ipcMain.handle(JEvent[JEvent.INVOKE_QR_CODE_UPDATE], async (_, key) => {
+      return await CheckQrCodeStatus(key)
+    })
+  }
+
+  private mergeEventInit() {
     this._config_store.onDidChange(
       'config.merge_rooms',
       async (rooms: RoomID[]) => {
@@ -545,14 +581,11 @@ export default class BackendService {
         await this.updateMergeRooms(rooms)
       }
     )
-    this._config_store.onDidChange('config.login', async (login: boolean) => {
-      if (login) {
-        // reconnect primary websocket
-        await this.releaseWebSocket()
-        await this.setupWebSocket()
-        // reconnect merge websockets
-        await this.releaseMergeRooms()
-        await this.initMergeRooms()
+    this._config_store.onDidChange('config.merge', async (enabled: boolean) => {
+      if (enabled) {
+        await this.updateMergeRooms(this._config_store.MergeRooms)
+      } else {
+        await this.updateMergeRooms([])
       }
     })
   }
