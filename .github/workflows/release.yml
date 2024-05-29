@@ -21,3 +21,4 @@ jobs:
         with:
           artifacts: 'dist/*.dmg,dist/*.exe,dist/*.blockmap,dist/*.deb,dist/*.AppImage,dist/*.pacman'
           token: ${{ github.token }}
+          draft: true
