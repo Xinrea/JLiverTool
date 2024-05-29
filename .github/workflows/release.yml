@@ -16,6 +16,8 @@ jobs:
           cache: 'npm'
       - run: python3 -m pip install setuptools
       - run: npm install
+      - name: generate version
+        run: echo "${{ github.ref }}" | sed 's/refs\/tags\/v//g' | xargs npm version --no-git-tag-version
       - run: npm run build
       - uses: ncipollo/release-action@v1
         with:
