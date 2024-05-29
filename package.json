@@ -1,6 +1,6 @@
 {
   "name": "jlivertool",
-  "version": "2.1.2",
+  "version": "develop",
   "description": "Simple Bilibili Danmaku Tool",
   "homepage": "https://github.com/Xinrea/JLiveTool",
   "main": "src/main.js",
