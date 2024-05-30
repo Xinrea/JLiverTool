@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh">
   <head>
     <meta charset="UTF-8" />
@@ -14,7 +14,12 @@
       <div class="title-bar" :class="{'lite': lite_mode}">
         <div>
           <div id="title">SUPERCHAT</div>
-          <div id="clear-button" class="title-button" style="margin-left: 8px">
+          <div
+            id="clear-button"
+            class="title-button"
+            style="margin-left: 8px"
+            @click="notifyClear"
+          >
             <svg viewBox="0 0 24 24">
               <path
                 fill="red"
