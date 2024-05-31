@@ -29,7 +29,6 @@ import { FontList, getFonts } from 'font-list'
 import GithubApi from './github_api'
 import { DanmuCache } from './danmu_cache'
 import { v4 as uuidv4 } from 'uuid'
-import { MockMessageArray } from './common/mock'
 import { GiftType } from './bilibili/api/room/gift_config'
 import { InteractActionToStr, levelToName } from './utils'
 import { AfdianAPI } from './afdian/afdianapi'
@@ -218,7 +217,7 @@ export default class BackendService {
           name: user_info.data.uname,
         }
         log.debug('Merge user info', { merge_user_info })
-        conn.msg_handler =
+        conn.ws.msg_handler =
           this.sideMsgHandlerConstructor(merge_user_info).bind(this)
         conn.Connect()
         this._side_conns.set(room, conn)
@@ -293,7 +292,7 @@ export default class BackendService {
       server: `wss://${danmu_server_info.data.host_list[0].host}/sub`,
       token: danmu_server_info.data.token,
     })
-    this._primary_conn.msg_handler = this.msgHandler.bind(this)
+    this._primary_conn.ws.msg_handler = this.msgHandler.bind(this)
     this._primary_conn.Connect()
     log.debug('Websocket connected', { room: this._room })
   }
@@ -443,7 +442,6 @@ export default class BackendService {
     this.mergeEventInit()
     this.userEventInit()
     this.giftEventInit()
-
   }
 
   private giftEventInit() {
@@ -597,18 +595,18 @@ export default class BackendService {
   }
 
   private handlers = {
-    'DANMU_MSG': this.danmuHandler,
-    'SEND_GIFT': this.giftHandler,
-    'USER_TOAST_MSG': this.guardHandler,
-    'SUPER_CHAT_MESSAGE': this.superchatHandler,
-    'LIVE': this.liveHandler,
-    'WARNING': this.warningHandler,
-    'CUT_OFF': this.cutoffHandler,
-    'PREPARING': this.prepareHandler,
-    'ROOM_CHANGE': this.roomChangeHandler,
-    'INTERACT_WORD': this.interactHandler,
-    'ENTRY_EFFECT': this.entryEffectHandler,
-    'ONLINE_RANK_COUNT': this.rankCountHandler,
+    DANMU_MSG: this.danmuHandler,
+    SEND_GIFT: this.giftHandler,
+    USER_TOAST_MSG: this.guardHandler,
+    SUPER_CHAT_MESSAGE: this.superchatHandler,
+    LIVE: this.liveHandler,
+    WARNING: this.warningHandler,
+    CUT_OFF: this.cutoffHandler,
+    PREPARING: this.prepareHandler,
+    ROOM_CHANGE: this.roomChangeHandler,
+    INTERACT_WORD: this.interactHandler,
+    ENTRY_EFFECT: this.entryEffectHandler,
+    ONLINE_RANK_COUNT: this.rankCountHandler,
   }
 
   // msg handler for primary connection
@@ -665,38 +663,22 @@ export default class BackendService {
 
   private prepareHandler(msg: any) {
     log.info('Received live stop message', { msg })
-    this._window_manager.SendTo(
-      WindowType.WMAIN,
-      JEvent.EVENT_UPDATE_ROOM,
-      {
-        live_status: 0,
-      }
-    )
-    this._window_manager.SendTo(
-      WindowType.WSETTING,
-      JEvent.EVENT_UPDATE_ROOM,
-      {
-        live_status: 0,
-      }
-    )
+    this._window_manager.SendTo(WindowType.WMAIN, JEvent.EVENT_UPDATE_ROOM, {
+      live_status: 0,
+    })
+    this._window_manager.SendTo(WindowType.WSETTING, JEvent.EVENT_UPDATE_ROOM, {
+      live_status: 0,
+    })
   }
 
   private liveHandler(msg: any) {
     log.info('Received live start message', { msg })
-    this._window_manager.SendTo(
-      WindowType.WMAIN,
-      JEvent.EVENT_UPDATE_ROOM,
-      {
-        live_status: 1,
-      }
-    )
-    this._window_manager.SendTo(
-      WindowType.WSETTING,
-      JEvent.EVENT_UPDATE_ROOM,
-      {
-        live_status: 1,
-      }
-    )
+    this._window_manager.SendTo(WindowType.WMAIN, JEvent.EVENT_UPDATE_ROOM, {
+      live_status: 1,
+    })
+    this._window_manager.SendTo(WindowType.WSETTING, JEvent.EVENT_UPDATE_ROOM, {
+      live_status: 1,
+    })
   }
 
   private danmuHandler(msg: any) {
