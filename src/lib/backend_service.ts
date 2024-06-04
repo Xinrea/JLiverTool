@@ -595,18 +595,18 @@ export default class BackendService {
   }
 
   private handlers = {
-    DANMU_MSG: this.danmuHandler,
-    SEND_GIFT: this.giftHandler,
-    USER_TOAST_MSG: this.guardHandler,
-    SUPER_CHAT_MESSAGE: this.superchatHandler,
-    LIVE: this.liveHandler,
-    WARNING: this.warningHandler,
-    CUT_OFF: this.cutoffHandler,
-    PREPARING: this.prepareHandler,
-    ROOM_CHANGE: this.roomChangeHandler,
-    INTERACT_WORD: this.interactHandler,
-    ENTRY_EFFECT: this.entryEffectHandler,
-    ONLINE_RANK_COUNT: this.rankCountHandler,
+    'DANMU_MSG': this.danmuHandler,
+    'SEND_GIFT': this.giftHandler,
+    'USER_TOAST_MSG': this.guardHandler,
+    'SUPER_CHAT_MESSAGE': this.superchatHandler,
+    'LIVE': this.liveHandler,
+    'WARNING': this.warningHandler,
+    'CUT_OFF': this.cutoffHandler,
+    'PREPARING': this.prepareHandler,
+    'ROOM_CHANGE': this.roomChangeHandler,
+    'INTERACT_WORD': this.interactHandler,
+    'ENTRY_EFFECT': this.entryEffectHandler,
+    'ONLINE_RANK_COUNT': this.rankCountHandler,
   }
 
   // msg handler for primary connection
@@ -614,7 +614,8 @@ export default class BackendService {
     if (!msg.cmd) {
       return
     }
-    const handler = this.handlers[msg.cmd]
+    const cmd = msg.cmd.split(':')[0]
+    const handler = this.handlers[cmd]
     if (handler) {
       handler.bind(this)(msg)
     }
