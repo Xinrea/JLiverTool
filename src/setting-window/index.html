@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh">
   <head>
     <link rel="stylesheet" href="../assets/common.css" />
@@ -499,6 +499,89 @@
             <div class="tab-wrap" x-show="active == 3">
               <div
                 style="display: flex; flex-direction: column; width: 100%"
+                x-data="tts_setting"
+              >
+                <div class="group multiple">
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE767;</span>
+                      <span class="desc">
+                        <span>TTS 音量</span>
+                      </span>
+                    </span>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        x-model="volume"
+                        />
+                  </div>
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xE768</span>
+                      <span class="desc">
+                        <span>TTS 测试</span>
+                      </span>
+                    </span>
+                    <button @click="testTTS">测试</button>
+                  </div>
+                  <div class="item-group">
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xED1F</span>
+                        <span class="desc">
+                          <span>语音合成</span>
+                          <span>开启后，相应设置的信息将会被合成为语音播放</span>
+                        </span>
+                      </span>
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xED1E;</span>
+                        <span class="desc">
+                          <span>弹幕语音</span>
+                        </span>
+                      </span>
+                      <input
+                          type="checkbox"
+                          class="switch"
+                          x-model="danmu_tts"
+                          />
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xF133;</span>
+                        <span class="desc">
+                          <span>礼物语音</span>
+                        </span>
+                      </span>
+                      <input
+                          type="checkbox"
+                          class="switch"
+                          x-model="gift_tts"
+                          />
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE8BD;</span>
+                        <span class="desc">
+                          <span>醒目留言语音</span>
+                        </span>
+                      </span>
+                      <input
+                          type="checkbox"
+                          class="switch"
+                          x-model="sc_tts"
+                          />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-wrap" x-show="active == 4">
+              <div
+                style="display: flex; flex-direction: column; width: 100%"
                 x-data="advanced_setting"
               >
                 <div class="group multiple">
@@ -550,7 +633,7 @@
                 </div>
               </div>
             </div>
-            <div class="tab-wrap" x-show="active == 4">
+            <div class="tab-wrap" x-show="active == 5">
               <div
                 style="display: flex; flex-direction: column; width: 100%"
                 x-data="about"

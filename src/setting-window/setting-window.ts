@@ -1,12 +1,6 @@
 import Alpine from 'alpinejs'
 import { JLiverAPI } from '../preload'
-import {
-  Cookies,
-  DefaultRoomID,
-  RoomID,
-  WindowType,
-  typecast,
-} from '../lib/types'
+import { Cookies, RoomID, WindowType, typecast } from '../lib/types'
 import JEvent from '../lib/events'
 import * as QrCode from 'qrcode'
 import UserInfoResponse from '../lib/bilibili/api/user/user_info'
@@ -548,6 +542,60 @@ const about = {
     window.jliverAPI.set('config.check_update', v)
   },
 }
+
+const tts_setting = {
+  _volume: 1,
+  _danmu_tts: false,
+  _gift_tts: false,
+  _sc_tts: false,
+  async init() {
+    this._volume = await window.jliverAPI.get('config.tts_volume', 1)
+    this._danmu_tts = await window.jliverAPI.get('config.danmu_tts', false)
+    this._gift_tts = await window.jliverAPI.get('config.gift_tts', false)
+    this._sc_tts = await window.jliverAPI.get('config.sc_tts', false)
+  },
+  get volume() {
+    return this._volume
+  },
+  set volume(v: number) {
+    if (v < 0) {
+      v = 0
+    }
+    if (v > 1) {
+      v = 1
+    }
+    this._volume = v
+    window.jliverAPI.set('config.tts_volume', v)
+  },
+  get danmu_tts() {
+    return this._danmu_tts
+  },
+  set danmu_tts(v: boolean) {
+    this._danmu_tts = v
+    window.jliverAPI.set('config.danmu_tts', v)
+  },
+  get gift_tts() {
+    return this._gift_tts
+  },
+  set gift_tts(v: boolean) {
+    this._gift_tts = v
+    window.jliverAPI.set('config.gift_tts', v)
+  },
+  get sc_tts() {
+    return this._sc_tts
+  },
+  set sc_tts(v: boolean) {
+    this._sc_tts = v
+    window.jliverAPI.set('config.sc_tts', v)
+  },
+  testTTS() {
+    console.log('test tts')
+    let test_text = '测试语音合成'
+    let utterance = new SpeechSynthesisUtterance(test_text)
+    utterance.volume = this.volume
+    window.speechSynthesis.speak(utterance)
+  }
+}
 Alpine.data('app', (): any => app)
 Alpine.data('room_setting', (): any => room_setting)
 Alpine.data('account_setting', (): any => account_setting)
@@ -555,6 +603,7 @@ Alpine.data('window_display_setting', (): any => window_display_setting)
 Alpine.data('merge_setting', (): any => merge_setting)
 Alpine.data('danmu_style_setting', (): any => danmu_style_setting)
 Alpine.data('window_setting', (): any => window_setting)
+Alpine.data('tts_setting', (): any => tts_setting)
 Alpine.data('advanced_setting', (): any => advanced_setting)
 Alpine.data('about', (): any => about)
 Alpine.data('tab', (): any => ({
@@ -574,10 +623,14 @@ Alpine.data('tab', (): any => ({
     },
     {
       id: 3,
-      text: '高级设置',
+      text: 'TTS 设置',
     },
     {
       id: 4,
+      text: '高级设置',
+    },
+    {
+      id: 5,
       text: '关于',
     },
   ],

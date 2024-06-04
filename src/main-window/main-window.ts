@@ -19,6 +19,7 @@ import {
   InteractMessage,
   SuperChatMessage,
 } from '../lib/messages'
+import { levelToName } from '../lib/utils'
 
 const toggles = {
   async init() {
@@ -151,6 +152,10 @@ const appStatus = {
     this.base.ignore_free = initialConfig['ignore_free'] || true
     this.base.lite_mode = initialConfig['lite-mode'] || false
     this.danmuPanel.max_entries = initialConfig['max_main_entry'] || 200
+    this.tts.volume = initialConfig.tts_volume || 1
+    this.tts.danmu = initialConfig.danmu_tts || false
+    this.tts.gift = initialConfig.gift_tts || false
+    this.tts.superchat = initialConfig.sc_tts || false
 
     window.jliverAPI.onDidChange('config.login', (v: boolean) => {
       this.login = v
@@ -202,6 +207,18 @@ const appStatus = {
         }
       }
     )
+    window.jliverAPI.onDidChange('config.danmu_tts', (newValue: boolean) => {
+      this.tts.danmu = newValue
+    })
+    window.jliverAPI.onDidChange('config.gift_tts', (newValue: boolean) => {
+      this.tts.gift = newValue
+    })
+    window.jliverAPI.onDidChange('config.sc_tts', (newValue: boolean) => {
+      this.tts.superchat = newValue
+    })
+    window.jliverAPI.onDidChange('config.tts_volume', (newValue: number) => {
+      this.tts.volume = newValue
+    })
 
     console.log('Init events')
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg: any) => {
@@ -288,6 +305,12 @@ const appStatus = {
     gift: false,
     superchat: false,
   },
+  tts: {
+    volume: 1,
+    danmu: false,
+    gift: false,
+    superchat: false,
+  },
   danmuPanel: {
     replaceIndex: 0,
     lastSelectedDanmu: null,
@@ -338,6 +361,11 @@ const appStatus = {
   minimize() {
     window.jliverAPI.window.minimize(WindowType.WMAIN)
   },
+  async speak(content: string) {
+    const utterance = new SpeechSynthesisUtterance(content)
+    utterance.volume = this.tts.volume
+    window.speechSynthesis.speak(utterance)
+  },
   onReceiveNewDanmu(danmu_msg: DanmuMessage) {
     this.danmuPanel.doClean()
     const $newEntry = createDanmuEntry(
@@ -350,6 +378,10 @@ const appStatus = {
       danmu_msg.reply_uname
     )
     this.danmuPanel.handleNewEntry($newEntry)
+    if (this.tts.danmu) {
+      // todo template need
+      this.speak(danmu_msg.sender.uname + '说：' + danmu_msg.content)
+    }
   },
   onReceiveInteract(interact_msg: InteractMessage) {
     if (!this.base.interact_display) {
@@ -371,6 +403,9 @@ const appStatus = {
         return
       }
     }
+    if (this.tts.gift) {
+      this.speak(gift.sender.uname + '投喂了' + gift.num +'个' + gift.gift_info.name)
+    }
     // check gift cache to merge gift in combo
     if (giftCache.has(gift.id)) {
       const old = giftCache.get(gift.id)
@@ -391,6 +426,9 @@ const appStatus = {
     this.danmuPanel.doClean()
     const $newEntry = createGuardEntry(msg)
     this.danmuPanel.handleNewEntry($newEntry)
+    if (this.tts.gift) {
+      this.speak(msg.sender.uname + '开通了' + levelToName(msg.guard_level))
+    }
   },
   onReceiveSuperchat(msg: SuperChatMessage) {
     console.log(msg)
@@ -398,6 +436,9 @@ const appStatus = {
     // Superchat entry should not be able to remove in chat window
     const $newEntry = createSuperchatEntry(msg, false)
     this.danmuPanel.handleNewEntry($newEntry)
+    if (this.tts.superchat) {
+      this.speak(msg.sender.uname + '发送了醒目留言说：' + msg.message)
+    }
   },
   login: false,
   content: '',
