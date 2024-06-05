@@ -44,13 +44,21 @@ async function checkUpdateFromGithubAPI() {
           type: 'info',
           title: '更新',
           message:
-            '发现不同的版本 ' + version + '，是否前往下载？\n' + json.body,
-          buttons: ['是', '否'],
+            '发现不同的版本 ' + version + '，是否前往下载？\n\n' + json.body,
+          buttons: ['从 GitHub 获取', '从国内源获取', '否'],
+          defaultId: 0,
+          cancelId: 2,
         })
         .then((result) => {
           if (result.response === 0) {
-            log.info(`Update now with download url: ${json.html_url}`)
+            log.info(`Update now with GitHub url: ${json.html_url}`)
             require('openurl').open(json.html_url)
+            return
+          }
+          if (result.response === 1) {
+            log.info(`Update now with selfhost url: ${json.html_url}`)
+            require('openurl').open('https://tools.vjoi.cn/')
+            return
           }
         })
     }
