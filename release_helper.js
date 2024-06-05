@@ -23,7 +23,9 @@ const req = https.request(options, (res) => {
   res.on('end', () => {
     const releases = JSON.parse(data);
     // list all releases with assets and desc
-    let html = '<html><head><title>JLiverTool Releases</title></head><body>';
+    // set title & language
+    let html = '<html lang="zh-CN"><head><meta charset="UTF-8"><title>JLiverTool Releases</title></head><body>';
+
     html += '<h1>JLiverTool Releases</h1>';
     // contact me
     html += '<p>如有问题请联系 <a href="https://space.bilibili.com/475210">Xinrea</a></p>';
@@ -43,7 +45,17 @@ const req = https.request(options, (res) => {
       });
       html += '</ul>';
     });
+    html += '</body></html>';
     fs.writeFileSync('releases.html', html);
+    // invoke scp to upload releases.html to server
+    const { exec } = require('child_process');
+    exec('scp releases.html jwebsite:/var/www/html/tools/', (err, stdout, stderr) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log(stdout);
+    })
   });
 })
 
