@@ -1,6 +1,6 @@
 export class AfdianAPI {
   public static async GetGoals(): Promise<GetGoalsResponse> {
-    const url = `https://afdian.net/api/creator/get-goals?user_id=bbb3f596df9c11ea922752540025c377`
+    const url = `https://afdian.com/api/creator/get-goals?user_id=bbb3f596df9c11ea922752540025c377`
     const options = {
       method: 'GET',
     }

@@ -49,7 +49,7 @@ const req = https.request(options, (res) => {
     fs.writeFileSync('releases.html', html);
     // invoke scp to upload releases.html to server
     const { exec } = require('child_process');
-    exec('scp releases.html jwebsite:/var/www/html/tools/', (err, stdout, stderr) => {
+    exec('scp releases.html jwebsite:/var/www/html/tools/index.html', (err, stdout, stderr) => {
       if (err) {
         console.error(err);
         return;
