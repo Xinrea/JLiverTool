@@ -310,6 +310,7 @@ const appStatus = {
     danmu: false,
     gift: false,
     superchat: false,
+    instance: null,
   },
   danmuPanel: {
     replaceIndex: 0,
@@ -362,9 +363,15 @@ const appStatus = {
     window.jliverAPI.window.minimize(WindowType.WMAIN)
   },
   async speak(content: string) {
-    const utterance = new SpeechSynthesisUtterance(content)
-    utterance.volume = this.tts.volume
-    window.speechSynthesis.speak(utterance)
+    if (this.tts.instance) {
+      return
+    }
+    this.tts.instance = new SpeechSynthesisUtterance(content)
+    this.tts.instance.volume = this.tts.volume
+    this.tts.instance.onend = ()=>{
+      this.tts.instance = null
+    }
+    window.speechSynthesis.speak(this.tts.instance)
   },
   onReceiveNewDanmu(danmu_msg: DanmuMessage) {
     this.danmuPanel.doClean()
