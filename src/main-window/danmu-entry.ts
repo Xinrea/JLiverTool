@@ -94,7 +94,6 @@ function doCreateInteractEntry(msg: InteractMessage) {
   const danmuSender = document.createElement('span')
   danmuSender.className = 'sender'
   danmuSender.innerText = msg.sender.uname
-  danmuSender.style.color = 'var(--font-color)'
   danmuEntry.appendChild(danmuSender)
   // Content
   const danmuContent = document.createElement('span')

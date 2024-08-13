@@ -318,6 +318,14 @@ button:hover {
   display: var(--interact-display);
 }
 
+.interact .sender {
+  color: var(--uname-color)!important;
+}
+
+.interact .content {
+  color: var(--uname-color)!important;
+}
+
 .danmu {
   position: relative;
   padding-top: 10px;
