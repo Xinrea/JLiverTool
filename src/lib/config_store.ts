@@ -125,10 +125,10 @@ export class ConfigStore {
   }
 
   public get OnTop(): boolean {
-    return this._store.get('config.alwaysOnTop', false) as boolean
+    return this._store.get('config.always-on-top', false) as boolean
   }
   public set OnTop(b: boolean) {
-    this._store.set('config.alwaysOnTop', b)
+    this._store.set('config.always-on-top', b)
   }
 
   public get CheckUpdate(): boolean {
