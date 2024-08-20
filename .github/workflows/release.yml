@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 20.8.0
           cache: 'npm'
-      - run: brew install setuptools
+      - run: brew install python-setuptools
       - run: npm install
       - name: generate version
         run: echo "${{ github.ref }}" | sed 's/refs\/tags\/v//g' | xargs npm version --no-git-tag-version
