@@ -134,12 +134,13 @@
         </div>
       </div>
       <div
-        id="danmuSender"
+        id="danmu-sender"
         x-show="login && !base.lite_mode"
         style="z-index: 90"
       >
         <span>></span>
         <span
+          tabindex="0"
           class="input"
           role="textbox"
           @input="handleContentEdit"
@@ -164,7 +165,7 @@
         条新弹幕
       </div>
       <div id="statusbar" x-show="!base.lite_mode">
-        <div id="live-title" x-text="base.title"></div>
+        <div id="live-title" x-text="base.title" style="z-index: 80;"></div>
         <div
           class="tooltip"
           style="height: 24px; width: 24px; cursor: pointer; margin-right: 14px"

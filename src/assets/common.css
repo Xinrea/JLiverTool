@@ -847,22 +847,3 @@ option {
   opacity: 1;
 }
 
-#danmuSender {
-  position: fixed;
-  right: 56px;
-  bottom: 8px;
-  color: var(--statusbar-font-color);
-  background-color: #ffffff14;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  padding: 1px 8px 1px 1px;
-  vertical-align: middle;
-  z-index: 999;
-}
-
-#danmuSender > span {
-  font-size: 13px;
-  padding: 4px;
-  text-align: left;
-  max-height: 30px;
-}

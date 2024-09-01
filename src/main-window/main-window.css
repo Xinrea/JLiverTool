@@ -384,3 +384,32 @@ button:hover {
   background-size: contain;
   vertical-align: middle;
 }
+
+#danmu-sender {
+  position: fixed;
+  right: 56px;
+  bottom: 8px;
+  color: var(--statusbar-font-color);
+  background-color: var(--statusbar-color);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 8px 1px 1px;
+  vertical-align: middle;
+  z-index: 999;
+}
+
+#danmu-sender > span {
+  font-size: 13px;
+  padding: 4px;
+  text-align: left;
+  max-height: 30px;
+}
+
+#danmu-sender > span:nth-child(2) {
+  transition: all 0.5s ease;
+  width: 0px;
+}
+
+#danmu-sender > span:nth-child(2):focus {
+  width: 100px;
+}

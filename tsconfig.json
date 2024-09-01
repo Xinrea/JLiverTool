@@ -8,5 +8,5 @@
     "strict": false,
     "lib": ["dom", "es2015", "es2016", "es2017"]
   },
-  "exclude": ["./node_modules", "./webpack.config.js"]
+  "exclude": ["./node_modules", "./webpack.config.js", "./release_helper.js"]
 }
