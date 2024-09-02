@@ -165,7 +165,7 @@ class Window {
       if (loaded_callback) {
         loaded_callback()
       } else {
-        log.warn('Window loaded callback not set', { window: this.win_type })
+        log.debug('Window loaded callback not set', { window: this.win_type })
       }
     })
 
