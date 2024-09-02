@@ -12,6 +12,9 @@ require('source-map-support').install()
 
 const log = JLogger.getInstance('main')
 
+// prevent creating default menu for performance
+Menu.setApplicationMenu(null)
+
 let tray = null
 app.whenReady().then(() => {
   app.on('activate', function () {})
