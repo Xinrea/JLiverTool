@@ -99,7 +99,7 @@ app.on('ready', () => {
           type: 'info',
           title: '关于',
           message: 'JLiverTool 弹幕机 v' + app.getVersion(),
-          detail: '作者：@Xinrea\n赞助：https://afdian.net/a/Xinrea',
+          detail: '作者：@Xinrea\n赞助：https://afdian.com/a/Xinrea',
         })
       },
     },
