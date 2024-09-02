@@ -69,6 +69,37 @@ const preloadConfig = {
   ],
 }
 
+const pluginPreloadConfig = {
+  mode: 'production',
+  devtool: 'inline-source-map',
+  target: 'electron-preload',
+  entry: {
+    './src/plugin_preload': './src/plugin_preload.ts',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: 'ts-loader',
+        exclude: /node_modules/,
+      },
+    ],
+  },
+  resolve: {
+    extensions: ['.tsx', '.ts', '.js'],
+  },
+  output: {
+    filename: '[name].js',
+    path: path.resolve(__dirname, './'),
+  },
+  plugins: [
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/,
+    }),
+  ],
+}
+
 const backendConfig = {
   mode: 'production',
   devtool: 'inline-source-map',
@@ -108,4 +139,9 @@ const backendConfig = {
   ],
 }
 
-module.exports = [frontendConfig, preloadConfig, backendConfig]
+module.exports = [
+  frontendConfig,
+  preloadConfig,
+  pluginPreloadConfig,
+  backendConfig,
+]

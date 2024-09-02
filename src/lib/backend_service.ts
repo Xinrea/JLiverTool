@@ -32,6 +32,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { GiftType } from './bilibili/api/room/gift_config'
 import { InteractActionToStr, levelToName } from './utils'
 import { AfdianAPI } from './afdian/afdianapi'
+import PluginManager from './plugin_manager'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -59,6 +60,8 @@ export default class BackendService {
 
   private _danmu_cache: DanmuCache = null
 
+  private _plugin_manager: PluginManager = null
+
   public constructor(store: ConfigStore, window_manager: WindowManager) {
     this._config_store = store
     this._window_manager = window_manager
@@ -66,6 +69,8 @@ export default class BackendService {
     this._config_store.onDidChange('config.max_detail_entry', (max: number) => {
       this._danmu_cache.updateMaxEntries(max)
     })
+    this._plugin_manager = new PluginManager()
+    this._plugin_manager.add('plugins/example')
   }
 
   public async Start() {
@@ -595,18 +600,18 @@ export default class BackendService {
   }
 
   private handlers = {
-    'DANMU_MSG': this.danmuHandler,
-    'SEND_GIFT': this.giftHandler,
-    'USER_TOAST_MSG': this.guardHandler,
-    'SUPER_CHAT_MESSAGE': this.superchatHandler,
-    'LIVE': this.liveHandler,
-    'WARNING': this.warningHandler,
-    'CUT_OFF': this.cutoffHandler,
-    'PREPARING': this.prepareHandler,
-    'ROOM_CHANGE': this.roomChangeHandler,
-    'INTERACT_WORD': this.interactHandler,
-    'ENTRY_EFFECT': this.entryEffectHandler,
-    'ONLINE_RANK_COUNT': this.rankCountHandler,
+    DANMU_MSG: this.danmuHandler,
+    SEND_GIFT: this.giftHandler,
+    USER_TOAST_MSG: this.guardHandler,
+    SUPER_CHAT_MESSAGE: this.superchatHandler,
+    LIVE: this.liveHandler,
+    WARNING: this.warningHandler,
+    CUT_OFF: this.cutoffHandler,
+    PREPARING: this.prepareHandler,
+    ROOM_CHANGE: this.roomChangeHandler,
+    INTERACT_WORD: this.interactHandler,
+    ENTRY_EFFECT: this.entryEffectHandler,
+    ONLINE_RANK_COUNT: this.rankCountHandler,
   }
 
   // msg handler for primary connection

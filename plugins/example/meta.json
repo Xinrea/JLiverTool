@@ -1,0 +1,8 @@
+{
+  "id": "jlivertool.xinrea.example",
+  "name": "Example Plugin",
+  "author": "Xinrea",
+  "version": "0.0.1",
+  "index": "index.html",
+  "url": "https://github.com/Xinrea"
+}
