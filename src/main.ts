@@ -71,7 +71,7 @@ async function checkUpdateFromGithubAPI() {
 }
 
 let quitCallback = async () => {}
-app.on('ready', () => {
+app.on('ready', async () => {
   const store = new ConfigStore()
   const window_manager = new WindowManager(store, quitCallback)
   const backend_service = new BackendService(store, window_manager)
@@ -80,8 +80,6 @@ app.on('ready', () => {
     await backend_service.Stop()
     app.quit()
   }
-
-  void backend_service.Start()
 
   ipcMain.handle(JEvent[JEvent.INVOKE_APP_QUIT], quitCallback)
 
@@ -168,8 +166,11 @@ app.on('ready', () => {
   tray.on('click', () => {})
 
   if (store.CheckUpdate) {
-    checkUpdateFromGithubAPI()
+    await checkUpdateFromGithubAPI()
   }
+
+  await backend_service.Start()
+
 })
 
 app.on('quit', () => {
