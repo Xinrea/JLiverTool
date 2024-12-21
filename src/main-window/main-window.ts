@@ -223,7 +223,7 @@ const appStatus = {
     console.log('Init events')
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ONLINE, (arg: any) => {
       // Update online number
-      this.base.online = arg.count
+      this.base.online = arg.online_count
     })
     window.jliverAPI.register(JEvent.EVENT_UPDATE_ROOM, (arg: any) => {
       // Update room title and status

@@ -618,8 +618,9 @@ export default class BackendService {
     const handler = this.handlers[cmd]
     if (handler) {
       handler.bind(this)(msg)
+    } else {
+      log.debug('Received unhandled message', { msg })
     }
-    log.debug('Received unhandled message', { msg })
   }
 
   private rankCountHandler(msg: any) {
