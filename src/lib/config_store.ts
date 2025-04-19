@@ -91,6 +91,9 @@ class Store {
     const newConfigJson = JSON.stringify(configJs)
     fs.writeFileSync(config_path, newConfigJson)
     this.web_contents.forEach((wc) => {
+      if (wc.isDestroyed()) {
+        return
+      }
       wc.send(JEvent[JEvent.EVENT_STORE_WATCH], key, value)
     })
     if (this.registered_callbacks.has(key)) {

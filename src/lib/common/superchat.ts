@@ -1,4 +1,4 @@
-import * as moment from 'moment/moment'
+import moment from 'moment/moment'
 import { renderContent } from './content-render'
 import { createMedal } from './medal'
 import { SuperChat } from './superchatInterface'
