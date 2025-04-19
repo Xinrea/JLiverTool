@@ -13,3 +13,5 @@ src/*/*.js
 .cookiestest
 
 releases.html
+
+docs/.vitepress/cache
