@@ -1,6 +1,6 @@
 {
-  "id": "jlivertool.xinrea.example",
-  "name": "Example Plugin",
+  "id": "jlivertool.xinrea.wordcloud",
+  "name": "弹幕词云",
   "author": "Xinrea",
   "version": "0.0.1",
   "index": "index.html",

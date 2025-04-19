@@ -1,22 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Example Plugin</title>
-    <link rel="stylesheet" href="styles.css">
-    <script src="script.js" defer></script>
-</head>
-<body>
-    <header>
-        <h1>Example Plugin</h1>
-    </header>
-    <main>
-        <section id="content">
-            <p>This is an example plugin page.</p>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2023 Example Plugin</p>
-    </footer>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>弹幕词云</title>
+    <script src="wordcloud2.js"></script>
+  </head>
+  <body style="margin: 0; padding: 0; overflow: hidden">
+    <div style="height: 100vh; width: 100vw">
+      <canvas id="canvas"></canvas>
+    </div>
+  </body>
+  <script>
+    console.log('example plugin loaded')
+
+    const canvas = document.getElementById('canvas')
+
+    let wordCounts = {}
+
+    window.addEventListener('resize', resizeCanvas, false)
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+
+    window.jliverAPI.register(2, (arg) => {
+      const segmenterFr = new Intl.Segmenter('zh', { granularity: 'word' })
+
+      const iterator = segmenterFr.segment(arg.content)[Symbol.iterator]()
+      for (const { segment } of iterator) {
+        if (segment.length < 2) continue
+        wordCounts[segment] = (wordCounts[segment] || 0) + 1
+      }
+    })
+
+    setInterval(() => {
+      console.log('wordCounts', wordCounts)
+      WordCloud(canvas, {
+        list: Object.entries(wordCounts).map(([word, count]) => [word, count]),
+        fontFamily: 'System UI',
+        minSize: 5,
+        weightFactor: 10,
+      })
+    }, 5 * 1000)
+  </script>
 </html>
