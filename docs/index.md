@@ -5,7 +5,7 @@ layout: home
 hero:
   name: 'JLiverTool'
   text: 'B 站直播弹幕工具'
-  tagline: 简单易用的直播工具
+  tagline: 简单易用的 B 站开源直播弹幕工具
   image:
     src: /logo.png
     alt: JLiverTool
@@ -37,4 +37,12 @@ features:
     details: 可以查看本次直播指定观众的发言记录
   - title: 链接识别
     details: 点击直接打开弹幕、醒目留言中的视频 BV 号
+  - title: 插件支持
+    details: 支持插件扩展功能，提供插件开发文档
 ---
+
+## 软件截图
+
+![screenshot](/screenshot.png)
+
+![screenshot2](/screenshot2.png)

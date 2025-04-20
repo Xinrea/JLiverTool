@@ -2,8 +2,8 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: 'JLiverTool',
-  description: 'B 站直播弹幕工具',
+  title: 'JLiverTool 弹幕工具',
+  description: 'B 站直播开源弹幕工具',
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
