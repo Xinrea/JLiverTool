@@ -582,6 +582,42 @@
             <div class="tab-wrap" x-show="active == 4">
               <div
                 style="display: flex; flex-direction: column; width: 100%"
+              >
+                <div class="group multiple" x-data="plugin_setting">
+                  <div class="group-item">
+                    <span class="group-desc">
+                      <span class="icon">&#xf763</span>
+                      <span class="desc">
+                        <span>添加插件</span>
+                      </span>
+                    </span>
+                    <button @click="addPlugin">添加</button>
+                  </div>
+                  <div class="item-group">
+                    <template
+                      x-for="item in plugin_list"
+                      :key="item.path"
+                    >
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="desc">
+                          <span x-text="item.name"></span>
+                          <span x-text="item.desc"></span>
+                        </span>
+                      </span>
+                      <div>
+                        <button @click="()=>{invokePluginWindow(item.id)}">插件窗口</button>
+                        <button @click="()=>{removePlugin(item.path)}">移除</button>
+                      </div>
+                    </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab-wrap" x-show="active == 5">
+              <div
+                style="display: flex; flex-direction: column; width: 100%"
                 x-data="advanced_setting"
               >
                 <div class="group multiple">
@@ -633,7 +669,7 @@
                 </div>
               </div>
             </div>
-            <div class="tab-wrap" x-show="active == 5">
+            <div class="tab-wrap" x-show="active == 6">
               <div
                 style="display: flex; flex-direction: column; width: 100%"
                 x-data="about"

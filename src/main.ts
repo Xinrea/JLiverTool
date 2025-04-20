@@ -28,6 +28,9 @@ app.on('window-all-closed', function () {
 app.commandLine.appendSwitch('wm-window-animations-disabled')
 
 async function checkUpdateFromGithubAPI() {
+  if (app.getVersion() === 'develop') {
+    return
+  }
   const url = 'https://api.github.com/repos/xinrea/JLiverTool/releases/latest'
   const options = {
     method: 'GET',
@@ -170,7 +173,6 @@ app.on('ready', async () => {
   }
 
   await backend_service.Start()
-
 })
 
 app.on('quit', () => {

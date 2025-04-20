@@ -594,8 +594,32 @@ const tts_setting = {
     let utterance = new SpeechSynthesisUtterance(test_text)
     utterance.volume = this.volume
     window.speechSynthesis.speak(utterance)
-  }
+  },
 }
+
+const plugin_setting = {
+  _plugin_list: [],
+  async init() {
+    this._plugin_list = await window.jliverAPI.plugin.getPluginList()
+    console.log('plugin list', this._plugin_list)
+  },
+  get plugin_list() {
+    return this._plugin_list
+  },
+  async addPlugin() {
+    await window.jliverAPI.plugin.addPlugin()
+    this._plugin_list = await window.jliverAPI.plugin.getPluginList()
+  },
+  async removePlugin(plugin: string) {
+    console.log('remove plugin', plugin)
+    await window.jliverAPI.plugin.removePlugin(plugin)
+    this._plugin_list = await window.jliverAPI.plugin.getPluginList()
+  },
+  async invokePluginWindow(plugin_id: string) {
+    await window.jliverAPI.plugin.invokePluginWindow(plugin_id)
+  },
+}
+
 Alpine.data('app', (): any => app)
 Alpine.data('room_setting', (): any => room_setting)
 Alpine.data('account_setting', (): any => account_setting)
@@ -605,6 +629,7 @@ Alpine.data('danmu_style_setting', (): any => danmu_style_setting)
 Alpine.data('window_setting', (): any => window_setting)
 Alpine.data('tts_setting', (): any => tts_setting)
 Alpine.data('advanced_setting', (): any => advanced_setting)
+Alpine.data('plugin_setting', (): any => plugin_setting)
 Alpine.data('about', (): any => about)
 Alpine.data('tab', (): any => ({
   active: 0,
@@ -627,10 +652,14 @@ Alpine.data('tab', (): any => ({
     },
     {
       id: 4,
-      text: '高级设置',
+      text: '插件管理',
     },
     {
       id: 5,
+      text: '高级设置',
+    },
+    {
+      id: 6,
       text: '关于',
     },
   ],

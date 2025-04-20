@@ -58,6 +58,12 @@ export type JLiverAPI = {
       page_size: number
     ) => Promise<GetOnlineGoldRankResponse>
   }
+  plugin: {
+    invokePluginWindow: (plugin_id: string) => Promise<void>
+    removePlugin: (plugin_id: string) => Promise<void>
+    addPlugin: () => Promise<void>
+    getPluginList: () => Promise<any>
+  }
   util: {
     openUrl: (url: string) => Promise<any>
     openLogDir: () => Promise<any>
@@ -233,6 +239,20 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     getRankList: (page: number, page_size: number) => {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_RANK], page, page_size)
+    },
+  },
+  plugin: {
+    invokePluginWindow: (plugin_id: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_PLUGIN_WINDOW], plugin_id)
+    },
+    removePlugin: (plugin_id: string) => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_REMOVE_PLUGIN], plugin_id)
+    },
+    addPlugin: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_ADD_PLUGIN])
+    },
+    getPluginList: () => {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_PLUGIN_LIST])
     },
   },
   config: {

@@ -1,0 +1,9 @@
+{
+  "id": "jlivertool.xinrea.wordcloud",
+  "name": "弹幕词云",
+  "author": "Xinrea",
+  "desc": "生成弹幕词云",
+  "version": "0.0.1",
+  "index": "index.html",
+  "url": "https://github.com/Xinrea"
+}

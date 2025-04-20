@@ -179,6 +179,7 @@ class Window {
 
     if (dev) {
       this._window.webContents.openDevTools()
+      this._window.setMenu(null)
     }
     this.registerEvents()
   }
