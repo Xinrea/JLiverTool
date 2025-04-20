@@ -7,7 +7,7 @@ export function levelToName(level: number) {
     case 3:
       return '舰长'
     default:
-      return '舰长'
+      return ''
   }
 }
 
