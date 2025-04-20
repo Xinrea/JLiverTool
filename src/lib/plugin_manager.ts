@@ -36,7 +36,7 @@ export class Plugin {
       this.url = meta_info.url
       this.author = meta_info.author
       log.info('load plugin', {
-        auther: this.author,
+        author: this.author,
         name: this.name,
         version: this.version,
       })

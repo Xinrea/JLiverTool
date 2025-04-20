@@ -202,6 +202,7 @@ export class ConfigStore {
     const plugin_list = this.GetPluginList()
     if (plugin_list.includes(plugin)) {
       log.error('Plugin already exists', { plugin })
+      return
     }
     plugin_list.push(plugin)
     this._store.set('config.plugin_list', plugin_list)
@@ -211,6 +212,7 @@ export class ConfigStore {
     const plugin_list = this.GetPluginList()
     if (!plugin_list.includes(plugin)) {
       log.error('Plugin not found', { plugin })
+      return
     }
     const index = plugin_list.indexOf(plugin)
     if (index > -1) {
@@ -221,7 +223,8 @@ export class ConfigStore {
 
   public SetPluginList(plugin_list: string[]) {
     if (!Array.isArray(plugin_list)) {
-      log.fatal('Plugin list is not an array', { plugin_list })
+      log.error('Plugin list is not an array', { plugin_list })
+      return
     }
     this._store.set('config.plugin_list', plugin_list)
   }
