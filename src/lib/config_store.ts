@@ -190,6 +190,42 @@ export class ConfigStore {
     return this._store.get('config.level-effect', true) as boolean
   }
 
+  public GetPluginList(): string[] {
+    const plugin_list = this._store.get('config.plugin_list', [])
+    if (!Array.isArray(plugin_list)) {
+      log.fatal('Plugin list is not an array', { plugin_list })
+    }
+    return plugin_list as string[]
+  }
+
+  public AddPlugin(plugin: string) {
+    const plugin_list = this.GetPluginList()
+    if (plugin_list.includes(plugin)) {
+      log.error('Plugin already exists', { plugin })
+    }
+    plugin_list.push(plugin)
+    this._store.set('config.plugin_list', plugin_list)
+  }
+
+  public RemovePlugin(plugin: string) {
+    const plugin_list = this.GetPluginList()
+    if (!plugin_list.includes(plugin)) {
+      log.error('Plugin not found', { plugin })
+    }
+    const index = plugin_list.indexOf(plugin)
+    if (index > -1) {
+      plugin_list.splice(index, 1)
+    }
+    this._store.set('config.plugin_list', plugin_list)
+  }
+
+  public SetPluginList(plugin_list: string[]) {
+    if (!Array.isArray(plugin_list)) {
+      log.fatal('Plugin list is not an array', { plugin_list })
+    }
+    this._store.set('config.plugin_list', plugin_list)
+  }
+
   public GetWindowCachedSetting(wtype: WindowType): WindowSetting {
     let setting = this._store.get(`config.window.${wtype}`, {
       pos: null,

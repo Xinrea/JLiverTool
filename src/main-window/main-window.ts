@@ -63,6 +63,13 @@ const toggles = {
       this.values['lite-mode'] = newValue
     })
 
+    this.plugins = await window.jliverAPI.plugin.getPluginList()
+    window.jliverAPI.onDidChange('config.plugin_list', () => {
+      window.jliverAPI.plugin.getPluginList().then((plugins) => {
+        this.plugins = plugins
+      })
+    })
+
     // always-on-top should be set after init
     this.updateWindowSetting()
     this.updateMedalDisplay()
@@ -73,6 +80,7 @@ const toggles = {
     'interact-display': false,
     'lite-mode': false,
   },
+  plugins: [],
   toggle(name: string) {
     console.log('Toggle ' + name)
     this.values[name] = !this.values[name]
@@ -100,6 +108,9 @@ const toggles = {
       '--medal-display',
       this.values['medal-display'] ? 'inline-block' : 'none'
     )
+  },
+  openPlugin(plugin_id: string) {
+    window.jliverAPI.plugin.invokePluginWindow(plugin_id)
   },
 }
 
@@ -368,7 +379,7 @@ const appStatus = {
     }
     this.tts.instance = new SpeechSynthesisUtterance(content)
     this.tts.instance.volume = this.tts.volume
-    this.tts.instance.onend = ()=>{
+    this.tts.instance.onend = () => {
       this.tts.instance = null
     }
     window.speechSynthesis.speak(this.tts.instance)
@@ -411,7 +422,9 @@ const appStatus = {
       }
     }
     if (this.tts.gift) {
-      this.speak(gift.sender.uname + '投喂了' + gift.num +'个' + gift.gift_info.name)
+      this.speak(
+        gift.sender.uname + '投喂了' + gift.num + '个' + gift.gift_info.name
+      )
     }
     // check gift cache to merge gift in combo
     if (giftCache.has(gift.id)) {

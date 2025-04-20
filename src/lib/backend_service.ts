@@ -1,4 +1,4 @@
-import { app, clipboard, ipcMain, shell, Notification } from 'electron'
+import { app, clipboard, ipcMain, shell, Notification, dialog } from 'electron'
 import JEvent from './events'
 import JLogger from './logger'
 import { BiliWebSocket, PackResult } from './bilibili/biliws'
@@ -70,7 +70,9 @@ export default class BackendService {
       this._danmu_cache.updateMaxEntries(max)
     })
     this._plugin_manager = new PluginManager()
-    this._plugin_manager.add('plugins/example')
+    for (const plugin of this._config_store.GetPluginList()) {
+      this._plugin_manager.add(plugin)
+    }
   }
 
   public async Start() {
@@ -447,6 +449,7 @@ export default class BackendService {
     this.mergeEventInit()
     this.userEventInit()
     this.giftEventInit()
+    this.pluginEventInit()
   }
 
   private giftEventInit() {
@@ -593,6 +596,43 @@ export default class BackendService {
     })
   }
 
+  private pluginEventInit() {
+    ipcMain.handle(JEvent[JEvent.INVOKE_GET_PLUGIN_LIST], async () => {
+      const plugins = this._plugin_manager.getPlugins()
+      log.debug('Get plugin list', { plugins })
+      return plugins.map((plugin) => {
+        return {
+          id: plugin.id,
+          name: plugin.name,
+          author: plugin.author,
+          desc: plugin.desc,
+          version: plugin.version,
+          path: plugin.path,
+        }
+      })
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_PLUGIN_WINDOW], async (_, id) => {
+      this._plugin_manager.showPluginWindow(id)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_REMOVE_PLUGIN], async (_, path) => {
+      this._config_store.RemovePlugin(path)
+      this._plugin_manager.remove(path)
+    })
+    ipcMain.handle(JEvent[JEvent.INVOKE_ADD_PLUGIN], async () => {
+      const path = await dialog.showOpenDialog(null, {
+        properties: ['openDirectory'],
+      })
+      if (path.canceled) {
+        return
+      }
+      const plugin_path = path.filePaths[0]
+      log.debug('Add plugin', { path: plugin_path })
+      if (await this._plugin_manager.add(plugin_path)) {
+        this._config_store.AddPlugin(plugin_path)
+      }
+    })
+  }
+
   private async msgHandler(packet: PackResult) {
     for (const msg of packet.body) {
       this.doHandler(msg)
@@ -704,6 +744,7 @@ export default class BackendService {
       JEvent.EVENT_NEW_DANMU,
       danmu_msg
     )
+    this._plugin_manager.broadcast(JEvent.EVENT_NEW_DANMU, danmu_msg)
     this._danmu_cache.add(
       RecordType.DANMU,
       danmu_msg.sender.uid,

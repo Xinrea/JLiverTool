@@ -23,6 +23,7 @@
               style="
                 margin-left: 14px;
                 -webkit-mask-image: url('../assets/icons/avatar.svg');
+                mask-image: url('../assets/icons/avatar.svg');
                 background-color: white;
               "
             ></span>
@@ -30,6 +31,12 @@
           </div>
         </div>
         <div x-data="toggles">
+          <template x-for="plugin in plugins" :key="plugin.id">
+            <div class="title-button tooltip" @click="openPlugin(plugin.id)">
+              <span class="tooltip-text" x-text="plugin.name"></span>
+              <span x-text="plugin.name[0]"></span>
+            </div>
+          </template>
           <div
             id="medal-button"
             class="title-button tooltip"
@@ -39,7 +46,10 @@
             <span class="tooltip-text" x-text="l.texts.FANS_MEDAL"></span>
             <span
               class="icon"
-              style="-webkit-mask-image: url('../assets/icons/medal.svg')"
+              style="
+                -webkit-mask-image: url('../assets/icons/medal.svg');
+                mask-image: url('../assets/icons/medal.svg');
+              "
             ></span>
           </div>
           <div
@@ -51,7 +61,10 @@
             <span class="tooltip-text" x-text="l.texts.PINNED"></span>
             <span
               class="icon"
-              style="-webkit-mask-image: url('../assets/icons/pin.svg')"
+              style="
+                -webkit-mask-image: url('../assets/icons/pin.svg');
+                mask-image: url('../assets/icons/pin.svg');
+              "
             ></span>
           </div>
           <div
@@ -63,7 +76,10 @@
           >
             <span
               class="icon"
-              style="-webkit-mask-image: url('../assets/icons/minimize.svg')"
+              style="
+                -webkit-mask-image: url('../assets/icons/minimize.svg');
+                mask-image: url('../assets/icons/minimize.svg');
+              "
             ></span>
           </div>
           <div
@@ -75,7 +91,10 @@
             <span class="tooltip-text">精简模式</span>
             <span
               class="icon"
-              style="-webkit-mask-image: url('../assets/icons/lite.svg')"
+              style="
+                -webkit-mask-image: url('../assets/icons/lite.svg');
+                mask-image: url('../assets/icons/lite.svg');
+              "
             ></span>
           </div>
           <div id="dropdown" x-data="menu">
@@ -94,7 +113,10 @@
             >
               <span
                 class="icon"
-                style="-webkit-mask-image: url('../assets/icons/setting.svg')"
+                style="
+                  -webkit-mask-image: url('../assets/icons/setting.svg');
+                  mask-image: url('../assets/icons/setting.svg');
+                "
               ></span>
             </div>
             <div
@@ -166,7 +188,7 @@
         条新弹幕
       </div>
       <div id="statusbar" x-show="!base.lite_mode">
-        <div id="live-title" x-text="base.title" style="z-index: 80;"></div>
+        <div id="live-title" x-text="base.title" style="z-index: 80"></div>
         <div
           class="tooltip"
           style="height: 24px; width: 24px; cursor: pointer; margin-right: 14px"

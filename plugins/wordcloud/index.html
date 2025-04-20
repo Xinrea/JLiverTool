@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>弹幕词云</title>
+    <script src="wordcloud2.js"></script>
+  </head>
+  <body style="margin: 0; padding: 0; overflow: hidden">
+    <div style="height: 100vh; width: 100vw">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div
+      style="
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        z-index: 9999;
+        opacity: 0.5;
+      "
+    >
+      <button onclick="update()">⟳</button>
+    </div>
+  </body>
+  <script>
+    console.log('example plugin loaded')
+
+    const canvas = document.getElementById('canvas')
+
+    let wordCounts = {}
+
+    window.addEventListener('resize', resizeCanvas, false)
+
+    function update() {
+      let list = Object.entries(wordCounts).map(([word, count]) => [
+        word,
+        count,
+      ])
+      // sort by count
+      list = list.sort((a, b) => b[1] - a[1])
+      // limit to 200 words
+      list = list.slice(0, 200)
+      WordCloud(canvas, {
+        list: list,
+        fontFamily: 'System UI',
+        shrinkToFit: true,
+        shape: 'square',
+        shuffle: false,
+        weightFactor: 10 * (window.devicePixelRatio || 1),
+      })
+    }
+
+    function resizeCanvas() {
+      // scale factor
+      const scale = window.devicePixelRatio || 1
+      canvas.width = window.innerWidth * scale
+      canvas.height = window.innerHeight * scale
+      canvas.style.width = window.innerWidth + 'px'
+      canvas.style.height = window.innerHeight + 'px'
+    }
+
+    window.jliverAPI.register(2, (arg) => {
+      if (arg.emoji_content) {
+        return
+      }
+
+      const segmenterFr = new Intl.Segmenter('zh', { granularity: 'word' })
+
+      const iterator = segmenterFr.segment(arg.content)[Symbol.iterator]()
+      for (const { segment } of iterator) {
+        if (segment.length < 2) continue
+        wordCounts[segment] = (wordCounts[segment] || 0) + 1
+      }
+    })
+
+    setInterval(() => {
+      update()
+    }, 30 * 1000)
+  </script>
+</html>
