@@ -690,6 +690,7 @@ export default class BackendService {
       JEvent.EVENT_UPDATE_ROOM,
       msg.data
     )
+    this._plugin_manager.broadcast(JEvent.EVENT_UPDATE_ROOM, msg.data)
   }
 
   private cutoffHandler(msg: any) {
@@ -716,6 +717,9 @@ export default class BackendService {
     this._window_manager.SendTo(WindowType.WSETTING, JEvent.EVENT_UPDATE_ROOM, {
       live_status: 0,
     })
+    this._plugin_manager.broadcast(JEvent.EVENT_UPDATE_ROOM, {
+      live_status: 0,
+    })
   }
 
   private liveHandler(msg: any) {
@@ -724,6 +728,9 @@ export default class BackendService {
       live_status: 1,
     })
     this._window_manager.SendTo(WindowType.WSETTING, JEvent.EVENT_UPDATE_ROOM, {
+      live_status: 1,
+    })
+    this._plugin_manager.broadcast(JEvent.EVENT_UPDATE_ROOM, {
       live_status: 1,
     })
   }
@@ -804,6 +811,7 @@ export default class BackendService {
       JEvent.EVENT_NEW_GIFT,
       gift_msg
     )
+    this._plugin_manager.broadcast(JEvent.EVENT_NEW_GIFT, gift_msg)
     // store gift message
     this._gift_store.Push(gift_msg)
     this._danmu_cache.add(
@@ -839,6 +847,7 @@ export default class BackendService {
       JEvent.EVENT_NEW_GUARD,
       guard_msg
     )
+    this._plugin_manager.broadcast(JEvent.EVENT_NEW_GUARD, guard_msg)
     // store guard message
     this._gift_store.Push(guard_msg)
     this._danmu_cache.add(
@@ -873,6 +882,7 @@ export default class BackendService {
       JEvent.EVENT_NEW_SUPER_CHAT,
       superchat_msg
     )
+    this._plugin_manager.broadcast(JEvent.EVENT_NEW_SUPER_CHAT, superchat_msg)
     // store superchat message
     this._gift_store.Push(superchat_msg)
     this._danmu_cache.add(
@@ -895,6 +905,7 @@ export default class BackendService {
       JEvent.EVENT_NEW_INTERACT,
       interact_msg
     )
+    this._plugin_manager.broadcast(JEvent.EVENT_NEW_INTERACT, interact_msg)
     this._danmu_cache.add(
       RecordType.INTERACT,
       interact_msg.sender.uid,
@@ -928,6 +939,10 @@ export default class BackendService {
     entry_effect_msg.privilege_type = msg.data.privilege_type
     this._window_manager.SendTo(
       WindowType.WMAIN,
+      JEvent.EVENT_NEW_ENTRY_EFFECT,
+      entry_effect_msg
+    )
+    this._plugin_manager.broadcast(
       JEvent.EVENT_NEW_ENTRY_EFFECT,
       entry_effect_msg
     )
