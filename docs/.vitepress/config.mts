@@ -8,23 +8,31 @@ export default defineConfig({
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: '主页', link: '/' },
-      { text: '更新笔记', link: '/changelog' },
-      { text: '使用文档', link: '/document' },
+      { text: '功能文档', link: '/user-document' },
+      { text: '插件文档', link: '/plugin-document' },
+      { text: '插件列表', link: '/plugin-list' },
     ],
 
     sidebar: [
       {
-        text: '开始使用',
+        text: '介绍',
         items: [
-          { text: '下载和安装', link: '/setup' },
+          { text: '开始使用', link: '/setup' },
           { text: '更新笔记', link: '/changelog' },
         ],
       },
       {
-        text: '使用文档',
+        text: '使用说明',
         items: [
-          { text: '功能说明', link: '/' },
-          { text: '常见问题', link: '/' },
+          { text: '功能文档', link: '/user-document' },
+          { text: '常见问题', link: '/qa' },
+        ],
+      },
+      {
+        text: '插件开发',
+        items: [
+          { text: '插件文档', link: '/plugin-document' },
+          { text: '插件列表', link: '/plugin-list' },
         ],
       },
     ],

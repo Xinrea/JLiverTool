@@ -11,14 +11,14 @@ hero:
     alt: JLiverTool
   actions:
     - theme: brand
-      text: 获取工具
-      link: https://github.com/Xinrea/JLiverTool/releases
+      text: 开始使用
+      link: /setup
     - theme: alt
       text: 更新笔记
       link: /changelog
     - theme: alt
-      text: 使用文档
-      link: /api-examples
+      text: 功能文档
+      link: /user-document
 
 features:
   - title: 直播间管理
