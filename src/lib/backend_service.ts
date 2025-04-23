@@ -288,8 +288,14 @@ export default class BackendService {
       this._config_store.Cookies,
       this._room
     )
-    if (danmu_server_info === null) {
-      log.warn('GetDanmuInfo failed, retrying')
+    if (danmu_server_info === null || danmu_server_info.data == undefined) {
+      log.warn('GetDanmuInfo failed, retrying', danmu_server_info)
+      if (danmu_server_info && danmu_server_info.code == -352) {
+        // invalid cookies, need to re-login
+        this._config_store.Cookies = new Cookies({})
+        this._config_store.IsLogin = false
+        return
+      }
       await new Promise((resolve) => setTimeout(resolve, 5000))
       return await this.setupWebSocket()
     }
@@ -305,7 +311,10 @@ export default class BackendService {
   }
 
   private async releaseWebSocket() {
-    this._primary_conn.Disconnect()
+    if (this._primary_conn) {
+      this._primary_conn.Disconnect()
+    }
+
     log.debug('Websocket released', { room: this._room })
   }
 
