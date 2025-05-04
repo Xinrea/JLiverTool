@@ -279,7 +279,7 @@ const appStatus = {
     )
 
     console.log('Init smooth scroll')
-    setInterval(() => {
+    const updateScroll = () => {
       if (this.danmuPanel.autoScroll && this.danmuPanel.scrollRemain > 0) {
         const v = Math.ceil(this.danmuPanel.scrollRemain / 60)
         $danmuArea.scrollTop += v
@@ -294,7 +294,9 @@ const appStatus = {
       } else {
         this.danmuPanel.scrollRemain = 0
       }
-    }, 16)
+      requestAnimationFrame(updateScroll)
+    }
+    requestAnimationFrame(updateScroll)
   },
   // language texts
   l: {
