@@ -73,6 +73,9 @@ export type JLiverAPI = {
     setClipboard: (text: string) => Promise<any>
     getGoals: () => Promise<GetGoalsResponse>
   }
+  tts: {
+    aliyun(content: string): Promise<Uint8Array | null>
+  }
 }
 
 // listeners keeps all registered callback in renderer process
@@ -294,6 +297,11 @@ contextBridge.exposeInMainWorld('jliverAPI', {
     },
     getGoals() {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_GET_GOALS])
+    },
+  },
+  tts: {
+    aliyun(content: string) {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_TTS_ALIYUN], content)
     },
   },
 })

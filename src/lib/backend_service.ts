@@ -33,6 +33,7 @@ import { GiftType } from './bilibili/api/room/gift_config'
 import { InteractActionToStr, levelToName } from './utils'
 import { AfdianAPI } from './afdian/afdianapi'
 import PluginManager from './plugin_manager'
+import TTS from './tts'
 
 const log = JLogger.getInstance('backend_service')
 
@@ -459,6 +460,7 @@ export default class BackendService {
     this.userEventInit()
     this.giftEventInit()
     this.pluginEventInit()
+    this.ttsEventInit()
   }
 
   private giftEventInit() {
@@ -640,6 +642,21 @@ export default class BackendService {
         this._config_store.AddPlugin(plugin_path)
       }
     })
+  }
+
+  private ttsEventInit() {
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_TTS_ALIYUN],
+      async (_, text: string) => {
+        const resp = await TTS.Aliyun(
+          text,
+          this._config_store.tts_endpoint,
+          this._config_store.tts_token
+        )
+        log.debug('TTS Aliyun', { resp })
+        return resp
+      }
+    )
   }
 
   private async msgHandler(packet: PackResult) {

@@ -190,6 +190,14 @@ export class ConfigStore {
     return this._store.get('config.level-effect', true) as boolean
   }
 
+  public get tts_endpoint(): string {
+    return this._store.get('config.tts_provider_endpoint', '') as string
+  }
+
+  public get tts_token(): string {
+    return this._store.get('config.tts_provider_token', '') as string
+  }
+
   public GetPluginList(): string[] {
     const plugin_list = this._store.get('config.plugin_list', [])
     if (!Array.isArray(plugin_list)) {

@@ -517,14 +517,59 @@
                         x-model="volume"
                         />
                   </div>
-                  <div class="group-item">
-                    <span class="group-desc">
-                      <span class="icon">&#xE768</span>
-                      <span class="desc">
-                        <span>TTS 测试</span>
+                  <div class="item-group">
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE768</span>
+                        <span class="desc">
+                          <span>TTS 测试</span>
+                        </span>
                       </span>
-                    </span>
-                    <button @click="testTTS">测试</button>
+                      <button @click="testTTS">测试</button>
+                    </div>
+                    <div class="group-item">
+                      <span class="group-desc">
+                        <span class="icon">&#xE768</span>
+                        <span class="desc">
+                          <span>TTS 声源</span>
+                        </span>
+                      </span>
+                      <select class="select" x-model="tts_provider">
+                          <option value="system">系统</option>
+                          <option value="aliyun">阿里云</option>
+                          <option value="custom">自定义</option>
+                      </select>
+                    </div>
+                    <template x-if="tts_provider != 'system'">
+                      <div class="group-item" >
+                        <span class="group-desc">
+                          <span class="icon">&#xE8A4;</span>
+                          <span class="desc">
+                            <span>Endpoint</span>
+                          </span>
+                        </span>
+                        <input
+                          type="text"
+                          x-model="tts_provider_endpoint"
+                          placeholder="请输入 Endpoint"
+                          />
+                      </div>
+                    </template>
+                    <template x-if="tts_provider != 'system'">
+                      <div class="group-item" >
+                        <span class="group-desc">
+                          <span class="icon">&#xE8A4;</span>
+                          <span class="desc">
+                            <span>Token</span>
+                          </span>
+                        </span>
+                        <input
+                          type="text"
+                          x-model="tts_provider_token"
+                          placeholder="请输入 Token"
+                          />
+                      </div>
+                    </template>
                   </div>
                   <div class="item-group">
                     <div class="group-item">

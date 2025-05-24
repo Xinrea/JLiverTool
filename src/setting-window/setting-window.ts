@@ -4,6 +4,7 @@ import { Cookies, RoomID, WindowType, typecast } from '../lib/types'
 import JEvent from '../lib/events'
 import * as QrCode from 'qrcode'
 import UserInfoResponse from '../lib/bilibili/api/user/user_info'
+import { get } from 'http'
 
 declare global {
   interface window {
@@ -548,11 +549,26 @@ const tts_setting = {
   _danmu_tts: false,
   _gift_tts: false,
   _sc_tts: false,
+  _tts_provider: 'system',
+  _tts_provider_endpoint: '',
+  _tts_provider_token: '',
   async init() {
     this._volume = await window.jliverAPI.get('config.tts_volume', 1)
     this._danmu_tts = await window.jliverAPI.get('config.danmu_tts', false)
     this._gift_tts = await window.jliverAPI.get('config.gift_tts', false)
     this._sc_tts = await window.jliverAPI.get('config.sc_tts', false)
+    this._tts_provider = await window.jliverAPI.get(
+      'config.tts_provider',
+      'system'
+    )
+    this._tts_provider_endpoint = await window.jliverAPI.get(
+      'config.tts_provider_endpoint',
+      ''
+    )
+    this._tts_provider_token = await window.jliverAPI.get(
+      'config.tts_provider_token',
+      ''
+    )
   },
   get volume() {
     return this._volume
@@ -566,6 +582,27 @@ const tts_setting = {
     }
     this._volume = v
     window.jliverAPI.set('config.tts_volume', v)
+  },
+  get tts_provider() {
+    return this._tts_provider
+  },
+  set tts_provider(v: string) {
+    this._tts_provider = v
+    window.jliverAPI.set('config.tts_provider', v)
+  },
+  get tts_provider_endpoint() {
+    return this._tts_provider_endpoint
+  },
+  set tts_provider_endpoint(v: string) {
+    this._tts_provider_endpoint = v
+    window.jliverAPI.set('config.tts_provider_endpoint', v)
+  },
+  get tts_provider_token() {
+    return this._tts_provider_token
+  },
+  set tts_provider_token(v: string) {
+    this._tts_provider_token = v
+    window.jliverAPI.set('config.tts_provider_token', v)
   },
   get danmu_tts() {
     return this._danmu_tts

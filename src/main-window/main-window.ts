@@ -323,7 +323,7 @@ const appStatus = {
     danmu: false,
     gift: false,
     superchat: false,
-    instance: null,
+    inprocess: null,
   },
   danmuPanel: {
     replaceIndex: 0,
@@ -376,15 +376,49 @@ const appStatus = {
     window.jliverAPI.window.minimize(WindowType.WMAIN)
   },
   async speak(content: string) {
-    if (this.tts.instance) {
+    if (this.tts.inprocess) {
       return
     }
-    this.tts.instance = new SpeechSynthesisUtterance(content)
-    this.tts.instance.volume = this.tts.volume
-    this.tts.instance.onend = () => {
-      this.tts.instance = null
+    this.tts.inprocess = true
+    const provider = await window.jliverAPI.get('config.tts_provider', 'system')
+    switch (provider) {
+      case 'system':
+        this.speakWithSpeechSynthesis(content)
+        break
+      case 'aliyun':
+        this.speakWithAliyun(content)
+        break
+      default:
+        console.error('Unknown TTS provider:', provider)
+        this.tts.inprocess = false
+        break
     }
-    window.speechSynthesis.speak(this.tts.instance)
+  },
+  async speakWithSpeechSynthesis(content: string) {
+    let instance = new SpeechSynthesisUtterance(content)
+    instance.volume = this.tts.volume
+    instance.onend = () => {
+      this.tts.inprocess = false
+    }
+    window.speechSynthesis.speak(instance)
+  },
+  async speakWithAliyun(content: string) {
+    const result = await window.jliverAPI.tts.aliyun(content)
+    if (result) {
+      const audio = new Audio()
+      audio.src = URL.createObjectURL(new Blob([result], { type: 'audio/mp3' }))
+      audio.onerror = (e) => {
+        console.error('Audio error:', e)
+        this.tts.inprocess = false
+      }
+      audio.volume = this.tts.volume
+      audio.play()
+      audio.onended = () => {
+        this.tts.inprocess = false
+      }
+    } else {
+      this.tts.inprocess = false
+    }
   },
   onReceiveNewDanmu(danmu_msg: DanmuMessage) {
     this.danmuPanel.doClean()
@@ -399,8 +433,7 @@ const appStatus = {
     )
     this.danmuPanel.handleNewEntry($newEntry)
     if (this.tts.danmu) {
-      // todo template need
-      this.speak(danmu_msg.sender.uname + '说：' + danmu_msg.content)
+      this.speak(danmu_msg.content)
     }
   },
   onReceiveInteract(interact_msg: InteractMessage) {
