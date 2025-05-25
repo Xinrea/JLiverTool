@@ -551,7 +551,9 @@ const tts_setting = {
   _sc_tts: false,
   _tts_provider: 'system',
   _tts_provider_endpoint: '',
-  _tts_provider_token: '',
+  _tts_provider_appkey: '',
+  _tts_provider_access_key: '',
+  _tts_provider_secret_key: '',
   async init() {
     this._volume = await window.jliverAPI.get('config.tts_volume', 1)
     this._danmu_tts = await window.jliverAPI.get('config.danmu_tts', false)
@@ -565,8 +567,16 @@ const tts_setting = {
       'config.tts_provider_endpoint',
       ''
     )
-    this._tts_provider_token = await window.jliverAPI.get(
-      'config.tts_provider_token',
+    this._tts_provider_appkey = await window.jliverAPI.get(
+      'config.tts_provider_appkey',
+      ''
+    )
+    this._tts_provider_access_key = await window.jliverAPI.get(
+      'config.tts_provider_access_key',
+      ''
+    )
+    this._tts_provider_secret_key = await window.jliverAPI.get(
+      'config.tts_provider_secret_key',
       ''
     )
   },
@@ -597,12 +607,26 @@ const tts_setting = {
     this._tts_provider_endpoint = v
     window.jliverAPI.set('config.tts_provider_endpoint', v)
   },
-  get tts_provider_token() {
-    return this._tts_provider_token
+  get tts_provider_appkey() {
+    return this._tts_provider_appkey
   },
-  set tts_provider_token(v: string) {
-    this._tts_provider_token = v
-    window.jliverAPI.set('config.tts_provider_token', v)
+  set tts_provider_appkey(v: string) {
+    this._tts_provider_appkey= v
+    window.jliverAPI.set('config.tts_provider_appkey', v)
+  },
+  get tts_provider_access_key() {
+    return this._tts_provider_access_key
+  },
+  set tts_provider_access_key(v: string) {
+    this._tts_provider_access_key = v
+    window.jliverAPI.set('config.tts_provider_access_key', v)
+  },
+  get tts_provider_secret_key() {
+    return this._tts_provider_secret_key
+  },
+  set tts_provider_secret_key(v: string) {
+    this._tts_provider_secret_key = v
+    window.jliverAPI.set('config.tts_provider_secret_key', v)
   },
   get danmu_tts() {
     return this._danmu_tts

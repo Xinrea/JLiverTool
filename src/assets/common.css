@@ -269,6 +269,7 @@ textarea,
 }
 
 input[type='number'],
+input[type='password'],
 input[type='text'] {
   color: white;
   width: auto;
@@ -287,18 +288,25 @@ input[type='text']::selection {
   background: #2e3c50;
 }
 
+input[type='password']::selection {
+  background: #2e3c50;
+}
+
 input[type='number']:hover,
+input[type='password']:hover,
 input[type='text']:hover {
   background-color: rgba(56, 56, 56, 0.8);
 }
 
 input[type='number']:focus,
+input[type='password']:focus,
 input[type='text']:focus {
   background-color: transparent;
   border-bottom: rgba(64, 84, 113, 0.6) 2px inset;
 }
 
 input[type='number'].error,
+input[type='password'].error,
 input[type='text'].error {
   border: rgba(122, 4, 35, 0.64) 1px solid;
   border-bottom: rgba(122, 4, 35, 0.64) 2px inset;
@@ -846,4 +854,3 @@ option {
   transition-property: opacity;
   opacity: 1;
 }
-

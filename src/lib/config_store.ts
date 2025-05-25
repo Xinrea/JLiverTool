@@ -194,8 +194,16 @@ export class ConfigStore {
     return this._store.get('config.tts_provider_endpoint', '') as string
   }
 
-  public get tts_token(): string {
-    return this._store.get('config.tts_provider_token', '') as string
+  public get tts_appkey(): string {
+    return this._store.get('config.tts_provider_appkey', '') as string
+  }
+
+  public get tts_access_key(): string {
+    return this._store.get('config.tts_provider_access_key', '') as string
+  }
+
+  public get tts_secret_key(): string {
+    return this._store.get('config.tts_provider_secret_key', '') as string
   }
 
   public GetPluginList(): string[] {

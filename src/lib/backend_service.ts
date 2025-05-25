@@ -645,15 +645,27 @@ export default class BackendService {
   }
 
   private ttsEventInit() {
+
+    let aliyunToken = ""
+
     ipcMain.handle(
       JEvent[JEvent.INVOKE_TTS_ALIYUN],
       async (_, text: string) => {
+        if (this._config_store.tts_appkey == "") {
+          return
+        }
+
+        // fetch a token
+        if (aliyunToken == "") {
+          aliyunToken = await TTS.AliyunAuth(this._config_store.tts_access_key, this._config_store.tts_secret_key)
+        }
+
         const resp = await TTS.Aliyun(
           text,
-          this._config_store.tts_endpoint,
-          this._config_store.tts_token
+          "https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/tts",
+          this._config_store.tts_appkey,
+          aliyunToken
         )
-        log.debug('TTS Aliyun', { resp })
         return resp
       }
     )
@@ -664,9 +676,8 @@ export default class BackendService {
         const resp = await TTS.Custom(
           text,
           this._config_store.tts_endpoint,
-          this._config_store.tts_token
+          ""
         )
-        log.debug('TTS Custom', { resp })
         return resp
       }
     )
