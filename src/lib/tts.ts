@@ -35,4 +35,34 @@ export default class TTS {
       return null
     }
   }
+
+  public static async Custom(
+    text: string,
+    endpoint: string,
+    token: string
+  ): Promise<Uint8Array | null> {
+    const url = `${endpoint}`
+    const params = new URLSearchParams()
+    params.append('text', text)
+    params.append('token', token)
+
+    // GET endpoint, params in query string
+    try {
+      const response = await fetch(`${url}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      })
+      if (!response.ok) {
+        throw new Error(
+          `HTTP error! status: ${response.status} ${await response.text()}`
+        )
+      }
+      return await response.bytes()
+    } catch (error) {
+      console.error(`TTS Custom failed: ${error}`)
+      return null
+    }
+  }
 }

@@ -657,6 +657,19 @@ export default class BackendService {
         return resp
       }
     )
+
+    ipcMain.handle(
+      JEvent[JEvent.INVOKE_TTS_CUSTOM],
+      async (_, text: string) => {
+        const resp = await TTS.Custom(
+          text,
+          this._config_store.tts_endpoint,
+          this._config_store.tts_token
+        )
+        log.debug('TTS Custom', { resp })
+        return resp
+      }
+    )
   }
 
   private async msgHandler(packet: PackResult) {

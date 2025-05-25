@@ -54,6 +54,7 @@ enum JEvent {
   INVOKE_ADD_PLUGIN,
   INVOKE_GET_PLUGIN_LIST,
   INVOKE_TTS_ALIYUN,
+  INVOKE_TTS_CUSTOM,
 }
 
 export default JEvent

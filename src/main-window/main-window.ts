@@ -388,6 +388,9 @@ const appStatus = {
       case 'aliyun':
         this.speakWithAliyun(content)
         break
+      case 'custom':
+        this.speakWithCustom(content)
+        break
       default:
         console.error('Unknown TTS provider:', provider)
         this.tts.inprocess = false
@@ -407,6 +410,24 @@ const appStatus = {
     if (result) {
       const audio = new Audio()
       audio.src = URL.createObjectURL(new Blob([result], { type: 'audio/mp3' }))
+      audio.onerror = (e) => {
+        console.error('Audio error:', e)
+        this.tts.inprocess = false
+      }
+      audio.volume = this.tts.volume
+      audio.play()
+      audio.onended = () => {
+        this.tts.inprocess = false
+      }
+    } else {
+      this.tts.inprocess = false
+    }
+  },
+  async speakWithCustom(content: string) {
+    const result = await window.jliverAPI.tts.custom(content)
+    if (result) {
+      const audio = new Audio()
+      audio.src = URL.createObjectURL(new Blob([result], { type: 'audio/wav' }))
       audio.onerror = (e) => {
         console.error('Audio error:', e)
         this.tts.inprocess = false

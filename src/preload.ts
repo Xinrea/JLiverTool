@@ -75,6 +75,7 @@ export type JLiverAPI = {
   }
   tts: {
     aliyun(content: string): Promise<Uint8Array | null>
+    custom(content: string): Promise<Uint8Array | null>
   }
 }
 
@@ -302,6 +303,9 @@ contextBridge.exposeInMainWorld('jliverAPI', {
   tts: {
     aliyun(content: string) {
       return ipcRenderer.invoke(JEvent[JEvent.INVOKE_TTS_ALIYUN], content)
+    },
+    custom(content: string) {
+      return ipcRenderer.invoke(JEvent[JEvent.INVOKE_TTS_CUSTOM], content)
     },
   },
 })
