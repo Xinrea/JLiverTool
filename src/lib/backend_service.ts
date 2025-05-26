@@ -83,7 +83,7 @@ export default class BackendService {
 
     log.info('Starting backend service', { room })
 
-    log.info('Loading cookies', { uid: this._config_store.Cookies.DedeUserID })
+    log.info('Loading cookies', { uid: this._config_store.Cookies })
 
     // Check cookies status
     let nav_response = await BiliApi.Nav(this._config_store.Cookies)
@@ -95,7 +95,10 @@ export default class BackendService {
     }
 
     if (nav_response.code !== 0 || !nav_response.data.isLogin) {
-      log.warn('Cookies is invalid or network failed, take as logout')
+      log.warn(
+        'Cookies is invalid or network failed, take as logout',
+        nav_response
+      )
       this._config_store.IsLogin = false
       this._config_store.Cookies = new Cookies({})
     } else {
@@ -645,24 +648,26 @@ export default class BackendService {
   }
 
   private ttsEventInit() {
-
-    let aliyunToken = ""
+    let aliyunToken = ''
 
     ipcMain.handle(
       JEvent[JEvent.INVOKE_TTS_ALIYUN],
       async (_, text: string) => {
-        if (this._config_store.tts_appkey == "") {
+        if (this._config_store.tts_appkey == '') {
           return
         }
 
         // fetch a token
-        if (aliyunToken == "") {
-          aliyunToken = await TTS.AliyunAuth(this._config_store.tts_access_key, this._config_store.tts_secret_key)
+        if (aliyunToken == '') {
+          aliyunToken = await TTS.AliyunAuth(
+            this._config_store.tts_access_key,
+            this._config_store.tts_secret_key
+          )
         }
 
         const resp = await TTS.Aliyun(
           text,
-          "https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/tts",
+          'https://nls-gateway-cn-shanghai.aliyuncs.com/stream/v1/tts',
           this._config_store.tts_appkey,
           aliyunToken
         )
@@ -673,11 +678,7 @@ export default class BackendService {
     ipcMain.handle(
       JEvent[JEvent.INVOKE_TTS_CUSTOM],
       async (_, text: string) => {
-        const resp = await TTS.Custom(
-          text,
-          this._config_store.tts_endpoint,
-          ""
-        )
+        const resp = await TTS.Custom(text, this._config_store.tts_endpoint, '')
         return resp
       }
     )

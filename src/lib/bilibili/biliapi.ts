@@ -11,6 +11,7 @@ import StopLiveResponse from './api/room/stop_live'
 import { NavResponse } from './api/nav_response'
 import StartLiveResponse from './api/room/start_live'
 import JLogger from '../logger'
+import wbi_sign from './wbi'
 
 const log = JLogger.getInstance('biliapi')
 
@@ -80,7 +81,13 @@ class BiliApi {
     cookies: Cookies,
     room: RoomID
   ): Promise<GetDanmuInfoResponse> {
-    const url = `https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?id=${room.getRealID()}`
+    let param = {
+      id: room.getRealID(),
+    }
+    const url = `https://api.live.bilibili.com/xlive/web-room/v1/index/getDanmuInfo?${await wbi_sign(
+      param
+    )}`
+    log.info(`GetDanmuInfo url: ${url}`)
     const options = {
       method: 'GET',
       headers: {

@@ -611,7 +611,7 @@ const tts_setting = {
     return this._tts_provider_appkey
   },
   set tts_provider_appkey(v: string) {
-    this._tts_provider_appkey= v
+    this._tts_provider_appkey = v
     window.jliverAPI.set('config.tts_provider_appkey', v)
   },
   get tts_provider_access_key() {
