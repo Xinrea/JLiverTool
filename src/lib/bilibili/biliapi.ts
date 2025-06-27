@@ -88,15 +88,20 @@ class BiliApi {
       param
     )}`
     log.info(`GetDanmuInfo url: ${url}`)
+    // generate uuid for buvid3
+    const uuid = crypto.randomUUID()
     const options = {
       method: 'GET',
       headers: {
-        Cookie: cookies.str(),
+        Cookie: cookies.str() + `; buvid3=${uuid}`,
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     }
     try {
       const raw_response = await fetch(url, options)
-      return (await raw_response.json()) as GetDanmuInfoResponse
+      const resp = (await raw_response.json()) as GetDanmuInfoResponse
+      return resp
     } catch (e) {
       log.error(`GetDanmuInfo failed: ${e}`)
       return null
