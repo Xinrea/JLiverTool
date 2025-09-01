@@ -65,6 +65,10 @@ const room_setting = {
     show: false,
     face_auth_image: '',
   },
+  rtmp_info: {
+    addr: '',
+    code: '',
+  },
   async settingUpdate() {
     const room = typecast(RoomID, await window.jliverAPI.config.room())
     const user_id = (await window.jliverAPI.get('config.cookies', {}))
@@ -146,7 +150,17 @@ const room_setting = {
         this.face_dialog.show = true
         return
       }
+
+      // get rtmp info
+      const rtmp_info = start_live_response.data['rtmp']
+      this.rtmp_info = rtmp_info
     }
+  },
+  copyRTMPAddr() {
+    window.jliverAPI.util.setClipboard(this.rtmp_info.addr)
+  },
+  copyRTMPKey() {
+    window.jliverAPI.util.setClipboard(this.rtmp_info.code)
   },
 }
 

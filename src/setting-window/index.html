@@ -120,6 +120,18 @@
                     </span>
                     <button @click="toggleLive" x-text="room_info.live_status == 1 ? '关闭直播' : '开始直播'"></button>
                   </div>
+                  <div class="group-item" x-show="owned">
+                    <span class="group-desc">
+                      <span class="icon">&#xE93E;</span>
+                      <span class="desc">
+                        <span>RTMP 地址和密钥</span>
+                      </span>
+                    </span>
+                    <div style="display: flex; flex-direction: row; gap: 8px">
+                      <button @click="copyRTMPAddr">复制推流地址</button>
+                      <button @click="copyRTMPKey">复制推流密钥</button>
+                    </div>
+                  </div>
                 </div>
                 <div class="dialog" x-show="face_dialog.show" x-transition>
                   <div class="dialog-content">
