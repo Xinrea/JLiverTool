@@ -224,7 +224,7 @@ class BiliApi {
     // Build form of room title updating
     const post_data = new URLSearchParams()
     post_data.append('room_id', room.getRealID().toString())
-    post_data.append('platform', 'pc')
+    post_data.append('platform', 'pc_link')
     post_data.append('area_v2', area_v2)
     post_data.append('csrf', cookies.bili_jct)
     post_data.append('csrf_token', cookies.bili_jct)
@@ -253,6 +253,7 @@ class BiliApi {
     // Build form of room title updating
     const params = new URLSearchParams()
     params.append('room_id', room.getRealID().toString())
+    params.append('platform', 'pc_link')
     params.append('csrf', cookies.bili_jct)
     params.append('csrf_token', cookies.bili_jct)
 
