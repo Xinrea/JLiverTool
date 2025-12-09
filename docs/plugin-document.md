@@ -44,3 +44,50 @@ export type JLiverAPI = {
 你可以使用 `user.info` 和 `room.info` 方法获取指定用户和直播间的信息；`util` 下提供了一些实用的工具方法。
 
 最主要的是 `register` 方法，它用于注册事件监听器，监听 JLiverTool 发送的事件；你可以在插件中使用 `jliverAPI.register` 方法注册事件监听器，监听 JLiverTool 发送的事件。可监听的的事件列表定义在 [event.ts](https://github.com/Xinrea/JLiverTool/blob/master/src/lib/events.ts) 中，插件能够获取的事件主要是弹幕、礼物和醒目留言事件等。
+
+直播相关的事件如下所示：
+
+```typescript
+enum JEvent {
+  // event
+  EVENT_UPDATE_ROOM, // 直播间信息更新
+  EVENT_UPDATE_ONLINE, // 在线人数更新
+  EVENT_NEW_DANMU, // 新弹幕
+  EVENT_NEW_GIFT, // 新礼物
+  EVENT_NEW_GUARD, // 新舰长
+  EVENT_NEW_SUPER_CHAT, // 新醒目留言
+  EVENT_NEW_INTERACT, // 新互动
+  EVENT_NEW_ENTRY_EFFECT, // 新入场特效
+  // ...
+}
+```
+
+## 事件回调参数
+
+### EVENT_UPDATE_ROOM
+
+```typescript
+interface UpdateRoomEvent {
+  title: string
+  live_status: number
+}
+```
+
+### EVENT_UPDATE_ONLINE
+
+```typescript
+interface UpdateOnlineEvent {
+  online_count: number
+}
+```
+
+### 其他事件
+
+以下事件的回调参数为各种消息类型，查看 [messages.ts](https://github.com/Xinrea/JLiverTool/blob/master/src/lib/messages.ts) 文件，了解各种消息类型的定义。
+
+- EVENT_NEW_DANMU: DanmuMessage
+- EVENT_NEW_GIFT: GiftMessage
+- EVENT_NEW_GUARD: GuardMessage
+- EVENT_NEW_SUPER_CHAT: SuperChatMessage
+- EVENT_NEW_INTERACT: InteractMessage
+- EVENT_NEW_ENTRY_EFFECT: EntryEffectMessage
