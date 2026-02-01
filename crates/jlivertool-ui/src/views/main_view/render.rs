@@ -2,7 +2,7 @@
 
 use super::{DanmuListItemView, MainView, UserInfoCard};
 use crate::app::UiCommand;
-use crate::components::{draggable_area, render_window_controls};
+use crate::components::draggable_area;
 use crate::theme::Colors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -12,7 +12,7 @@ use gpui_component::v_flex;
 use std::rc::Rc;
 
 impl MainView {
-    pub(super) fn render_header(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_header(&self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let is_live = self.live_status == 1;
         let opacity = self.opacity;
 
@@ -32,8 +32,6 @@ impl MainView {
         } else {
             Colors::text_primary()
         };
-
-        let is_maximized = window.is_maximized();
 
         h_flex()
             .w_full()
@@ -84,7 +82,6 @@ impl MainView {
                     .child(self.render_audience_button(is_live, cx))
                     .child(self.render_settings_button(is_live, cx)),
             )
-            .child(render_window_controls(is_maximized))
     }
 
     fn render_pin_button(&self, is_live: bool, cx: &mut Context<Self>) -> impl IntoElement {
