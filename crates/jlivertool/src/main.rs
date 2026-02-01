@@ -2,6 +2,9 @@
 //!
 //! A desktop application for viewing Bilibili live stream danmaku, gifts, and more.
 
+// Hide console window on Windows in release builds
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use anyhow::Result;
 use jlivertool_core::bilibili::api::{BiliApi, QrCodeStatus};
 use jlivertool_core::bilibili::ws::{BiliWebSocket, WsEvent, WsInfo};
