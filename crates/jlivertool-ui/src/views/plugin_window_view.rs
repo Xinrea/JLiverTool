@@ -17,6 +17,7 @@ pub struct PluginWindowView {
     plugin_path: PathBuf,
     ws_port: u16,
     webview: Option<Entity<WebView>>,
+    webview_initialized: bool,
 }
 
 impl PluginWindowView {
@@ -25,42 +26,46 @@ impl PluginWindowView {
         plugin_name: String,
         plugin_path: PathBuf,
         ws_port: u16,
-        window: &mut Window,
-        cx: &mut Context<Self>,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
     ) -> Self {
-        // Build the URL with WebSocket port parameter
-        let index_path = plugin_path.join("index.html");
-        let url = format!(
-            "file://{}?ws_port={}",
-            index_path.display(),
-            ws_port
-        );
-
-        // Create the webview
-        let webview = Self::create_webview(&url, window, cx);
-
+        // Don't create webview in constructor - defer to first render
         Self {
             plugin_id,
             plugin_name,
             plugin_path,
             ws_port,
-            webview,
+            webview: None,
+            webview_initialized: false,
         }
     }
 
-    fn create_webview(url: &str, window: &mut Window, cx: &mut Context<Self>) -> Option<Entity<WebView>> {
+    fn create_webview(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.webview_initialized {
+            return;
+        }
+        self.webview_initialized = true;
+
+        // Build the URL with WebSocket port parameter
+        let index_path = self.plugin_path.join("index.html");
+        let url = format!(
+            "file://{}?ws_port={}",
+            index_path.display(),
+            self.ws_port
+        );
+
         // Get the window handle for wry
         let window_handle = match window.window_handle() {
             Ok(handle) => handle,
             Err(e) => {
                 tracing::error!("Failed to get window handle: {}", e);
-                return None;
+                return;
             }
         };
 
         // Create wry webview
         let wry_webview = wry::WebViewBuilder::new()
-            .with_url(url)
+            .with_url(&url)
             .with_transparent(true)
             .with_initialization_script(include_str!("plugin_preload.js"))
             .build_as_child(&window_handle);
@@ -68,11 +73,10 @@ impl PluginWindowView {
         match wry_webview {
             Ok(wv) => {
                 let webview = cx.new(|cx| WebView::new(wv, window, cx));
-                Some(webview)
+                self.webview = Some(webview);
             }
             Err(e) => {
                 tracing::error!("Failed to create webview: {}", e);
-                None
             }
         }
     }
@@ -101,6 +105,9 @@ impl PluginWindowView {
 
 impl Render for PluginWindowView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Defer webview creation to first render
+        self.create_webview(window, cx);
+
         let entity = cx.entity().clone();
 
         // Leave space for traffic light buttons on macOS
