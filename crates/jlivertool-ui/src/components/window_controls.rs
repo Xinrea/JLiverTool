@@ -130,32 +130,11 @@ fn render_close_button() -> impl IntoElement {
         .hover(|s| s.bg(close_hover_bg))
         .window_control_area(WindowControlArea::Close)
         .child(
-            // X icon using two rotated lines
+            // X icon using text
             div()
-                .size(px(ICON_SIZE))
-                .relative()
-                .child(
-                    // First diagonal line (top-left to bottom-right)
-                    div()
-                        .absolute()
-                        .top(px(ICON_SIZE / 2.0 - 0.5))
-                        .left_0()
-                        .w(px(ICON_SIZE))
-                        .h(px(1.0))
-                        .bg(Colors::text_secondary())
-                        .rotate(Rotation::Degrees(45.0)),
-                )
-                .child(
-                    // Second diagonal line (top-right to bottom-left)
-                    div()
-                        .absolute()
-                        .top(px(ICON_SIZE / 2.0 - 0.5))
-                        .left_0()
-                        .w(px(ICON_SIZE))
-                        .h(px(1.0))
-                        .bg(Colors::text_secondary())
-                        .rotate(Rotation::Degrees(-45.0)),
-                ),
+                .text_size(px(16.0))
+                .text_color(Colors::text_secondary())
+                .child("×"),
         )
 }
 
