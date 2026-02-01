@@ -1,0 +1,9 @@
+{
+    "id": "jlivertool.xinrea.pixel-canvas",
+    "name": "Pixel Art Canvas",
+    "author": "Xinrea",
+    "desc": "Collaborative pixel art via danmu commands",
+    "version": "1.0.0",
+    "url": "https://github.com/Xinrea/JLiverTool",
+    "index": "index.html"
+}
