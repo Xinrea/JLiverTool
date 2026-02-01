@@ -423,23 +423,22 @@ impl GiftView {
 
         let is_maximized = window.is_maximized();
 
-        h_flex()
+        v_flex()
             .w_full()
-            .h(px(32.0))
-            .items_center()
             .bg(Colors::bg_secondary_with_opacity(opacity))
+            // Title bar - only title and window controls
             .child(
-                draggable_area()
-                    .flex_1()
-                    .h_full()
-                    .pl(left_padding)
-                    .pr_2()
-                    .flex()
+                h_flex()
+                    .w_full()
+                    .h(px(32.0))
                     .items_center()
-                    .justify_between()
                     .child(
-                        h_flex()
-                            .gap_2()
+                        draggable_area()
+                            .flex_1()
+                            .h_full()
+                            .pl(left_padding)
+                            .pr_2()
+                            .flex()
                             .items_center()
                             .child(
                                 div()
@@ -447,7 +446,22 @@ impl GiftView {
                                     .font_weight(FontWeight::BOLD)
                                     .text_color(Colors::text_primary())
                                     .child("礼物记录"),
-                            )
+                            ),
+                    )
+                    .child(render_window_controls(is_maximized)),
+            )
+            // Filter controls - in content area
+            .child(
+                h_flex()
+                    .w_full()
+                    .h(px(36.0))
+                    .px_3()
+                    .items_center()
+                    .justify_between()
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .items_center()
                             // Value filter inputs (hidden when only_guards is enabled)
                             .when(!self.only_guards, |this| {
                                 this.child(
@@ -549,7 +563,6 @@ impl GiftView {
                             ),
                     ),
             )
-            .child(render_window_controls(is_maximized))
     }
 
     fn render_gift_list(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
