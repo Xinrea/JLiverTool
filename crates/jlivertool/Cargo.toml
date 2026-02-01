@@ -33,3 +33,17 @@ anyhow = { workspace = true }
 
 # Utilities
 parking_lot = { workspace = true }
+
+[package.metadata.packager]
+product-name = "JLiverTool"
+identifier = "com.xinrea.jlivertool"
+description = "Simple Bilibili Danmaku Tool"
+homepage = "https://github.com/Xinrea/JLiveTool"
+icons = ["../../icons/icon.icns", "../../icons/icon.ico", "../../icons/icon.png"]
+
+[package.metadata.packager.macos]
+minimum-system-version = "10.15"
+
+[package.metadata.packager.nsis]
+languages = ["English", "SimpChinese"]
+display-language-selector = true

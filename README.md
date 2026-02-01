@@ -66,3 +66,16 @@
 ### 代码格式
 
 请使用 `prettier` 进行代码格式化，配置文件已经提供 `.prettierrc`。
+
+### Build
+
+```bash
+# Install cargo-packager
+cargo install cargo-packager --locked
+
+# Build release binary first
+cargo build --release
+
+# Create installers (run from project root)
+cargo packager --release
+```
