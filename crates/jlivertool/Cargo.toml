@@ -49,3 +49,4 @@ minimum-system-version = "10.15"
 [package.metadata.packager.nsis]
 languages = ["English", "SimpChinese"]
 display-language-selector = true
+installer-icon = "../../icons/icon.ico"
