@@ -2,6 +2,7 @@
 //!
 //! Displays a plugin in a webview window.
 
+use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -99,7 +100,7 @@ impl PluginWindowView {
 }
 
 impl Render for PluginWindowView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let entity = cx.entity().clone();
 
         // Leave space for traffic light buttons on macOS
@@ -107,6 +108,8 @@ impl Render for PluginWindowView {
         let left_padding = px(78.0);
         #[cfg(not(target_os = "macos"))]
         let left_padding = px(12.0);
+
+        let is_maximized = window.is_maximized();
 
         v_flex()
             .size_full()
@@ -116,39 +119,47 @@ impl Render for PluginWindowView {
                 h_flex()
                     .w_full()
                     .h(px(32.0))
-                    .pl(left_padding)
-                    .pr_3()
                     .bg(Colors::bg_secondary())
                     .items_center()
-                    .justify_between()
                     .child(
-                        div()
-                            .text_size(px(13.0))
-                            .font_weight(FontWeight::MEDIUM)
-                            .text_color(Colors::text_primary())
-                            .child(self.plugin_name.clone()),
-                    )
-                    .child(
-                        h_flex()
-                            .gap_2()
+                        draggable_area()
+                            .flex_1()
+                            .h_full()
+                            .pl(left_padding)
+                            .pr_3()
+                            .flex()
+                            .items_center()
+                            .justify_between()
                             .child(
                                 div()
-                                    .id("plugin-reload-btn")
-                                    .px_2()
-                                    .py_1()
-                                    .rounded(px(4.0))
-                                    .cursor_pointer()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_secondary())
-                                    .hover(|s| s.bg(Colors::bg_hover()))
-                                    .child("刷新")
-                                    .on_click(move |_event, _window, cx| {
-                                        entity.update(cx, |view, cx| {
-                                            view.reload(cx);
-                                        });
-                                    }),
+                                    .text_size(px(13.0))
+                                    .font_weight(FontWeight::MEDIUM)
+                                    .text_color(Colors::text_primary())
+                                    .child(self.plugin_name.clone()),
+                            )
+                            .child(
+                                h_flex()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .id("plugin-reload-btn")
+                                            .px_2()
+                                            .py_1()
+                                            .rounded(px(4.0))
+                                            .cursor_pointer()
+                                            .text_size(px(11.0))
+                                            .text_color(Colors::text_secondary())
+                                            .hover(|s| s.bg(Colors::bg_hover()))
+                                            .child("刷新")
+                                            .on_click(move |_event, _window, cx| {
+                                                entity.update(cx, |view, cx| {
+                                                    view.reload(cx);
+                                                });
+                                            }),
+                                    ),
                             ),
-                    ),
+                    )
+                    .child(render_window_controls(is_maximized)),
             )
             .child(
                 // Webview content

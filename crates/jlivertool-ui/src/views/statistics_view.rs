@@ -1,5 +1,6 @@
 //! Statistics window view with line chart
 
+use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
 use chrono::{Local, TimeZone};
 use gpui::prelude::FluentBuilder;
@@ -482,13 +483,15 @@ impl StatisticsView {
 }
 
 impl Render for StatisticsView {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
 
         #[cfg(target_os = "macos")]
         let left_padding = px(78.0);
         #[cfg(not(target_os = "macos"))]
         let left_padding = px(12.0);
+
+        let is_maximized = window.is_maximized();
 
         v_flex()
             .size_full()
@@ -499,17 +502,25 @@ impl Render for StatisticsView {
                 h_flex()
                     .w_full()
                     .h(px(32.0))
-                    .pl(left_padding)
-                    .pr_2()
                     .items_center()
                     .bg(Colors::bg_secondary_with_opacity(opacity))
                     .child(
-                        div()
-                            .text_size(px(12.0))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(Colors::text_primary())
-                            .child("数据统计"),
-                    ),
+                        draggable_area()
+                            .flex_1()
+                            .h_full()
+                            .pl(left_padding)
+                            .pr_2()
+                            .flex()
+                            .items_center()
+                            .child(
+                                div()
+                                    .text_size(px(12.0))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(Colors::text_primary())
+                                    .child("数据统计"),
+                            ),
+                    )
+                    .child(render_window_controls(is_maximized)),
             )
             // Content
             .child(

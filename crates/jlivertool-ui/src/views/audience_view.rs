@@ -1,5 +1,6 @@
 //! Audience window view
 
+use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -131,7 +132,7 @@ impl AudienceView {
         }
     }
 
-    fn render_header(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_header(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
         let current_tab = self.current_tab;
 
@@ -139,6 +140,8 @@ impl AudienceView {
         let left_padding = px(78.0);
         #[cfg(not(target_os = "macos"))]
         let left_padding = px(12.0);
+
+        let is_maximized = window.is_maximized();
 
         v_flex()
             .w_full()
@@ -148,23 +151,31 @@ impl AudienceView {
                 h_flex()
                     .w_full()
                     .h(px(32.0))
-                    .pl(left_padding)
-                    .pr_2()
                     .items_center()
-                    .justify_between()
                     .child(
-                        div()
-                            .text_size(px(12.0))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(Colors::text_primary())
-                            .child("观众列表"),
+                        draggable_area()
+                            .flex_1()
+                            .h_full()
+                            .pl(left_padding)
+                            .pr_2()
+                            .flex()
+                            .items_center()
+                            .justify_between()
+                            .child(
+                                div()
+                                    .text_size(px(12.0))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(Colors::text_primary())
+                                    .child("观众列表"),
+                            )
+                            .child(
+                                div()
+                                    .text_size(px(11.0))
+                                    .text_color(Colors::text_muted())
+                                    .child(format!("舰长: {}", self.guard_total)),
+                            ),
                     )
-                    .child(
-                        div()
-                            .text_size(px(11.0))
-                            .text_color(Colors::text_muted())
-                            .child(format!("舰长: {}", self.guard_total)),
-                    ),
+                    .child(render_window_controls(is_maximized)),
             )
             // Tab bar
             .child(

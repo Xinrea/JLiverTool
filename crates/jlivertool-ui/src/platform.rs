@@ -53,11 +53,57 @@ mod macos {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+mod windows_impl {
+    use gpui::Window;
+    use raw_window_handle::HasWindowHandle;
+    use windows::Win32::Foundation::HWND;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        SetWindowPos, HWND_NOTOPMOST, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE,
+    };
+
+    /// Set the window to always on top or normal level
+    pub fn set_window_always_on_top(window: &Window, always_on_top: bool) {
+        // Use HasWindowHandle trait to get the raw window handle
+        let handle = match HasWindowHandle::window_handle(window) {
+            Ok(h) => h,
+            Err(e) => {
+                tracing::warn!("Failed to get window handle: {:?}", e);
+                return;
+            }
+        };
+
+        let raw_window_handle::RawWindowHandle::Win32(win32_handle) = handle.as_raw() else {
+            tracing::warn!("Not a Win32 window handle");
+            return;
+        };
+
+        let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
+        let insert_after = if always_on_top {
+            HWND_TOPMOST
+        } else {
+            HWND_NOTOPMOST
+        };
+
+        unsafe {
+            let result = SetWindowPos(hwnd, insert_after, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+            if result.is_ok() {
+                tracing::info!(
+                    "Set window always on top: {}",
+                    if always_on_top { "enabled" } else { "disabled" }
+                );
+            } else {
+                tracing::warn!("Failed to set window always on top");
+            }
+        }
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 mod other {
     use gpui::Window;
 
-    /// Set the window to always on top or normal level (no-op on non-macOS)
+    /// Set the window to always on top or normal level (no-op on unsupported platforms)
     pub fn set_window_always_on_top(_window: &Window, _always_on_top: bool) {
         tracing::warn!("Always on top is not supported on this platform");
     }
@@ -66,5 +112,8 @@ mod other {
 #[cfg(target_os = "macos")]
 pub use macos::set_window_always_on_top;
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(target_os = "windows")]
+pub use windows_impl::set_window_always_on_top;
+
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 pub use other::set_window_always_on_top;

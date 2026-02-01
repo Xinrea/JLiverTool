@@ -2,6 +2,7 @@
 
 use super::{DanmuListItemView, MainView, UserInfoCard};
 use crate::app::UiCommand;
+use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -11,7 +12,7 @@ use gpui_component::v_flex;
 use std::rc::Rc;
 
 impl MainView {
-    pub(super) fn render_header(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    pub(super) fn render_header(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let is_live = self.live_status == 1;
         let opacity = self.opacity;
 
@@ -32,40 +33,48 @@ impl MainView {
             Colors::text_primary()
         };
 
+        let is_maximized = window.is_maximized();
+
         h_flex()
             .w_full()
             .h(px(32.0))
-            .pl(left_padding)
-            .pr_2()
             .items_center()
-            .justify_between()
             .bg(header_bg)
             .child(
-                h_flex()
-                    .gap_2()
+                draggable_area()
+                    .flex_1()
+                    .h_full()
+                    .pl(left_padding)
+                    .flex()
                     .items_center()
-                    .when(is_live, |this| {
-                        this.child(
-                            div()
-                                .text_size(px(11.0))
-                                .font_weight(FontWeight::BOLD)
-                                .text_color(header_text_color)
-                                .child("LIVE"),
-                        )
-                    })
-                    .when(is_live, |this| {
-                        this.child(
-                            h_flex().gap_1().items_center().child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(header_text_color)
-                                    .child(format!("{}", self.online_count)),
-                            ),
-                        )
-                    }),
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .items_center()
+                            .when(is_live, |this| {
+                                this.child(
+                                    div()
+                                        .text_size(px(11.0))
+                                        .font_weight(FontWeight::BOLD)
+                                        .text_color(header_text_color)
+                                        .child("LIVE"),
+                                )
+                            })
+                            .when(is_live, |this| {
+                                this.child(
+                                    h_flex().gap_1().items_center().child(
+                                        div()
+                                            .text_size(px(11.0))
+                                            .text_color(header_text_color)
+                                            .child(format!("{}", self.online_count)),
+                                    ),
+                                )
+                            }),
+                    ),
             )
             .child(
                 h_flex()
+                    .pr_2()
                     .gap_2()
                     .items_center()
                     .child(self.render_pin_button(is_live, cx))
@@ -75,6 +84,7 @@ impl MainView {
                     .child(self.render_audience_button(is_live, cx))
                     .child(self.render_settings_button(is_live, cx)),
             )
+            .child(render_window_controls(is_maximized))
     }
 
     fn render_pin_button(&self, is_live: bool, cx: &mut Context<Self>) -> impl IntoElement {
@@ -635,7 +645,7 @@ impl Render for MainView {
             .size_full()
             .bg(Colors::bg_primary_with_opacity(opacity))
             .text_color(Colors::text_primary())
-            .child(self.render_header(cx))
+            .child(self.render_header(window, cx))
             .child(self.render_danmu_list(window, cx))
             .child(self.render_footer(window, cx))
             .when_some(selected_user, |this, selected| {

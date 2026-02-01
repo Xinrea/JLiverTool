@@ -1,5 +1,6 @@
 //! Superchat window view
 
+use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
 use crate::views::render_content_with_links;
 use gpui::prelude::FluentBuilder;
@@ -217,6 +218,8 @@ impl SuperChatView {
             self.search_query = current_text;
         }
 
+        let is_maximized = window.is_maximized();
+
         v_flex()
             .w_full()
             .bg(Colors::bg_secondary_with_opacity(opacity))
@@ -225,70 +228,78 @@ impl SuperChatView {
                 h_flex()
                     .w_full()
                     .h(px(32.0))
-                    .pl(left_padding)
-                    .pr_2()
                     .items_center()
-                    .justify_between()
                     .child(
-                        h_flex()
-                            .gap_2()
+                        draggable_area()
+                            .flex_1()
+                            .h_full()
+                            .pl(left_padding)
+                            .pr_2()
+                            .flex()
                             .items_center()
-                            .child(
-                                div()
-                                    .text_size(px(12.0))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(Colors::text_primary())
-                                    .child("醒目留言"),
-                            )
-                            .child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .child(format!("({})", self.sc_list.len())),
-                            ),
-                    )
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .items_center()
-                            // Show archived toggle
+                            .justify_between()
                             .child(
                                 h_flex()
-                                    .gap_1()
+                                    .gap_2()
                                     .items_center()
                                     .child(
                                         div()
-                                            .text_size(px(10.0))
-                                            .text_color(Colors::text_muted())
-                                            .child("已归档"),
+                                            .text_size(px(12.0))
+                                            .font_weight(FontWeight::BOLD)
+                                            .text_color(Colors::text_primary())
+                                            .child("醒目留言"),
                                     )
                                     .child(
-                                        gpui_component::switch::Switch::new("show-archived-toggle")
-                                            .checked(self.show_archived)
-                                            .on_click(cx.listener(|this, checked: &bool, _window, cx| {
-                                                this.show_archived = *checked;
-                                                cx.notify();
-                                            })),
+                                        div()
+                                            .text_size(px(11.0))
+                                            .text_color(Colors::text_muted())
+                                            .child(format!("({})", self.sc_list.len())),
                                     ),
                             )
-                            // Clear button
                             .child(
-                                div()
-                                    .id("clear-btn")
-                                    .px_2()
-                                    .py_1()
-                                    .rounded(px(4.0))
-                                    .cursor_pointer()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .hover(|s| s.bg(Colors::bg_hover()))
-                                    .on_click(cx.listener(|this, _event, _window, cx| {
-                                        this.show_clear_confirm = true;
-                                        cx.notify();
-                                    }))
-                                    .child("清空"),
+                                h_flex()
+                                    .gap_2()
+                                    .items_center()
+                                    // Show archived toggle
+                                    .child(
+                                        h_flex()
+                                            .gap_1()
+                                            .items_center()
+                                            .child(
+                                                div()
+                                                    .text_size(px(10.0))
+                                                    .text_color(Colors::text_muted())
+                                                    .child("已归档"),
+                                            )
+                                            .child(
+                                                gpui_component::switch::Switch::new("show-archived-toggle")
+                                                    .checked(self.show_archived)
+                                                    .on_click(cx.listener(|this, checked: &bool, _window, cx| {
+                                                        this.show_archived = *checked;
+                                                        cx.notify();
+                                                    })),
+                                            ),
+                                    )
+                                    // Clear button
+                                    .child(
+                                        div()
+                                            .id("clear-btn")
+                                            .px_2()
+                                            .py_1()
+                                            .rounded(px(4.0))
+                                            .cursor_pointer()
+                                            .text_size(px(11.0))
+                                            .text_color(Colors::text_muted())
+                                            .hover(|s| s.bg(Colors::bg_hover()))
+                                            .on_click(cx.listener(|this, _event, _window, cx| {
+                                                this.show_clear_confirm = true;
+                                                cx.notify();
+                                            }))
+                                            .child("清空"),
+                                    ),
                             ),
-                    ),
+                    )
+                    .child(render_window_controls(is_maximized)),
             )
             // Search bar
             .child(

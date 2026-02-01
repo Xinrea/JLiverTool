@@ -45,3 +45,10 @@ http-body-util = "0.1"
 objc = "0.2"
 cocoa = "0.26"
 raw-window-handle = "0.6"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+] }
+raw-window-handle = "0.6"

@@ -1,6 +1,6 @@
 //! Settings view
 
-use crate::components::QrCodeView;
+use crate::components::{draggable_area, render_window_controls, QrCodeView};
 use crate::theme::Colors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -2946,6 +2946,7 @@ impl Render for SettingView {
         let left_padding = px(24.0);
 
         let active_tab = self.active_tab;
+        let is_maximized = window.is_maximized();
 
         v_flex()
             .size_full()
@@ -2956,17 +2957,25 @@ impl Render for SettingView {
                 h_flex()
                     .w_full()
                     .h(px(32.0))
-                    .pl(left_padding)
-                    .pr_2()
                     .items_center()
                     .bg(Colors::bg_secondary())
                     .child(
-                        div()
-                            .text_size(px(12.0))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(Colors::text_primary())
-                            .child("设置"),
-                    ),
+                        draggable_area()
+                            .flex_1()
+                            .h_full()
+                            .pl(left_padding)
+                            .pr_2()
+                            .flex()
+                            .items_center()
+                            .child(
+                                div()
+                                    .text_size(px(12.0))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(Colors::text_primary())
+                                    .child("设置"),
+                            ),
+                    )
+                    .child(render_window_controls(is_maximized)),
             )
             .child(
                 // Content area with tabs

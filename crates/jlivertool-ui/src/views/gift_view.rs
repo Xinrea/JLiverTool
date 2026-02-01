@@ -1,5 +1,6 @@
 //! Gift window view
 
+use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -420,125 +421,135 @@ impl GiftView {
             self.invalidate_cache();
         }
 
+        let is_maximized = window.is_maximized();
+
         h_flex()
             .w_full()
             .h(px(32.0))
-            .pl(left_padding)
-            .pr_2()
             .items_center()
-            .justify_between()
             .bg(Colors::bg_secondary_with_opacity(opacity))
             .child(
-                h_flex()
-                    .gap_2()
+                draggable_area()
+                    .flex_1()
+                    .h_full()
+                    .pl(left_padding)
+                    .pr_2()
+                    .flex()
                     .items_center()
-                    .child(
-                        div()
-                            .text_size(px(12.0))
-                            .font_weight(FontWeight::BOLD)
-                            .text_color(Colors::text_primary())
-                            .child("礼物记录"),
-                    )
-                    // Value filter inputs (hidden when only_guards is enabled)
-                    .when(!self.only_guards, |this| {
-                        this.child(
-                            h_flex()
-                                .gap_1()
-                                .items_center()
-                                .child(
-                                    div()
-                                        .text_size(px(10.0))
-                                        .text_color(Colors::text_muted())
-                                        .child("¥"),
-                                )
-                                .child(
-                                    div()
-                                        .w(px(70.0))
-                                        .child(
-                                            gpui_component::input::Input::new(&min_input_state)
-                                                .small()
-                                        ),
-                                )
-                                .child(
-                                    div()
-                                        .text_size(px(10.0))
-                                        .text_color(Colors::text_muted())
-                                        .child("-"),
-                                )
-                                .child(
-                                    div()
-                                        .w(px(70.0))
-                                        .child(
-                                            gpui_component::input::Input::new(&max_input_state)
-                                                .small()
-                                        ),
-                                ),
-                        )
-                    }),
-            )
-            .child(
-                h_flex()
-                    .gap_2()
-                    .items_center()
-                    // Only guards toggle
+                    .justify_between()
                     .child(
                         h_flex()
-                            .gap_1()
+                            .gap_2()
                             .items_center()
                             .child(
                                 div()
-                                    .text_size(px(10.0))
-                                    .text_color(Colors::text_muted())
-                                    .child("仅舰长"),
+                                    .text_size(px(12.0))
+                                    .font_weight(FontWeight::BOLD)
+                                    .text_color(Colors::text_primary())
+                                    .child("礼物记录"),
                             )
-                            .child(
-                                gpui_component::switch::Switch::new("only-guards-toggle")
-                                    .checked(self.only_guards)
-                                    .on_click(cx.listener(|this, checked: &bool, _window, cx| {
-                                        this.only_guards = *checked;
-                                        this.invalidate_cache();
-                                        cx.notify();
-                                    })),
-                            ),
+                            // Value filter inputs (hidden when only_guards is enabled)
+                            .when(!self.only_guards, |this| {
+                                this.child(
+                                    h_flex()
+                                        .gap_1()
+                                        .items_center()
+                                        .child(
+                                            div()
+                                                .text_size(px(10.0))
+                                                .text_color(Colors::text_muted())
+                                                .child("¥"),
+                                        )
+                                        .child(
+                                            div()
+                                                .w(px(70.0))
+                                                .child(
+                                                    gpui_component::input::Input::new(&min_input_state)
+                                                        .small()
+                                                ),
+                                        )
+                                        .child(
+                                            div()
+                                                .text_size(px(10.0))
+                                                .text_color(Colors::text_muted())
+                                                .child("-"),
+                                        )
+                                        .child(
+                                            div()
+                                                .w(px(70.0))
+                                                .child(
+                                                    gpui_component::input::Input::new(&max_input_state)
+                                                        .small()
+                                                ),
+                                        ),
+                                )
+                            }),
                     )
-                    // Show archived toggle
                     .child(
                         h_flex()
-                            .gap_1()
+                            .gap_2()
                             .items_center()
+                            // Only guards toggle
                             .child(
-                                div()
-                                    .text_size(px(10.0))
-                                    .text_color(Colors::text_muted())
-                                    .child("已归档"),
+                                h_flex()
+                                    .gap_1()
+                                    .items_center()
+                                    .child(
+                                        div()
+                                            .text_size(px(10.0))
+                                            .text_color(Colors::text_muted())
+                                            .child("仅舰长"),
+                                    )
+                                    .child(
+                                        gpui_component::switch::Switch::new("only-guards-toggle")
+                                            .checked(self.only_guards)
+                                            .on_click(cx.listener(|this, checked: &bool, _window, cx| {
+                                                this.only_guards = *checked;
+                                                this.invalidate_cache();
+                                                cx.notify();
+                                            })),
+                                    ),
+                            )
+                            // Show archived toggle
+                            .child(
+                                h_flex()
+                                    .gap_1()
+                                    .items_center()
+                                    .child(
+                                        div()
+                                            .text_size(px(10.0))
+                                            .text_color(Colors::text_muted())
+                                            .child("已归档"),
+                                    )
+                                    .child(
+                                        gpui_component::switch::Switch::new("show-archived-toggle")
+                                            .checked(self.show_archived)
+                                            .on_click(cx.listener(|this, checked: &bool, _window, cx| {
+                                                this.show_archived = *checked;
+                                                this.invalidate_cache();
+                                                cx.notify();
+                                            })),
+                                    ),
                             )
                             .child(
-                                gpui_component::switch::Switch::new("show-archived-toggle")
-                                    .checked(self.show_archived)
-                                    .on_click(cx.listener(|this, checked: &bool, _window, cx| {
-                                        this.show_archived = *checked;
-                                        this.invalidate_cache();
+                                div()
+                                    .id("clear-btn")
+                                    .px_2()
+                                    .py_1()
+                                    .rounded(px(4.0))
+                                    .cursor_pointer()
+                                    .text_size(px(11.0))
+                                    .text_color(Colors::text_muted())
+                                    .hover(|s| s.bg(Colors::bg_hover()))
+                                    .on_click(cx.listener(|this, _event, _window, cx| {
+                                        this.show_clear_confirm = true;
                                         cx.notify();
-                                    })),
+                                    }))
+                                    .child("清空"),
                             ),
-                    )
-                    .child(
-                        div()
-                            .id("clear-btn")
-                            .px_2()
-                            .py_1()
-                            .rounded(px(4.0))
-                            .cursor_pointer()
-                            .text_size(px(11.0))
-                            .text_color(Colors::text_muted())
-                            .hover(|s| s.bg(Colors::bg_hover()))
-                            .on_click(cx.listener(|this, _event, _window, cx| {
-                                this.show_clear_confirm = true;
-                                cx.notify();
-                            }))
-                            .child("清空"),
                     ),
             )
+            .child(render_window_controls(is_maximized))
     }
 
     fn render_gift_list(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
