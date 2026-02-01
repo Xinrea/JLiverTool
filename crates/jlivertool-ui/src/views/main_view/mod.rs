@@ -271,6 +271,31 @@ impl MainView {
                     });
                 }
             });
+
+            view.on_tts_enabled_change({
+                let tx = command_tx.clone();
+                move |danmu, gift, superchat, _window, _cx| {
+                    let _ = tx.send(UiCommand::UpdateTtsEnabled {
+                        danmu,
+                        gift,
+                        superchat,
+                    });
+                }
+            });
+
+            view.on_tts_volume_change({
+                let tx = command_tx.clone();
+                move |volume, _window, _cx| {
+                    let _ = tx.send(UiCommand::UpdateTtsVolume(volume));
+                }
+            });
+
+            view.on_tts_test({
+                let tx = command_tx.clone();
+                move |_window, _cx| {
+                    let _ = tx.send(UiCommand::TestTts);
+                }
+            });
         });
 
         let this = Self {

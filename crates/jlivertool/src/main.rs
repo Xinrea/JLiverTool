@@ -12,6 +12,7 @@ use jlivertool_core::messages::{
     DanmuMessage, EntryEffectMessage, GiftMessage, GuardMessage, InteractMessage,
     OnlineRankCountMessage, RoomChangeMessage, SuperChatMessage,
 };
+use jlivertool_core::tts::{TtsEnabled, TtsManager, TtsMessage};
 use jlivertool_core::types::RoomId;
 use jlivertool_ui::{run_app, UiCommand};
 use parking_lot::RwLock;
@@ -78,6 +79,20 @@ fn main() -> Result<()> {
     let database = Arc::new(Database::new(&db_path)?);
     info!("Database initialized at {:?}", db_path);
 
+    // Initialize TTS manager
+    let tts_manager = Arc::new(TtsManager::new());
+    {
+        let config_read = config.read();
+        let cfg = config_read.get_config();
+        tts_manager.set_enabled(TtsEnabled {
+            danmu: cfg.tts_enabled,
+            gift: cfg.tts_gift_enabled,
+            superchat: cfg.tts_sc_enabled,
+        });
+        tts_manager.set_volume(cfg.tts_volume);
+    }
+    info!("TTS manager initialized");
+
     // Set cookies if available
     {
         let config_read = config.read();
@@ -94,6 +109,7 @@ fn main() -> Result<()> {
     let config_clone = config.clone();
     let api_clone = api.clone();
     let db_clone = database.clone();
+    let tts_clone = tts_manager.clone();
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -101,7 +117,7 @@ fn main() -> Result<()> {
             .expect("Failed to create tokio runtime");
 
         runtime.block_on(async move {
-            if let Err(e) = run_backend(event_sender_clone, config_clone, api_clone, db_clone, backend_cmd_rx).await {
+            if let Err(e) = run_backend(event_sender_clone, config_clone, api_clone, db_clone, tts_clone, backend_cmd_rx).await {
                 error!("Backend error: {}", e);
             }
         });
@@ -111,6 +127,7 @@ fn main() -> Result<()> {
     let event_sender_clone = event_sender.clone();
     let config_clone = config.clone();
     let api_clone = api.clone();
+    let tts_clone = tts_manager.clone();
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -118,7 +135,7 @@ fn main() -> Result<()> {
             .expect("Failed to create tokio runtime");
 
         runtime.block_on(async move {
-            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, backend_cmd_tx).await;
+            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, tts_clone, backend_cmd_tx).await;
         });
     });
 
@@ -230,6 +247,7 @@ async fn handle_commands(
     event_tx: EventSender,
     config: Arc<RwLock<ConfigStore>>,
     api: Arc<RwLock<BiliApi>>,
+    tts_manager: Arc<TtsManager>,
     backend_cmd_tx: tokio_mpsc::UnboundedSender<BackendCommand>,
 ) {
     while let Ok(command) = command_rx.recv() {
@@ -538,6 +556,42 @@ async fn handle_commands(
                     error!("Failed to save window bounds: {}", e);
                 }
             }
+            UiCommand::UpdateTtsEnabled { danmu, gift, superchat } => {
+                info!("Updating TTS enabled: danmu={}, gift={}, superchat={}", danmu, gift, superchat);
+                tts_manager.set_enabled(TtsEnabled {
+                    danmu,
+                    gift,
+                    superchat,
+                });
+                // Save to config
+                let config_write = config.write();
+                if let Err(e) = config_write.set("tts_enabled", danmu) {
+                    error!("Failed to save tts_enabled: {}", e);
+                }
+                if let Err(e) = config_write.set("tts_gift_enabled", gift) {
+                    error!("Failed to save tts_gift_enabled: {}", e);
+                }
+                if let Err(e) = config_write.set("tts_sc_enabled", superchat) {
+                    error!("Failed to save tts_sc_enabled: {}", e);
+                }
+            }
+            UiCommand::UpdateTtsVolume(volume) => {
+                info!("Updating TTS volume to {}", volume);
+                tts_manager.set_volume(volume);
+                if let Err(e) = config.write().set("tts_volume", volume) {
+                    error!("Failed to save tts_volume: {}", e);
+                }
+            }
+            UiCommand::UpdateTtsProvider(provider) => {
+                info!("Updating TTS provider to {}", provider);
+                if let Err(e) = config.write().set("tts_provider", &provider) {
+                    error!("Failed to save tts_provider: {}", e);
+                }
+            }
+            UiCommand::TestTts => {
+                info!("Testing TTS");
+                tts_manager.test();
+            }
         }
     }
 }
@@ -645,6 +699,7 @@ async fn run_backend(
     config: Arc<RwLock<ConfigStore>>,
     api: Arc<RwLock<BiliApi>>,
     database: Arc<Database>,
+    tts_manager: Arc<TtsManager>,
     mut backend_cmd_rx: tokio_mpsc::UnboundedReceiver<BackendCommand>,
 ) -> Result<()> {
     // Get initial room to connect
@@ -728,6 +783,7 @@ async fn run_backend(
         // Handle WebSocket events and backend commands
         let event_tx_clone = event_tx.clone();
         let db_clone = database.clone();
+        let tts_clone = tts_manager.clone();
         let room_id = current_room.real_id();
 
         let mut should_reconnect = false;
@@ -756,7 +812,7 @@ async fn run_backend(
                         }
                         Some(WsEvent::Message(body)) => {
                             if let Some(cmd) = body.get("cmd").and_then(|v| v.as_str()) {
-                                handle_message(cmd, &body, room_id, &event_tx_clone, &db_clone);
+                                handle_message(cmd, &body, room_id, &event_tx_clone, &db_clone, &tts_clone);
                             }
                         }
                         Some(WsEvent::Disconnected) => {
@@ -820,6 +876,7 @@ fn handle_message(
     room_id: u64,
     event_tx: &EventSender,
     database: &Arc<Database>,
+    tts_manager: &Arc<TtsManager>,
 ) {
     let base_cmd = cmd.split(':').next().unwrap_or(cmd);
 
@@ -832,6 +889,8 @@ fn handle_message(
                         warn!("Failed to store danmu: {}", e);
                     }
                 }
+                // TTS for danmu
+                tts_manager.speak(TtsMessage::danmu(&danmu.sender.uname, &danmu.content));
                 let _ = event_tx.send(Event::NewDanmu(danmu));
             }
         }
@@ -841,6 +900,8 @@ fn handle_message(
                 if let Err(e) = database.insert_gift(&gift) {
                     warn!("Failed to store gift: {}", e);
                 }
+                // TTS for gift
+                tts_manager.speak(TtsMessage::gift(&gift.sender.uname, &gift.gift_info.name, gift.num));
                 let _ = event_tx.send(Event::NewGift(gift));
             }
         }
@@ -872,6 +933,8 @@ fn handle_message(
                 if let Err(e) = database.insert_superchat(&sc) {
                     warn!("Failed to store superchat: {}", e);
                 }
+                // TTS for superchat
+                tts_manager.speak(TtsMessage::superchat(&sc.sender.uname, sc.price, &sc.message));
                 let _ = event_tx.send(Event::NewSuperChat(sc));
             }
         }

@@ -44,5 +44,12 @@ urlencoding = { workspace = true }
 # Database
 rusqlite = { workspace = true }
 
+# Async traits
+async-trait = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.26"
+
 [dev-dependencies]
 tokio-test = "0.4"

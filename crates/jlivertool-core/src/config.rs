@@ -29,6 +29,7 @@ pub struct WindowConfig {
 pub enum TtsProvider {
     #[default]
     None,
+    System,
     Aliyun,
     Custom,
 }
@@ -108,6 +109,18 @@ pub struct Config {
     #[serde(default)]
     pub tts_custom_url: String,
 
+    #[serde(default)]
+    pub tts_enabled: bool,
+
+    #[serde(default)]
+    pub tts_gift_enabled: bool,
+
+    #[serde(default)]
+    pub tts_sc_enabled: bool,
+
+    #[serde(default = "default_tts_volume")]
+    pub tts_volume: f32,
+
     // Extra fields for extensibility
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
@@ -137,6 +150,10 @@ fn default_font_size() -> f32 {
     14.0
 }
 
+fn default_tts_volume() -> f32 {
+    1.0
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -164,6 +181,10 @@ impl Default for Config {
             tts_aliyun_access_key_id: String::new(),
             tts_aliyun_access_key_secret: String::new(),
             tts_custom_url: String::new(),
+            tts_enabled: false,
+            tts_gift_enabled: false,
+            tts_sc_enabled: false,
+            tts_volume: default_tts_volume(),
             extra: HashMap::new(),
         }
     }

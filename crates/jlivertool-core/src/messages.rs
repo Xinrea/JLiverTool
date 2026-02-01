@@ -29,6 +29,7 @@ static DYNAMIC_EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLo
     map.insert("[轴伊Joi收藏集动态表情包_惊]", "https://i0.hdslb.com/bfs/garb/82f222eebba1160d81244d578dda1c4724276056.webp");
     map.insert("[轴伊Joi收藏集动态表情包_害怕]", "https://i0.hdslb.com/bfs/garb/4c00a15ab814a8855e3b7106cdc43c1f0a8fa640.webp");
     map.insert("[轴伊Joi收藏集动态表情包_睡觉]", "https://i0.hdslb.com/bfs/garb/dbec05c6adfd3c56c4fa484b00e4095b4d17cec7.webp");
+    map.insert("[轴伊Joi收藏集动态表情包_爆]", "https://i0.hdslb.com/bfs/garb/b7e50a289001583cd06eb1149304149ba5ccc78b.webp");
     map
 });
 
@@ -128,9 +129,10 @@ impl DanmuMessage {
                     .and_then(|v| serde_json::from_value::<EmojiContent>(v.clone()).ok())
                     .map(|mut emoji| {
                         // Check if this is a dynamic emoji and replace URL with WebP version
+                        // emoticon_unique format: "upower_[轴伊Joi收藏集动态表情包_贴贴]"
+                        // We need to remove "upower_" prefix, keeping the brackets
                         let emoji_key = emoji.emoticon_unique.replace("upower_", "");
-                        let emoji_text = format!("[{}]", emoji_key);
-                        if let Some(webp_url) = DYNAMIC_EMOJI_MAP.get(emoji_text.as_str()) {
+                        if let Some(webp_url) = DYNAMIC_EMOJI_MAP.get(emoji_key.as_str()) {
                             emoji.url = webp_url.to_string();
                         }
                         emoji

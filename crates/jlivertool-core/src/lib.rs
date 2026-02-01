@@ -7,12 +7,14 @@
 //! - Configuration storage
 //! - Data models
 //! - SQLite database
+//! - TTS (Text-to-Speech) support
 
 pub mod bilibili;
 pub mod config;
 pub mod database;
 pub mod events;
 pub mod messages;
+pub mod tts;
 pub mod types;
 
 pub use bilibili::api::BiliApi;

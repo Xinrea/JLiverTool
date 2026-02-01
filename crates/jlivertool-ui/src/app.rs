@@ -62,6 +62,18 @@ pub enum UiCommand {
         width: u32,
         height: u32,
     },
+    /// Update TTS enabled settings
+    UpdateTtsEnabled {
+        danmu: bool,
+        gift: bool,
+        superchat: bool,
+    },
+    /// Update TTS volume
+    UpdateTtsVolume(f32),
+    /// Update TTS provider
+    UpdateTtsProvider(String),
+    /// Test TTS
+    TestTts,
 }
 
 /// Wrapper for event receiver with a flag to indicate pending events

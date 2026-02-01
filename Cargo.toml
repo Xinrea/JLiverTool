@@ -57,6 +57,9 @@ parking_lot = "0.12"
 # Database
 rusqlite = { version = "0.32", features = ["bundled"] }
 
+# Async traits
+async-trait = "0.1"
+
 [profile.release]
 lto = true
 codegen-units = 1

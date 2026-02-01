@@ -24,6 +24,8 @@ type FloatCallback = Arc<dyn Fn(f32, &mut Window, &mut App) + Send + Sync>;
 type WindowSettingsCallback = Arc<dyn Fn(bool, bool, bool, bool, bool, &mut Window, &mut App) + Send + Sync>;
 /// Type alias for theme callback (String parameter)
 type ThemeCallback = Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for TTS enabled callback (3 bool parameters: danmu, gift, superchat)
+type TtsEnabledCallback = Arc<dyn Fn(bool, bool, bool, &mut Window, &mut App) + Send + Sync>;
 
 /// Settings view state
 pub struct SettingView {
@@ -57,6 +59,10 @@ pub struct SettingView {
     merge_settings: Arc<RwLock<MergeSettings>>,
     // Active tab
     active_tab: usize,
+    // TTS callbacks
+    on_tts_enabled_change: Option<TtsEnabledCallback>,
+    on_tts_volume_change: Option<FloatCallback>,
+    on_tts_test: Option<SimpleCallback>,
 }
 
 /// Tab definition
@@ -158,6 +164,7 @@ pub struct SettingsData {
     pub tts_enabled: bool,
     pub gift_tts: bool,
     pub sc_tts: bool,
+    pub tts_volume: f32,
 }
 
 impl Default for SettingsData {
@@ -175,6 +182,7 @@ impl Default for SettingsData {
             tts_enabled: false,
             gift_tts: false,
             sc_tts: false,
+            tts_volume: 1.0,
         }
     }
 }
@@ -205,6 +213,9 @@ impl SettingView {
             rtmp_info: Arc::new(RwLock::new(None)),
             merge_settings: Arc::new(RwLock::new(MergeSettings::default())),
             active_tab: 0,
+            on_tts_enabled_change: None,
+            on_tts_volume_change: None,
+            on_tts_test: None,
         }
     }
 
@@ -323,6 +334,44 @@ impl SettingView {
         F: Fn(f32, &mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_font_size_change = Some(Arc::new(callback));
+    }
+
+    /// Set callback for TTS enabled changes
+    pub fn on_tts_enabled_change<F>(&mut self, callback: F)
+    where
+        F: Fn(bool, bool, bool, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_tts_enabled_change = Some(Arc::new(callback));
+    }
+
+    /// Set callback for TTS volume changes
+    pub fn on_tts_volume_change<F>(&mut self, callback: F)
+    where
+        F: Fn(f32, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_tts_volume_change = Some(Arc::new(callback));
+    }
+
+    /// Set callback for TTS test
+    pub fn on_tts_test<F>(&mut self, callback: F)
+    where
+        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_tts_test = Some(Arc::new(callback));
+    }
+
+    /// Notify TTS enabled change
+    fn notify_tts_enabled_change(&self, window: &mut Window, cx: &mut App) {
+        if let Some(ref callback) = self.on_tts_enabled_change {
+            let settings = self.settings.read();
+            callback(
+                settings.tts_enabled,
+                settings.gift_tts,
+                settings.sc_tts,
+                window,
+                cx,
+            );
+        }
     }
 
     /// Notify window settings change
@@ -1209,7 +1258,7 @@ impl SettingView {
             SettingsTab::Basic => self.render_basic_tab(window, cx).into_any_element(),
             SettingsTab::Window => self.render_window_tab(cx).into_any_element(),
             SettingsTab::Appearance => self.render_appearance_tab(window, cx).into_any_element(),
-            SettingsTab::Tts => self.render_tts_tab(cx).into_any_element(),
+            SettingsTab::Tts => self.render_tts_tab(cx, window).into_any_element(),
             SettingsTab::Advanced => self.render_advanced_tab(cx).into_any_element(),
             SettingsTab::About => self.render_about_tab(cx).into_any_element(),
         }
@@ -1824,11 +1873,12 @@ impl SettingView {
         )
     }
 
-    fn render_tts_tab(&self, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_tts_tab(&self, cx: &mut Context<Self>, window: &mut Window) -> impl IntoElement {
         let settings = self.settings.clone();
         let tts_enabled = settings.read().tts_enabled;
         let gift_tts = settings.read().gift_tts;
         let sc_tts = settings.read().sc_tts;
+        let current_volume = settings.read().tts_volume;
         let entity = cx.entity().clone();
         let entity2 = cx.entity().clone();
         let entity3 = cx.entity().clone();
@@ -1838,6 +1888,76 @@ impl SettingView {
             ("aliyun", "阿里云"),
             ("custom", "自定义"),
         ];
+
+        // Clone callbacks for use in closures
+        let on_tts_test = self.on_tts_test.clone();
+
+        // Create volume slider state
+        struct VolumeSliderWrapper {
+            slider: Entity<SliderState>,
+            subscribed: bool,
+        }
+
+        let initial_volume = current_volume;
+        let volume_slider_state = window.use_keyed_state(
+            SharedString::from("tts-volume-slider-state"),
+            cx,
+            move |_window, cx| {
+                let slider = cx.new(|_| {
+                    SliderState::new()
+                        .min(0.0)
+                        .max(1.0)
+                        .step(0.01)
+                        .default_value(initial_volume)
+                });
+                VolumeSliderWrapper {
+                    slider,
+                    subscribed: false,
+                }
+            },
+        );
+
+        let slider_state = volume_slider_state.read(cx).slider.clone();
+        let is_subscribed = volume_slider_state.read(cx).subscribed;
+
+        // Sync slider value with current volume
+        slider_state.update(cx, |state, cx| {
+            let slider_value = state.value().start();
+            if (slider_value - current_volume).abs() > 0.001 {
+                state.set_value(current_volume, window, cx);
+            }
+        });
+
+        // Subscribe to slider change events only once
+        if !is_subscribed {
+            let settings_for_slider = self.settings.clone();
+            let on_tts_volume_change = self.on_tts_volume_change.clone();
+
+            cx.subscribe_in(
+                &slider_state,
+                window,
+                move |_view, _, event: &SliderEvent, window, cx| {
+                    let SliderEvent::Change(value) = event;
+                    let volume = value.start();
+                    settings_for_slider.write().tts_volume = volume;
+                    if let Some(ref callback) = on_tts_volume_change {
+                        callback(volume, window, cx);
+                    }
+                    cx.notify();
+                },
+            )
+            .detach();
+
+            volume_slider_state.write(
+                cx,
+                VolumeSliderWrapper {
+                    slider: slider_state.clone(),
+                    subscribed: true,
+                },
+            );
+        }
+
+        let volume_percent = format!("{}%", (current_volume * 100.0).round() as i32);
 
         v_flex()
             .w_full()
@@ -1854,31 +1974,39 @@ impl SettingView {
                                 .py_2()
                                 .gap_3()
                                 .child(
-                                    h_flex()
+                                    v_flex()
                                         .w_full()
-                                        .justify_between()
-                                        .items_center()
+                                        .gap_2()
                                         .child(
-                                            v_flex()
-                                                .gap_1()
+                                            h_flex()
+                                                .w_full()
+                                                .justify_between()
+                                                .items_center()
                                                 .child(
-                                                    div()
-                                                        .text_size(px(13.0))
-                                                        .text_color(Colors::text_primary())
-                                                        .child("TTS 音量"),
+                                                    v_flex()
+                                                        .gap_1()
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(13.0))
+                                                                .text_color(Colors::text_primary())
+                                                                .child("TTS 音量"),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(11.0))
+                                                                .text_color(Colors::text_muted())
+                                                                .child("调整语音播报音量"),
+                                                        ),
                                                 )
                                                 .child(
                                                     div()
-                                                        .text_size(px(11.0))
-                                                        .text_color(Colors::text_muted())
-                                                        .child("调整语音播报音量"),
+                                                        .text_size(px(13.0))
+                                                        .text_color(Colors::text_secondary())
+                                                        .child(volume_percent),
                                                 ),
                                         )
                                         .child(
-                                            div()
-                                                .text_size(px(13.0))
-                                                .text_color(Colors::text_secondary())
-                                                .child("100%"),
+                                            div().w_full().child(Slider::new(&slider_state)),
                                         ),
                                 )
                                 .child(
@@ -1897,10 +2025,12 @@ impl SettingView {
                                         .items_center()
                                         .justify_center()
                                         .child("测试 TTS")
-                                        .on_click(cx.listener(|_this, _event, _window, cx| {
+                                        .on_click(move |_event, window, cx| {
                                             tracing::info!("TTS test clicked");
-                                            cx.notify();
-                                        })),
+                                            if let Some(ref callback) = on_tts_test {
+                                                callback(window, cx);
+                                            }
+                                        }),
                                 )
                                 .child(
                                     v_flex()
@@ -1958,7 +2088,10 @@ impl SettingView {
                                 let settings = settings.clone();
                                 move |checked: &bool, _window, cx| {
                                     settings.write().tts_enabled = *checked;
-                                    entity.update(cx, |_, cx| cx.notify());
+                                    entity.update(cx, |this, cx| {
+                                        this.notify_tts_enabled_change(_window, cx);
+                                        cx.notify();
+                                    });
                                 }
                             }),
                         ))
@@ -1969,7 +2102,10 @@ impl SettingView {
                                 let settings = settings.clone();
                                 move |checked: &bool, _window, cx| {
                                     settings.write().gift_tts = *checked;
-                                    entity2.update(cx, |_, cx| cx.notify());
+                                    entity2.update(cx, |this, cx| {
+                                        this.notify_tts_enabled_change(_window, cx);
+                                        cx.notify();
+                                    });
                                 }
                             }),
                         ))
@@ -1980,7 +2116,10 @@ impl SettingView {
                                 let settings = settings.clone();
                                 move |checked: &bool, _window, cx| {
                                     settings.write().sc_tts = *checked;
-                                    entity3.update(cx, |_, cx| cx.notify());
+                                    entity3.update(cx, |this, cx| {
+                                        this.notify_tts_enabled_change(_window, cx);
+                                        cx.notify();
+                                    });
                                 }
                             }),
                         )),

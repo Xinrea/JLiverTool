@@ -203,6 +203,7 @@ impl DanmuListItemView {
 
             el = el.child(
                 img(emoji.url.clone())
+                    .id(SharedString::from(format!("emoji-{}", item_index)))
                     .max_w(px(emoji_size))
                     .max_h(px(emoji_size))
                     .object_fit(ObjectFit::Contain),
