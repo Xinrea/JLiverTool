@@ -1,0 +1,9 @@
+{
+    "id": "test-plugin",
+    "name": "Test Plugin",
+    "author": "JLiverTool",
+    "desc": "A test plugin to verify the plugin system works",
+    "version": "1.0.0",
+    "url": "https://github.com/Xinrea/JLiverTool",
+    "index": "index.html"
+}

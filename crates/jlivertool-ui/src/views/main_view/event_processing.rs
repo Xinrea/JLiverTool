@@ -194,6 +194,10 @@ impl MainView {
                     interact_display,
                     theme,
                     font_size,
+                    tts_enabled,
+                    tts_gift_enabled,
+                    tts_sc_enabled,
+                    tts_volume,
                 } => {
                     crate::theme::set_theme(&theme);
 
@@ -209,6 +213,10 @@ impl MainView {
                                 interact_display,
                                 theme,
                                 font_size,
+                                tts_enabled,
+                                tts_gift_enabled,
+                                tts_sc_enabled,
+                                tts_volume,
                             },
                             cx,
                         );
@@ -259,6 +267,21 @@ impl MainView {
                     self.audience_view.update(cx, |view, cx| {
                         view.set_guard_list(list, total, page, cx);
                     });
+                }
+                Event::PluginsRefreshed { plugins } => {
+                    let ui_plugins: Vec<crate::views::setting_view::PluginInfo> = plugins
+                        .into_iter()
+                        .map(|p| crate::views::setting_view::PluginInfo {
+                            id: p.id,
+                            name: p.name,
+                            author: p.author,
+                            desc: p.desc,
+                            version: p.version,
+                            enabled: true,
+                            path: p.path,
+                        })
+                        .collect();
+                    self.set_plugins(ui_plugins, cx);
                 }
                 _ => {}
             }

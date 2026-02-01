@@ -60,6 +60,16 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 # Async traits
 async-trait = "0.1"
 
+# Logging
+log = "0.4"
+
+# Webview
+wry = "0.50"
+tao = "0.32"
+
+# Open URLs
+open = "5"
+
 [profile.release]
 lto = true
 codegen-units = 1

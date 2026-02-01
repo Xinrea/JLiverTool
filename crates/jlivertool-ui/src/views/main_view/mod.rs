@@ -20,6 +20,7 @@ use user_info_card::{SelectedUserState, UserInfoCard};
 use crate::app::UiCommand;
 use crate::views::AudienceView;
 use crate::views::GiftView;
+use crate::views::PluginWindowView;
 use crate::views::SettingView;
 use crate::views::StatisticsView;
 use crate::views::SuperChatView;
@@ -29,7 +30,9 @@ use jlivertool_core::events::Event;
 use jlivertool_core::types::RoomId;
 use std::cell::Cell;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -100,6 +103,10 @@ pub struct MainView {
     selected_user: SelectedUserState,
     // Last saved window bounds (to avoid saving on every frame)
     last_saved_bounds: Option<(i32, i32, u32, u32)>,
+    // Plugin windows (plugin_id -> window handle)
+    plugin_windows: HashMap<String, AnyWindowHandle>,
+    // WebSocket port for plugin communication
+    ws_port: Option<u16>,
 }
 
 impl MainView {
@@ -119,6 +126,7 @@ impl MainView {
         let tx_login = command_tx.clone();
         let tx_logout = command_tx.clone();
         let tx_room = command_tx.clone();
+        let tx_opacity = command_tx.clone();
 
         // Get entity for opacity callback
         let entity = cx.entity().downgrade();
@@ -142,6 +150,8 @@ impl MainView {
             view.on_opacity_change({
                 let entity = entity.clone();
                 move |opacity, _window, cx| {
+                    // Send command to persist opacity
+                    let _ = tx_opacity.send(UiCommand::UpdateOpacity(opacity));
                     let _ = entity.update(cx, |view, cx| {
                         view.opacity = opacity;
                         // Update opacity for all secondary views
@@ -296,6 +306,37 @@ impl MainView {
                     let _ = tx.send(UiCommand::TestTts);
                 }
             });
+
+            view.on_plugin_open({
+                let entity = entity.clone();
+                move |plugin_id, plugin_name, plugin_path, window, cx| {
+                    let _ = entity.update(cx, |view, cx| {
+                        view.open_plugin_window(plugin_id, plugin_name, plugin_path, window, cx);
+                    });
+                }
+            });
+
+            view.on_open_plugins_folder({
+                let entity = entity.clone();
+                move |_window, cx| {
+                    let _ = entity.update(cx, |view, _cx| {
+                        if let Some(ref config) = view.config {
+                            let plugins_dir = config.read().data_dir().join("plugins");
+                            // Create the directory if it doesn't exist
+                            let _ = std::fs::create_dir_all(&plugins_dir);
+                            // Open the folder
+                            let _ = open::that(&plugins_dir);
+                        }
+                    });
+                }
+            });
+
+            view.on_refresh_plugins({
+                let tx = command_tx.clone();
+                move |_window, _cx| {
+                    let _ = tx.send(UiCommand::RefreshPlugins);
+                }
+            });
         });
 
         let this = Self {
@@ -336,6 +377,8 @@ impl MainView {
             pending_input_clear: Rc::new(Cell::new(false)),
             selected_user: Rc::new(RefCell::new(None)),
             last_saved_bounds: None,
+            plugin_windows: HashMap::new(),
+            ws_port: None,
         };
 
         // Start a timer to periodically check for new events from the backend
@@ -364,6 +407,18 @@ impl MainView {
     /// Get the setting view entity
     pub fn setting_view(&self) -> &Entity<SettingView> {
         &self.setting_view
+    }
+
+    /// Set the list of plugins in the settings view
+    pub fn set_plugins(&mut self, plugins: Vec<crate::views::setting_view::PluginInfo>, cx: &mut Context<Self>) {
+        self.setting_view.update(cx, |view, cx| {
+            view.set_plugins(plugins, cx);
+        });
+    }
+
+    /// Set the WebSocket port for plugin communication
+    pub fn set_ws_port(&mut self, port: u16) {
+        self.ws_port = Some(port);
     }
 
     /// Set the database reference
@@ -760,6 +815,75 @@ impl MainView {
                     page: 1,
                 });
             }
+        }
+    }
+
+    /// Open plugin window
+    fn open_plugin_window(
+        &mut self,
+        plugin_id: String,
+        plugin_name: String,
+        plugin_path: PathBuf,
+        _window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        use gpui_component::Root;
+
+        // Check if window is already open and focus it
+        if let Some(handle) = self.plugin_windows.get(&plugin_id) {
+            if cx
+                .update_window(*handle, |_, window, _cx| {
+                    window.activate_window();
+                })
+                .is_ok()
+            {
+                return;
+            }
+            self.plugin_windows.remove(&plugin_id);
+        }
+
+        let ws_port = match self.ws_port {
+            Some(port) => port,
+            None => {
+                tracing::error!("WebSocket port not set, cannot open plugin window");
+                return;
+            }
+        };
+
+        let bounds = Bounds::centered(None, size(px(600.0), px(500.0)), cx);
+        let always_on_top = self.always_on_top;
+        let plugin_id_clone = plugin_id.clone();
+
+        if let Ok(handle) = cx.open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                titlebar: Some(TitlebarOptions {
+                    title: Some(plugin_name.clone().into()),
+                    appears_transparent: true,
+                    ..Default::default()
+                }),
+                window_background: WindowBackgroundAppearance::Transparent,
+                window_min_size: Some(size(px(400.0), px(300.0))),
+                ..Default::default()
+            },
+            |new_window, cx| {
+                if always_on_top {
+                    crate::platform::set_window_always_on_top(new_window, true);
+                }
+                let plugin_view = cx.new(|cx| {
+                    PluginWindowView::new(
+                        plugin_id_clone,
+                        plugin_name,
+                        plugin_path,
+                        ws_port,
+                        new_window,
+                        cx,
+                    )
+                });
+                cx.new(|cx| Root::new(plugin_view, new_window, cx))
+            },
+        ) {
+            self.plugin_windows.insert(plugin_id, handle.into());
         }
     }
 }

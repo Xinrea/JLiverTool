@@ -14,7 +14,8 @@ use jlivertool_core::messages::{
 };
 use jlivertool_core::tts::{TtsEnabled, TtsManager, TtsMessage};
 use jlivertool_core::types::RoomId;
-use jlivertool_ui::{run_app, UiCommand};
+use jlivertool_plugin::PluginManager;
+use jlivertool_ui::{run_app_with_plugins, PluginInfo, UiCommand};
 use parking_lot::RwLock;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
@@ -33,18 +34,32 @@ enum BackendCommand {
 }
 
 /// Event sender wrapper that sets a flag when events are sent
+/// Also broadcasts events to plugins if a plugin event sender is set
 #[derive(Clone)]
 struct EventSender {
     tx: mpsc::Sender<Event>,
     has_events: Arc<AtomicBool>,
+    plugin_tx: Option<tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>>,
 }
 
 impl EventSender {
     fn new(tx: mpsc::Sender<Event>, has_events: Arc<AtomicBool>) -> Self {
-        Self { tx, has_events }
+        Self { tx, has_events, plugin_tx: None }
+    }
+
+    fn with_plugin_sender(mut self, plugin_tx: tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>) -> Self {
+        self.plugin_tx = Some(plugin_tx);
+        self
     }
 
     fn send(&self, event: Event) -> Result<(), mpsc::SendError<Event>> {
+        // Broadcast to plugins if sender is available
+        if let Some(ref plugin_tx) = self.plugin_tx {
+            if let Some(plugin_event) = jlivertool_plugin::PluginEvent::from_core_event(&event) {
+                let _ = plugin_tx.send(plugin_event);
+            }
+        }
+
         let result = self.tx.send(event);
         if result.is_ok() {
             self.has_events.store(true, Ordering::Relaxed);
@@ -68,11 +83,102 @@ fn main() -> Result<()> {
 
     // Create flag for pending events (shared between sender and UI)
     let has_events = Arc::new(AtomicBool::new(false));
-    let event_sender = EventSender::new(event_tx.clone(), has_events.clone());
 
     // Shared API client and config
     let config = Arc::new(RwLock::new(ConfigStore::new()?));
     let api = Arc::new(RwLock::new(BiliApi::new()?));
+
+    // Initialize plugin manager (note: plugins are loaded but webview windows
+    // need to be created separately due to thread safety constraints)
+    let plugin_manager = Arc::new(parking_lot::Mutex::new(PluginManager::new()));
+    let plugins_dir = config.read().data_dir().join("plugins");
+    match plugin_manager.lock().scan_plugins_dir(&plugins_dir) {
+        Ok(loaded) => {
+            if !loaded.is_empty() {
+                info!("Loaded {} plugins: {:?}", loaded.len(), loaded);
+            }
+        }
+        Err(e) => {
+            warn!("Failed to scan plugins directory: {}", e);
+        }
+    }
+    // Convert plugins to UI-compatible format
+    let ui_plugins: Vec<PluginInfo> = plugin_manager
+        .lock()
+        .get_plugins_with_paths()
+        .into_iter()
+        .map(|(meta, path)| PluginInfo {
+            id: meta.id,
+            name: meta.name,
+            author: meta.author,
+            desc: meta.desc,
+            version: meta.version,
+            enabled: true, // All loaded plugins are enabled by default
+            path,
+        })
+        .collect();
+
+    // Start WebSocket server for plugin communication
+    let (ws_port, plugin_event_tx) = if !ui_plugins.is_empty() {
+        let plugin_manager_clone = plugin_manager.clone();
+        let (port_tx, port_rx) = std::sync::mpsc::channel::<Option<(u16, tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>)>>();
+        std::thread::spawn(move || {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("Failed to create tokio runtime for plugin WS server");
+
+            runtime.block_on(async move {
+                // Start the WebSocket server
+                let result = {
+                    let mut pm = plugin_manager_clone.lock();
+                    pm.start_ws_server().await
+                };
+
+                match result {
+                    Ok(port) => {
+                        info!("Plugin WebSocket server started on port {}", port);
+                        // Get the event sender
+                        let event_sender = {
+                            let pm = plugin_manager_clone.lock();
+                            pm.get_event_sender()
+                        };
+                        if let Some(sender) = event_sender {
+                            let _ = port_tx.send(Some((port, sender)));
+                        } else {
+                            let _ = port_tx.send(None);
+                        }
+                        // Keep the runtime alive to maintain the WebSocket server
+                        // Wait indefinitely (server runs in background)
+                        loop {
+                            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to start plugin WebSocket server: {}", e);
+                        let _ = port_tx.send(None);
+                    }
+                }
+            });
+        });
+        // Wait for the port and event sender to be available
+        match port_rx.recv().unwrap_or(None) {
+            Some((port, sender)) => (Some(port), Some(sender)),
+            None => (None, None),
+        }
+    } else {
+        (None, None)
+    };
+
+    // Create event sender with optional plugin broadcasting
+    let event_sender = {
+        let sender = EventSender::new(event_tx.clone(), has_events.clone());
+        if let Some(plugin_tx) = plugin_event_tx {
+            sender.with_plugin_sender(plugin_tx)
+        } else {
+            sender
+        }
+    };
 
     // Initialize database
     let db_path = config.read().data_dir().join("jlivertool.db");
@@ -128,6 +234,7 @@ fn main() -> Result<()> {
     let config_clone = config.clone();
     let api_clone = api.clone();
     let tts_clone = tts_manager.clone();
+    let plugin_manager_clone = plugin_manager.clone();
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -135,7 +242,7 @@ fn main() -> Result<()> {
             .expect("Failed to create tokio runtime");
 
         runtime.block_on(async move {
-            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, tts_clone, backend_cmd_tx).await;
+            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, tts_clone, plugin_manager_clone, backend_cmd_tx).await;
         });
     });
 
@@ -172,11 +279,15 @@ fn main() -> Result<()> {
             interact_display: cfg.interact_display,
             theme: cfg.theme,
             font_size: cfg.font_size,
+            tts_enabled: cfg.tts_enabled,
+            tts_gift_enabled: cfg.tts_gift_enabled,
+            tts_sc_enabled: cfg.tts_sc_enabled,
+            tts_volume: cfg.tts_volume,
         });
     }
 
     // Run UI on main thread
-    run_app(event_rx, command_tx, Some(database), Some(config), has_events);
+    run_app_with_plugins(event_rx, command_tx, Some(database), Some(config), has_events, ui_plugins, ws_port);
 
     Ok(())
 }
@@ -248,6 +359,7 @@ async fn handle_commands(
     config: Arc<RwLock<ConfigStore>>,
     api: Arc<RwLock<BiliApi>>,
     tts_manager: Arc<TtsManager>,
+    plugin_manager: Arc<parking_lot::Mutex<PluginManager>>,
     backend_cmd_tx: tokio_mpsc::UnboundedSender<BackendCommand>,
 ) {
     while let Ok(command) = command_rx.recv() {
@@ -591,6 +703,38 @@ async fn handle_commands(
             UiCommand::TestTts => {
                 info!("Testing TTS");
                 tts_manager.test();
+            }
+            UiCommand::RefreshPlugins => {
+                info!("Refreshing plugins list");
+                let plugins_dir = config.read().data_dir().join("plugins");
+
+                // Rescan plugins directory
+                let pm = plugin_manager.lock();
+                // Clear existing plugins and rescan
+                match pm.scan_plugins_dir(&plugins_dir) {
+                    Ok(loaded) => {
+                        info!("Refreshed plugins: {:?}", loaded);
+                    }
+                    Err(e) => {
+                        warn!("Failed to scan plugins directory: {}", e);
+                    }
+                }
+
+                // Send updated plugin list to UI
+                let plugin_events: Vec<jlivertool_core::events::PluginInfoEvent> = pm
+                    .get_plugins_with_paths()
+                    .into_iter()
+                    .map(|(meta, path)| jlivertool_core::events::PluginInfoEvent {
+                        id: meta.id,
+                        name: meta.name,
+                        author: meta.author,
+                        desc: meta.desc,
+                        version: meta.version,
+                        path,
+                    })
+                    .collect();
+
+                let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
             }
         }
     }

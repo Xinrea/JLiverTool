@@ -61,6 +61,10 @@ pub enum Event {
         interact_display: bool,
         theme: String,
         font_size: f32,
+        tts_enabled: bool,
+        tts_gift_enabled: bool,
+        tts_sc_enabled: bool,
+        tts_volume: f32,
     },
 
     /// Detail window data updated
@@ -121,6 +125,22 @@ pub enum Event {
         total: u32,
         page: u32,
     },
+
+    /// Plugins list refreshed
+    PluginsRefreshed {
+        plugins: Vec<PluginInfoEvent>,
+    },
+}
+
+/// Plugin info for events (simplified version)
+#[derive(Debug, Clone)]
+pub struct PluginInfoEvent {
+    pub id: String,
+    pub name: String,
+    pub author: String,
+    pub desc: String,
+    pub version: String,
+    pub path: std::path::PathBuf,
 }
 
 /// Event handler callback type
@@ -233,6 +253,7 @@ impl EventBus {
             Event::UserInfoFetched { .. } => "user_info_fetched",
             Event::AudienceListFetched { .. } => "audience_list_fetched",
             Event::GuardListFetched { .. } => "guard_list_fetched",
+            Event::PluginsRefreshed { .. } => "plugins_refreshed",
         }
     }
 }

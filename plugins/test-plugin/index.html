@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Plugin</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 16px;
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #00d4ff;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .event-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #16213e;
+            border-radius: 8px;
+            padding: 8px;
+        }
+        .event-item {
+            padding: 8px 12px;
+            margin-bottom: 4px;
+            background: #0f3460;
+            border-radius: 4px;
+            font-size: 13px;
+            word-break: break-all;
+        }
+        .event-item.danmu {
+            border-left: 3px solid #00d4ff;
+        }
+        .event-item.gift {
+            border-left: 3px solid #ff6b6b;
+        }
+        .event-item.superchat {
+            border-left: 3px solid #ffd93d;
+        }
+        .event-item.guard {
+            border-left: 3px solid #6bcb77;
+        }
+        .event-item.interact {
+            border-left: 3px solid #9d4edd;
+        }
+        .event-item.system {
+            border-left: 3px solid #888;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .stat-card {
+            background: #16213e;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 8px 12px;
+            background: #16213e;
+            border-radius: 8px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff6b6b;
+        }
+        .status-dot.connected {
+            background: #6bcb77;
+        }
+        .api-test {
+            margin-top: 16px;
+        }
+        button {
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        button:hover {
+            background: #00b8e6;
+        }
+        .log {
+            margin-top: 8px;
+            padding: 8px;
+            background: #16213e;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>JLiverTool Test Plugin</h1>
+
+    <div class="connection-status">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">未连接</span>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Statistics</div>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="danmu-count">0</div>
+                <div class="stat-label">Danmu</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="gift-count">0</div>
+                <div class="stat-label">Gifts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="superchat-count">0</div>
+                <div class="stat-label">SuperChats</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="online-count">0</div>
+                <div class="stat-label">Online</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Recent Events</div>
+        <div class="event-list" id="event-list"></div>
+    </div>
+
+    <div class="section api-test">
+        <div class="section-title">API Test</div>
+        <button onclick="testOpenUrl()">Open GitHub</button>
+        <button onclick="testServerInfo()">Get Server Info</button>
+        <button onclick="reconnect()">Reconnect</button>
+        <div class="log" id="api-log">API test results will appear here...</div>
+    </div>
+
+    <script>
+        const stats = {
+            danmu: 0,
+            gift: 0,
+            superchat: 0,
+            online: 0
+        };
+
+        const maxEvents = 50;
+        const eventList = document.getElementById('event-list');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        function addEvent(type, content) {
+            const item = document.createElement('div');
+            item.className = `event-item ${type}`;
+            item.textContent = content;
+            eventList.insertBefore(item, eventList.firstChild);
+
+            // Keep only maxEvents
+            while (eventList.children.length > maxEvents) {
+                eventList.removeChild(eventList.lastChild);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('danmu-count').textContent = stats.danmu;
+            document.getElementById('gift-count').textContent = stats.gift;
+            document.getElementById('superchat-count').textContent = stats.superchat;
+            document.getElementById('online-count').textContent = stats.online;
+        }
+
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                statusDot.classList.add('connected');
+                statusText.textContent = '已连接';
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = '未连接';
+            }
+        }
+
+        // Wait for jliverAPI to be available
+        function waitForApi(callback) {
+            if (window.jliverAPI) {
+                callback();
+            } else {
+                setTimeout(() => waitForApi(callback), 100);
+            }
+        }
+
+        waitForApi(function() {
+            addEvent('system', 'JLiverTool API loaded');
+
+            // Check connection status periodically
+            setInterval(() => {
+                updateConnectionStatus(jliverAPI.isConnected());
+            }, 1000);
+
+            // Register event handlers
+            jliverAPI.register('NewDanmu', (event) => {
+                stats.danmu++;
+                updateStats();
+                const data = event.data;
+                addEvent('danmu', `[${data.uname}] ${data.msg}`);
+            });
+
+            jliverAPI.register('NewGift', (event) => {
+                stats.gift++;
+                updateStats();
+                const data = event.data;
+                addEvent('gift', `[${data.uname}] sent ${data.num}x ${data.gift_name}`);
+            });
+
+            jliverAPI.register('NewSuperChat', (event) => {
+                stats.superchat++;
+                updateStats();
+                const data = event.data;
+                addEvent('superchat', `[${data.uname}] SC ¥${data.price}: ${data.message}`);
+            });
+
+            jliverAPI.register('NewGuard', (event) => {
+                const data = event.data;
+                addEvent('guard', `[${data.uname}] became guard level ${data.guard_level}`);
+            });
+
+            jliverAPI.register('NewInteract', (event) => {
+                const data = event.data;
+                addEvent('interact', `[${data.uname}] interaction type ${data.msg_type}`);
+            });
+
+            jliverAPI.register('UpdateOnline', (event) => {
+                stats.online = event.data.count;
+                updateStats();
+            });
+
+            jliverAPI.register('LiveStart', () => {
+                addEvent('system', 'Live stream started!');
+            });
+
+            jliverAPI.register('LiveEnd', () => {
+                addEvent('system', 'Live stream ended.');
+            });
+
+            console.log('JLiverTool event handlers registered');
+        });
+
+        // API test functions
+        function logApi(msg) {
+            const log = document.getElementById('api-log');
+            log.textContent = msg;
+        }
+
+        async function testOpenUrl() {
+            if (!window.jliverAPI) {
+                logApi('API not available');
+                return;
+            }
+            try {
+                await jliverAPI.util.openUrl('https://github.com/Xinrea/JLiverTool');
+                logApi('Opened GitHub URL');
+            } catch (e) {
+                logApi('Error: ' + e.message);
+            }
+        }
+
+        async function testServerInfo() {
+            if (!window.jliverAPI) {
+                logApi('API not available');
+                return;
+            }
+            try {
+                const info = await jliverAPI.util.getServerInfo();
+                logApi('Server info: ' + JSON.stringify(info));
+            } catch (e) {
+                logApi('Error: ' + e.message);
+            }
+        }
+
+        function reconnect() {
+            if (!window.jliverAPI) {
+                logApi('API not available');
+                return;
+            }
+            jliverAPI.reconnect();
+            logApi('Reconnecting...');
+        }
+    </script>
+</body>
+</html>

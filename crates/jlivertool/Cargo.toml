@@ -15,6 +15,7 @@ gpui-component = { workspace = true }
 core-text = { workspace = true }
 jlivertool-core = { path = "../jlivertool-core" }
 jlivertool-ui = { path = "../jlivertool-ui" }
+jlivertool-plugin = { path = "../jlivertool-plugin" }
 
 # Async runtime
 tokio = { workspace = true }

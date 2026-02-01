@@ -74,6 +74,8 @@ pub enum UiCommand {
     UpdateTtsProvider(String),
     /// Test TTS
     TestTts,
+    /// Refresh plugins list
+    RefreshPlugins,
 }
 
 /// Wrapper for event receiver with a flag to indicate pending events
@@ -95,6 +97,19 @@ pub fn run_app(
     database: Option<Arc<Database>>,
     config: Option<Arc<RwLock<ConfigStore>>>,
     has_events: Arc<AtomicBool>,
+) {
+    run_app_with_plugins(event_rx, command_tx, database, config, has_events, Vec::new(), None);
+}
+
+/// Run the GPUI application with plugin info
+pub fn run_app_with_plugins(
+    event_rx: mpsc::Receiver<Event>,
+    command_tx: mpsc::Sender<UiCommand>,
+    database: Option<Arc<Database>>,
+    config: Option<Arc<RwLock<ConfigStore>>>,
+    has_events: Arc<AtomicBool>,
+    plugins: Vec<crate::views::setting_view::PluginInfo>,
+    ws_port: Option<u16>,
 ) {
     // Get saved window bounds for main window
     let main_window_config = config
@@ -146,6 +161,14 @@ pub fn run_app(
                     }
                     if let Some(cfg) = config {
                         view.set_config(cfg);
+                    }
+                    // Set plugins if any
+                    if !plugins.is_empty() {
+                        view.set_plugins(plugins, cx);
+                    }
+                    // Set WebSocket port for plugin communication
+                    if let Some(port) = ws_port {
+                        view.set_ws_port(port);
                     }
                     view
                 });

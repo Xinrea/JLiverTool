@@ -7,7 +7,7 @@ license.workspace = true
 
 [dependencies]
 gpui = { workspace = true }
-gpui-component = { workspace = true }
+gpui-component = { workspace = true, features = ["webview"] }
 core-text = { workspace = true }
 jlivertool-core = { path = "../jlivertool-core" }
 
@@ -21,6 +21,7 @@ serde_json = { workspace = true }
 
 # Logging
 tracing = { workspace = true }
+log = { workspace = true }
 
 # Error handling
 anyhow = { workspace = true }
@@ -29,6 +30,7 @@ anyhow = { workspace = true }
 parking_lot = { workspace = true }
 chrono = { workspace = true }
 regex = "1"
+open = "5"
 
 # QR Code generation
 qrcode = "0.14"

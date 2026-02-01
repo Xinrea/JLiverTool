@@ -26,6 +26,20 @@ type WindowSettingsCallback = Arc<dyn Fn(bool, bool, bool, bool, bool, &mut Wind
 type ThemeCallback = Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>;
 /// Type alias for TTS enabled callback (3 bool parameters: danmu, gift, superchat)
 type TtsEnabledCallback = Arc<dyn Fn(bool, bool, bool, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for plugin open callback (plugin_id, plugin_name, plugin_path)
+type PluginOpenCallback = Arc<dyn Fn(String, String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync>;
+
+/// Plugin info for display in settings
+#[derive(Debug, Clone)]
+pub struct PluginInfo {
+    pub id: String,
+    pub name: String,
+    pub author: String,
+    pub desc: String,
+    pub version: String,
+    pub enabled: bool,
+    pub path: std::path::PathBuf,
+}
 
 /// Settings view state
 pub struct SettingView {
@@ -63,6 +77,11 @@ pub struct SettingView {
     on_tts_enabled_change: Option<TtsEnabledCallback>,
     on_tts_volume_change: Option<FloatCallback>,
     on_tts_test: Option<SimpleCallback>,
+    // Plugin management
+    plugins: Arc<RwLock<Vec<PluginInfo>>>,
+    on_plugin_open: Option<PluginOpenCallback>,
+    on_open_plugins_folder: Option<SimpleCallback>,
+    on_refresh_plugins: Option<SimpleCallback>,
 }
 
 /// Tab definition
@@ -72,8 +91,9 @@ enum SettingsTab {
     Window = 1,
     Appearance = 2,
     Tts = 3,
-    Advanced = 4,
-    About = 5,
+    Plugin = 4,
+    Advanced = 5,
+    About = 6,
 }
 
 impl SettingsTab {
@@ -83,6 +103,7 @@ impl SettingsTab {
             Self::Window => "窗口设置",
             Self::Appearance => "外观设置",
             Self::Tts => "TTS 设置",
+            Self::Plugin => "插件管理",
             Self::Advanced => "高级设置",
             Self::About => "关于",
         }
@@ -94,6 +115,7 @@ impl SettingsTab {
             Self::Window,
             Self::Appearance,
             Self::Tts,
+            Self::Plugin,
             Self::Advanced,
             Self::About,
         ]
@@ -143,6 +165,10 @@ pub struct ConfigValues {
     pub interact_display: bool,
     pub theme: String,
     pub font_size: f32,
+    pub tts_enabled: bool,
+    pub tts_gift_enabled: bool,
+    pub tts_sc_enabled: bool,
+    pub tts_volume: f32,
 }
 
 /// Settings data that can be shared
@@ -216,6 +242,10 @@ impl SettingView {
             on_tts_enabled_change: None,
             on_tts_volume_change: None,
             on_tts_test: None,
+            plugins: Arc::new(RwLock::new(Vec::new())),
+            on_plugin_open: None,
+            on_open_plugins_folder: None,
+            on_refresh_plugins: None,
         }
     }
 
@@ -360,6 +390,46 @@ impl SettingView {
         self.on_tts_test = Some(Arc::new(callback));
     }
 
+    /// Set callback for opening plugin window
+    pub fn on_plugin_open<F>(&mut self, callback: F)
+    where
+        F: Fn(String, String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_plugin_open = Some(Arc::new(callback));
+    }
+
+    /// Set callback for opening plugins folder
+    pub fn on_open_plugins_folder<F>(&mut self, callback: F)
+    where
+        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_open_plugins_folder = Some(Arc::new(callback));
+    }
+
+    /// Set callback for refreshing plugins list
+    pub fn on_refresh_plugins<F>(&mut self, callback: F)
+    where
+        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_refresh_plugins = Some(Arc::new(callback));
+    }
+
+    /// Set the list of plugins
+    pub fn set_plugins(&mut self, plugins: Vec<PluginInfo>, cx: &mut Context<Self>) {
+        *self.plugins.write() = plugins;
+        cx.notify();
+    }
+
+    /// Update a plugin's enabled state
+    pub fn set_plugin_enabled(&mut self, plugin_id: &str, enabled: bool, cx: &mut Context<Self>) {
+        let mut plugins = self.plugins.write();
+        if let Some(plugin) = plugins.iter_mut().find(|p| p.id == plugin_id) {
+            plugin.enabled = enabled;
+        }
+        drop(plugins);
+        cx.notify();
+    }
+
     /// Notify TTS enabled change
     fn notify_tts_enabled_change(&self, window: &mut Window, cx: &mut App) {
         if let Some(ref callback) = self.on_tts_enabled_change {
@@ -457,6 +527,10 @@ impl SettingView {
         settings.interact_display = config.interact_display;
         settings.theme = config.theme;
         settings.font_size = config.font_size;
+        settings.tts_enabled = config.tts_enabled;
+        settings.gift_tts = config.tts_gift_enabled;
+        settings.sc_tts = config.tts_sc_enabled;
+        settings.tts_volume = config.tts_volume;
         drop(settings);
         cx.notify();
     }
@@ -473,6 +547,10 @@ impl SettingView {
         settings.interact_display = config.interact_display;
         settings.theme = config.theme;
         settings.font_size = config.font_size;
+        settings.tts_enabled = config.tts_enabled;
+        settings.gift_tts = config.tts_gift_enabled;
+        settings.sc_tts = config.tts_sc_enabled;
+        settings.tts_volume = config.tts_volume;
     }
 
     /// Set opacity
@@ -1249,8 +1327,9 @@ impl SettingView {
             1 => SettingsTab::Window,
             2 => SettingsTab::Appearance,
             3 => SettingsTab::Tts,
-            4 => SettingsTab::Advanced,
-            5 => SettingsTab::About,
+            4 => SettingsTab::Plugin,
+            5 => SettingsTab::Advanced,
+            6 => SettingsTab::About,
             _ => SettingsTab::Basic,
         };
 
@@ -1259,6 +1338,7 @@ impl SettingView {
             SettingsTab::Window => self.render_window_tab(cx).into_any_element(),
             SettingsTab::Appearance => self.render_appearance_tab(window, cx).into_any_element(),
             SettingsTab::Tts => self.render_tts_tab(cx, window).into_any_element(),
+            SettingsTab::Plugin => self.render_plugin_tab(cx).into_any_element(),
             SettingsTab::Advanced => self.render_advanced_tab(cx).into_any_element(),
             SettingsTab::About => self.render_about_tab(cx).into_any_element(),
         }
@@ -2123,6 +2203,219 @@ impl SettingView {
                                 }
                             }),
                         )),
+                ),
+            )
+    }
+
+    fn render_plugin_tab(&self, _cx: &mut Context<Self>) -> impl IntoElement {
+        let plugins = self.plugins.read().clone();
+        let on_plugin_open = self.on_plugin_open.clone();
+        let on_open_plugins_folder = self.on_open_plugins_folder.clone();
+        let on_refresh_plugins = self.on_refresh_plugins.clone();
+
+        v_flex()
+            .w_full()
+            .p_6()
+            .gap_4()
+            .child(
+                self.render_section_card(
+                    v_flex()
+                        .w_full()
+                        .child(
+                            h_flex()
+                                .w_full()
+                                .justify_between()
+                                .items_center()
+                                .child(self.render_section_title("已安装插件"))
+                                .child(
+                                    div()
+                                        .id("refresh-plugins-btn")
+                                        .px_2()
+                                        .py_1()
+                                        .rounded(px(4.0))
+                                        .cursor_pointer()
+                                        .text_size(px(11.0))
+                                        .text_color(Colors::text_secondary())
+                                        .hover(|s| s.bg(Colors::bg_hover()))
+                                        .child("刷新")
+                                        .on_click({
+                                            let callback = on_refresh_plugins.clone();
+                                            move |_event, window, cx| {
+                                                if let Some(ref cb) = callback {
+                                                    cb(window, cx);
+                                                }
+                                            }
+                                        }),
+                                ),
+                        )
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .py_2()
+                                .gap_3()
+                                .when(plugins.is_empty(), |this| {
+                                    this.child(
+                                        div()
+                                            .w_full()
+                                            .py_8()
+                                            .flex()
+                                            .items_center()
+                                            .justify_center()
+                                            .child(
+                                                v_flex()
+                                                    .items_center()
+                                                    .gap_2()
+                                                    .child(
+                                                        div()
+                                                            .text_size(px(14.0))
+                                                            .text_color(Colors::text_muted())
+                                                            .child("暂无已安装的插件"),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .text_size(px(12.0))
+                                                            .text_color(Colors::text_muted())
+                                                            .child("将插件文件夹放入 plugins 目录后重启应用"),
+                                                    ),
+                                            ),
+                                    )
+                                })
+                                .children(plugins.iter().map(|plugin| {
+                                    let plugin_id = plugin.id.clone();
+                                    let plugin_name = plugin.name.clone();
+                                    let plugin_path = plugin.path.clone();
+                                    let on_open = on_plugin_open.clone();
+
+                                    div()
+                                        .w_full()
+                                        .p_4()
+                                        .rounded(px(8.0))
+                                        .bg(Colors::bg_secondary())
+                                        .child(
+                                            h_flex()
+                                                .w_full()
+                                                .justify_between()
+                                                .items_start()
+                                                .child(
+                                                    v_flex()
+                                                        .flex_1()
+                                                        .gap_1()
+                                                        .child(
+                                                            h_flex()
+                                                                .gap_2()
+                                                                .items_center()
+                                                                .child(
+                                                                    div()
+                                                                        .text_size(px(14.0))
+                                                                        .font_weight(FontWeight::MEDIUM)
+                                                                        .text_color(Colors::text_primary())
+                                                                        .child(plugin.name.clone()),
+                                                                )
+                                                                .child(
+                                                                    div()
+                                                                        .px_2()
+                                                                        .py(px(2.0))
+                                                                        .rounded(px(4.0))
+                                                                        .bg(Colors::accent().opacity(0.1))
+                                                                        .text_size(px(10.0))
+                                                                        .text_color(Colors::accent())
+                                                                        .child(format!("v{}", plugin.version)),
+                                                                ),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(12.0))
+                                                                .text_color(Colors::text_muted())
+                                                                .child(plugin.desc.clone()),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(11.0))
+                                                                .text_color(Colors::text_muted())
+                                                                .child(format!("作者: {}", plugin.author)),
+                                                        ),
+                                                )
+                                                .child(
+                                                    h_flex()
+                                                        .gap_3()
+                                                        .items_center()
+                                                        .child(
+                                                            div()
+                                                                .id(SharedString::from(format!("plugin-open-{}", plugin_id.clone())))
+                                                                .px_3()
+                                                                .py(px(6.0))
+                                                                .rounded(px(4.0))
+                                                                .cursor_pointer()
+                                                                .bg(Colors::accent())
+                                                                .text_size(px(12.0))
+                                                                .text_color(Colors::bg_primary())
+                                                                .hover(|s| s.bg(Colors::accent().opacity(0.8)))
+                                                                .child("打开")
+                                                                .on_click({
+                                                                    let plugin_id = plugin_id.clone();
+                                                                    let plugin_name = plugin_name.clone();
+                                                                    let plugin_path = plugin_path.clone();
+                                                                    move |_event, window, cx| {
+                                                                        if let Some(ref callback) = on_open {
+                                                                            callback(plugin_id.clone(), plugin_name.clone(), plugin_path.clone(), window, cx);
+                                                                        }
+                                                                    }
+                                                                }),
+                                                        ),
+                                                ),
+                                        )
+                                })),
+                        ),
+                ),
+            )
+            .child(
+                self.render_section_card(
+                    v_flex()
+                        .w_full()
+                        .child(self.render_section_title("插件说明"))
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .py_2()
+                                .gap_2()
+                                .child(
+                                    div()
+                                        .text_size(px(12.0))
+                                        .text_color(Colors::text_secondary())
+                                        .child("插件是基于 HTML/JavaScript 的扩展，可以订阅弹幕、礼物等事件。"),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(12.0))
+                                        .text_color(Colors::text_secondary())
+                                        .child("每个插件需要包含 meta.json 配置文件和入口 HTML 文件。"),
+                                )
+                                .child(
+                                    div()
+                                        .pt_2()
+                                        .child(
+                                            div()
+                                                .id("open-plugins-folder-btn")
+                                                .px_3()
+                                                .py(px(6.0))
+                                                .rounded(px(4.0))
+                                                .cursor_pointer()
+                                                .bg(Colors::bg_hover())
+                                                .text_size(px(12.0))
+                                                .text_color(Colors::text_primary())
+                                                .hover(|s| s.bg(Colors::accent().opacity(0.2)))
+                                                .child("打开插件目录")
+                                                .on_click({
+                                                    let callback = on_open_plugins_folder.clone();
+                                                    move |_event, window, cx| {
+                                                        if let Some(ref cb) = callback {
+                                                            cb(window, cx);
+                                                        }
+                                                    }
+                                                }),
+                                        ),
+                                ),
+                        ),
                 ),
             )
     }
