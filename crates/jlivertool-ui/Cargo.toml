@@ -1,0 +1,45 @@
+[package]
+name = "jlivertool-ui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui = { workspace = true }
+gpui-component = { workspace = true }
+core-text = { workspace = true }
+jlivertool-core = { path = "../jlivertool-core" }
+
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Utilities
+parking_lot = { workspace = true }
+chrono = { workspace = true }
+regex = "1"
+
+# QR Code generation
+qrcode = "0.14"
+
+# HTTP client for image loading
+isahc = { version = "1.7", features = ["text-decoding"] }
+bytes = "1.5"
+http-body-util = "0.1"
+
+# Platform-specific dependencies
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2"
+cocoa = "0.26"
+raw-window-handle = "0.6"

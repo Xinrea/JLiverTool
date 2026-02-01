@@ -1,0 +1,48 @@
+[package]
+name = "jlivertool-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Async runtime
+tokio = { workspace = true }
+futures = { workspace = true }
+
+# HTTP client
+reqwest = { workspace = true }
+
+# WebSocket
+tokio-tungstenite = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Compression
+flate2 = { workspace = true }
+brotli = { workspace = true }
+
+# Crypto
+md-5 = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+# Utilities
+chrono = { workspace = true }
+uuid = { workspace = true }
+directories = { workspace = true }
+parking_lot = { workspace = true }
+urlencoding = { workspace = true }
+
+# Database
+rusqlite = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"

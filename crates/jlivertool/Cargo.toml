@@ -1,0 +1,34 @@
+[package]
+name = "jlivertool"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "jlivertool"
+path = "src/main.rs"
+
+[dependencies]
+gpui = { workspace = true }
+gpui-component = { workspace = true }
+core-text = { workspace = true }
+jlivertool-core = { path = "../jlivertool-core" }
+jlivertool-ui = { path = "../jlivertool-ui" }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Utilities
+parking_lot = { workspace = true }

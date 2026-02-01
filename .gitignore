@@ -15,3 +15,9 @@ src/*/*.js
 releases.html
 
 docs/.vitepress/cache
+
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
