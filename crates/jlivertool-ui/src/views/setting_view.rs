@@ -28,6 +28,10 @@ type ThemeCallback = Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>;
 type TtsEnabledCallback = Arc<dyn Fn(bool, bool, bool, &mut Window, &mut App) + Send + Sync>;
 /// Type alias for plugin open callback (plugin_id, plugin_name, plugin_path)
 type PluginOpenCallback = Arc<dyn Fn(String, String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for plugin import callback (github_url parameter)
+type PluginImportCallback = Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for plugin remove callback (plugin_id, plugin_path)
+type PluginRemoveCallback = Arc<dyn Fn(String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync>;
 
 /// Plugin info for display in settings
 #[derive(Debug, Clone)]
@@ -82,6 +86,9 @@ pub struct SettingView {
     on_plugin_open: Option<PluginOpenCallback>,
     on_open_plugins_folder: Option<SimpleCallback>,
     on_refresh_plugins: Option<SimpleCallback>,
+    on_plugin_import: Option<PluginImportCallback>,
+    on_plugin_remove: Option<PluginRemoveCallback>,
+    plugin_import_status: Arc<RwLock<Option<String>>>,
 }
 
 /// Tab definition
@@ -246,6 +253,9 @@ impl SettingView {
             on_plugin_open: None,
             on_open_plugins_folder: None,
             on_refresh_plugins: None,
+            on_plugin_import: None,
+            on_plugin_remove: None,
+            plugin_import_status: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -412,6 +422,28 @@ impl SettingView {
         F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_refresh_plugins = Some(Arc::new(callback));
+    }
+
+    /// Set callback for importing plugin from GitHub
+    pub fn on_plugin_import<F>(&mut self, callback: F)
+    where
+        F: Fn(String, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_plugin_import = Some(Arc::new(callback));
+    }
+
+    /// Set callback for removing a plugin
+    pub fn on_plugin_remove<F>(&mut self, callback: F)
+    where
+        F: Fn(String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_plugin_remove = Some(Arc::new(callback));
+    }
+
+    /// Set plugin import status message
+    pub fn set_plugin_import_status(&mut self, status: Option<String>, cx: &mut Context<Self>) {
+        *self.plugin_import_status.write() = status;
+        cx.notify();
     }
 
     /// Set the list of plugins
@@ -1338,7 +1370,7 @@ impl SettingView {
             SettingsTab::Window => self.render_window_tab(cx).into_any_element(),
             SettingsTab::Appearance => self.render_appearance_tab(window, cx).into_any_element(),
             SettingsTab::Tts => self.render_tts_tab(cx, window).into_any_element(),
-            SettingsTab::Plugin => self.render_plugin_tab(cx).into_any_element(),
+            SettingsTab::Plugin => self.render_plugin_tab(window, cx).into_any_element(),
             SettingsTab::Advanced => self.render_advanced_tab(cx).into_any_element(),
             SettingsTab::About => self.render_about_tab(cx).into_any_element(),
         }
@@ -2207,16 +2239,127 @@ impl SettingView {
             )
     }
 
-    fn render_plugin_tab(&self, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_plugin_import_section(
+        &self,
+        on_plugin_import: Option<PluginImportCallback>,
+        plugin_import_status: Option<String>,
+        entity: Entity<Self>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        // Create InputState using keyed state
+        struct PluginImportInputWrapper {
+            input: Entity<gpui_component::input::InputState>,
+        }
+
+        let state = window.use_keyed_state(
+            SharedString::from("plugin-import-input-state"),
+            cx,
+            |window, cx| {
+                let input = cx.new(|cx| {
+                    gpui_component::input::InputState::new(window, cx)
+                        .placeholder("GitHub 插件链接...")
+                });
+                PluginImportInputWrapper { input }
+            },
+        );
+
+        let input_state = state.read(cx).input.clone();
+
+        self.render_section_card(
+            v_flex()
+                .w_full()
+                .child(self.render_section_title("从 GitHub 导入插件"))
+                .child(
+                    v_flex()
+                        .w_full()
+                        .py_2()
+                        .gap_3()
+                        .child(
+                            div()
+                                .text_size(px(12.0))
+                                .text_color(Colors::text_secondary())
+                                .child("输入 GitHub 插件目录链接，例如:"),
+                        )
+                        .child(
+                            div()
+                                .text_size(px(11.0))
+                                .text_color(Colors::text_muted())
+                                .child("https://github.com/Xinrea/JLiverTool/tree/master/plugins/wordcloud"),
+                        )
+                        .child(
+                            h_flex()
+                                .w_full()
+                                .gap_2()
+                                .items_center()
+                                .child(
+                                    div()
+                                        .flex_1()
+                                        .child(gpui_component::input::Input::new(&input_state).cleanable(true)),
+                                )
+                                .child(
+                                    div()
+                                        .id("import-plugin-btn")
+                                        .px_4()
+                                        .py(px(7.0))
+                                        .rounded_md()
+                                        .cursor_pointer()
+                                        .bg(Colors::accent())
+                                        .hover(|s| s.opacity(0.8))
+                                        .text_size(px(13.0))
+                                        .text_color(Colors::button_text())
+                                        .child("导入")
+                                        .on_click({
+                                            let input_state = input_state.clone();
+                                            let callback = on_plugin_import.clone();
+                                            let entity = entity.clone();
+                                            move |_event, window, cx| {
+                                                let url = input_state.read(cx).text().to_string().trim().to_string();
+                                                if !url.is_empty() {
+                                                    // Set importing status
+                                                    entity.update(cx, |this, cx| {
+                                                        this.set_plugin_import_status(Some("正在导入...".to_string()), cx);
+                                                    });
+                                                    if let Some(ref cb) = callback {
+                                                        cb(url, window, cx);
+                                                    }
+                                                }
+                                            }
+                                        }),
+                                ),
+                        )
+                        .when(plugin_import_status.is_some(), |this| {
+                            let status = plugin_import_status.clone().unwrap();
+                            let is_error = status.contains("失败") || status.contains("错误");
+                            this.child(
+                                div()
+                                    .text_size(px(12.0))
+                                    .text_color(if is_error { Colors::error() } else { Colors::success() })
+                                    .child(status),
+                            )
+                        }),
+                ),
+        )
+    }
+
+    fn render_plugin_tab(&self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let plugins = self.plugins.read().clone();
         let on_plugin_open = self.on_plugin_open.clone();
+        let on_plugin_remove = self.on_plugin_remove.clone();
         let on_open_plugins_folder = self.on_open_plugins_folder.clone();
         let on_refresh_plugins = self.on_refresh_plugins.clone();
+        let on_plugin_import = self.on_plugin_import.clone();
+        let plugin_import_status = self.plugin_import_status.read().clone();
+        let entity = cx.entity().clone();
 
         v_flex()
             .w_full()
             .p_6()
             .gap_4()
+            // GitHub Import Section
+            .child(
+                self.render_plugin_import_section(on_plugin_import, plugin_import_status, entity, window, cx),
+            )
             .child(
                 self.render_section_card(
                     v_flex()
@@ -2285,6 +2428,7 @@ impl SettingView {
                                     let plugin_name = plugin.name.clone();
                                     let plugin_path = plugin.path.clone();
                                     let on_open = on_plugin_open.clone();
+                                    let on_remove = on_plugin_remove.clone();
 
                                     div()
                                         .w_full()
@@ -2337,7 +2481,7 @@ impl SettingView {
                                                 )
                                                 .child(
                                                     h_flex()
-                                                        .gap_3()
+                                                        .gap_2()
                                                         .items_center()
                                                         .child(
                                                             div()
@@ -2358,6 +2502,30 @@ impl SettingView {
                                                                     move |_event, window, cx| {
                                                                         if let Some(ref callback) = on_open {
                                                                             callback(plugin_id.clone(), plugin_name.clone(), plugin_path.clone(), window, cx);
+                                                                        }
+                                                                    }
+                                                                }),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .id(SharedString::from(format!("plugin-remove-{}", plugin_id.clone())))
+                                                                .px_3()
+                                                                .py(px(6.0))
+                                                                .rounded(px(4.0))
+                                                                .cursor_pointer()
+                                                                .bg(gpui::transparent_black())
+                                                                .border_1()
+                                                                .border_color(Colors::error().opacity(0.5))
+                                                                .text_size(px(12.0))
+                                                                .text_color(Colors::error())
+                                                                .hover(|s| s.bg(Colors::error().opacity(0.1)))
+                                                                .child("删除")
+                                                                .on_click({
+                                                                    let plugin_id = plugin_id.clone();
+                                                                    let plugin_path = plugin_path.clone();
+                                                                    move |_event, window, cx| {
+                                                                        if let Some(ref callback) = on_remove {
+                                                                            callback(plugin_id.clone(), plugin_path.clone(), window, cx);
                                                                         }
                                                                     }
                                                                 }),

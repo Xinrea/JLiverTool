@@ -9,6 +9,16 @@ use crate::events::PluginEvent;
 use crate::plugin::{Plugin, PluginMeta, PluginState};
 use crate::ws_server::PluginWsServer;
 
+/// GitHub API response for repository contents
+#[derive(Debug, serde::Deserialize)]
+struct GitHubContent {
+    name: String,
+    path: String,
+    #[serde(rename = "type")]
+    content_type: String,
+    download_url: Option<String>,
+}
+
 /// Plugin manager handles plugin lifecycle and event broadcasting
 pub struct PluginManager {
     plugins: Arc<RwLock<HashMap<String, Plugin>>>,
@@ -124,10 +134,31 @@ impl PluginManager {
         self.plugins.read().unwrap().get(plugin_id).cloned()
     }
 
+    /// Clear all loaded plugins
+    pub fn clear_plugins(&self) {
+        self.plugins.write().unwrap().clear();
+    }
+
+    /// Remove a plugin by ID and delete its directory
+    pub fn remove_plugin(&self, plugin_id: &str, plugin_path: &PathBuf) -> Result<()> {
+        // Remove from loaded plugins
+        self.plugins.write().unwrap().remove(plugin_id);
+
+        // Delete the plugin directory
+        if plugin_path.exists() && plugin_path.is_dir() {
+            fs::remove_dir_all(plugin_path)?;
+            log::info!("Removed plugin directory: {:?}", plugin_path);
+        }
+
+        Ok(())
+    }
+
     pub fn scan_plugins_dir(&self, plugins_dir: &PathBuf) -> Result<Vec<String>> {
+        log::info!("Scanning plugins directory: {:?}", plugins_dir);
         let mut loaded = Vec::new();
 
         if !plugins_dir.exists() {
+            log::info!("Plugins directory does not exist, creating it");
             fs::create_dir_all(plugins_dir)?;
             return Ok(loaded);
         }
@@ -139,6 +170,7 @@ impl PluginManager {
             if path.is_dir() {
                 let meta_path = path.join("meta.json");
                 if meta_path.exists() {
+                    log::debug!("Found plugin at {:?}", path);
                     match self.load_plugin(path.clone()) {
                         Ok(plugin_id) => {
                             loaded.push(plugin_id);
@@ -151,7 +183,198 @@ impl PluginManager {
             }
         }
 
+        log::info!("Loaded {} plugins", loaded.len());
         Ok(loaded)
+    }
+
+    /// Import a plugin from a GitHub URL
+    /// Supports URLs like: https://github.com/owner/repo/tree/branch/path/to/plugin
+    /// Branch can contain slashes (e.g., feat/refactor-rust)
+    /// Returns the plugin directory path on success
+    pub async fn download_plugin_from_github(
+        github_url: &str,
+        plugins_dir: &PathBuf,
+    ) -> Result<PathBuf> {
+        // Parse GitHub URL
+        // Format: https://github.com/owner/repo/tree/branch/path/to/plugin
+        let url = github_url.trim();
+
+        let url_path = url
+            .trim_start_matches("https://")
+            .trim_start_matches("http://")
+            .trim_start_matches("github.com/");
+
+        // Find /tree/ to split owner/repo from branch/path
+        let tree_idx = url_path.find("/tree/");
+        if tree_idx.is_none() {
+            anyhow::bail!("Invalid GitHub URL format. URL should contain '/tree/'");
+        }
+        let tree_idx = tree_idx.unwrap();
+
+        let owner_repo = &url_path[..tree_idx];
+        let branch_and_path = &url_path[tree_idx + 6..]; // Skip "/tree/"
+
+        let owner_repo_parts: Vec<&str> = owner_repo.split('/').collect();
+        if owner_repo_parts.len() < 2 {
+            anyhow::bail!("Invalid GitHub URL format. Expected: https://github.com/owner/repo/tree/branch/path");
+        }
+
+        let owner = owner_repo_parts[0];
+        let repo = owner_repo_parts[1];
+
+        // Now we need to figure out where branch ends and path begins
+        // Branch names can contain slashes, so we try progressively longer branch names
+        // until we find one that works with the GitHub API
+        let branch_path_parts: Vec<&str> = branch_and_path.split('/').collect();
+
+        let mut branch = String::new();
+        let mut path = String::new();
+        let mut found = false;
+
+        let client = reqwest::Client::new();
+
+        // Try each possible split point
+        for i in 1..=branch_path_parts.len() {
+            let try_branch = branch_path_parts[..i].join("/");
+            let try_path = if i < branch_path_parts.len() {
+                branch_path_parts[i..].join("/")
+            } else {
+                String::new()
+            };
+
+            // Test if this branch exists by trying to fetch the contents
+            let api_url = format!(
+                "https://api.github.com/repos/{}/{}/contents/{}?ref={}",
+                owner, repo, try_path, try_branch
+            );
+
+            log::debug!("Trying branch '{}' with path '{}'", try_branch, try_path);
+
+            let response = client
+                .get(&api_url)
+                .header("User-Agent", "JLiverTool")
+                .header("Accept", "application/vnd.github.v3+json")
+                .send()
+                .await;
+
+            if let Ok(resp) = response {
+                if resp.status().is_success() {
+                    branch = try_branch;
+                    path = try_path;
+                    found = true;
+                    break;
+                }
+            }
+        }
+
+        if !found {
+            anyhow::bail!(
+                "Could not find valid branch/path combination. Please check the URL is correct."
+            );
+        }
+
+        // Extract plugin folder name from path
+        let plugin_folder_name = path
+            .split('/')
+            .last()
+            .filter(|s| !s.is_empty())
+            .unwrap_or(repo);
+
+        log::info!(
+            "Importing plugin from GitHub: {}/{} branch:{} path:{}",
+            owner,
+            repo,
+            branch,
+            path
+        );
+
+        // Create plugin directory
+        let plugin_dir = plugins_dir.join(plugin_folder_name);
+        if plugin_dir.exists() {
+            // Remove existing plugin directory
+            fs::remove_dir_all(&plugin_dir)?;
+        }
+        fs::create_dir_all(&plugin_dir)?;
+
+        // Download plugin files recursively
+        Self::download_github_folder(owner, repo, &branch, &path, &plugin_dir).await?;
+
+        Ok(plugin_dir)
+    }
+
+    /// Recursively download a folder from GitHub
+    async fn download_github_folder(
+        owner: &str,
+        repo: &str,
+        branch: &str,
+        path: &str,
+        local_dir: &PathBuf,
+    ) -> Result<()> {
+        let api_url = format!(
+            "https://api.github.com/repos/{}/{}/contents/{}?ref={}",
+            owner, repo, path, branch
+        );
+
+        log::debug!("Fetching GitHub contents: {}", api_url);
+
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&api_url)
+            .header("User-Agent", "JLiverTool")
+            .header("Accept", "application/vnd.github.v3+json")
+            .send()
+            .await
+            .with_context(|| format!("Failed to fetch GitHub API: {}", api_url))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            anyhow::bail!("GitHub API error ({}): {}", status, body);
+        }
+
+        let contents: Vec<GitHubContent> = response
+            .json()
+            .await
+            .with_context(|| "Failed to parse GitHub API response")?;
+
+        for item in contents {
+            let local_path = local_dir.join(&item.name);
+
+            if item.content_type == "file" {
+                if let Some(download_url) = item.download_url {
+                    log::debug!("Downloading file: {} -> {:?}", item.name, local_path);
+
+                    let file_response = client
+                        .get(&download_url)
+                        .header("User-Agent", "JLiverTool")
+                        .send()
+                        .await
+                        .with_context(|| format!("Failed to download file: {}", download_url))?;
+
+                    let bytes = file_response
+                        .bytes()
+                        .await
+                        .with_context(|| format!("Failed to read file content: {}", item.name))?;
+
+                    fs::write(&local_path, &bytes)
+                        .with_context(|| format!("Failed to write file: {:?}", local_path))?;
+                }
+            } else if item.content_type == "dir" {
+                fs::create_dir_all(&local_path)?;
+
+                // Recursively download subdirectory
+                Box::pin(Self::download_github_folder(
+                    owner,
+                    repo,
+                    branch,
+                    &item.path,
+                    &local_path,
+                ))
+                .await?;
+            }
+        }
+
+        Ok(())
     }
 }
 

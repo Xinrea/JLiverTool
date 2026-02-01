@@ -118,8 +118,8 @@ fn main() -> Result<()> {
         })
         .collect();
 
-    // Start WebSocket server for plugin communication
-    let (ws_port, plugin_event_tx) = if !ui_plugins.is_empty() {
+    // Start WebSocket server for plugin communication (always start, even if no plugins yet)
+    let (ws_port, plugin_event_tx) = {
         let plugin_manager_clone = plugin_manager.clone();
         let (port_tx, port_rx) = std::sync::mpsc::channel::<Option<(u16, tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>)>>();
         std::thread::spawn(move || {
@@ -166,8 +166,6 @@ fn main() -> Result<()> {
             Some((port, sender)) => (Some(port), Some(sender)),
             None => (None, None),
         }
-    } else {
-        (None, None)
     };
 
     // Create event sender with optional plugin broadcasting
@@ -707,10 +705,12 @@ async fn handle_commands(
             UiCommand::RefreshPlugins => {
                 info!("Refreshing plugins list");
                 let plugins_dir = config.read().data_dir().join("plugins");
+                info!("Plugins directory: {:?}", plugins_dir);
 
                 // Rescan plugins directory
                 let pm = plugin_manager.lock();
                 // Clear existing plugins and rescan
+                pm.clear_plugins();
                 match pm.scan_plugins_dir(&plugins_dir) {
                     Ok(loaded) => {
                         info!("Refreshed plugins: {:?}", loaded);
@@ -733,8 +733,98 @@ async fn handle_commands(
                         path,
                     })
                     .collect();
+                info!("Sending {} plugins to UI", plugin_events.len());
 
                 let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
+            }
+            UiCommand::ImportPlugin(github_url) => {
+                info!("Importing plugin from GitHub: {}", github_url);
+                let plugins_dir = config.read().data_dir().join("plugins");
+                let pm = plugin_manager.clone();
+                let event_tx = event_tx.clone();
+
+                tokio::spawn(async move {
+                    // Download plugin files (this is the async part)
+                    let result = jlivertool_plugin::PluginManager::download_plugin_from_github(
+                        &github_url,
+                        &plugins_dir,
+                    )
+                    .await;
+
+                    match result {
+                        Ok(plugin_dir) => {
+                            // Load the plugin (sync, needs lock)
+                            let load_result = pm.lock().load_plugin(plugin_dir);
+                            match load_result {
+                                Ok(plugin_id) => {
+                                    info!("Successfully imported plugin: {}", plugin_id);
+                                    let _ = event_tx.send(Event::PluginImportResult {
+                                        success: true,
+                                        message: format!("插件 {} 导入成功", plugin_id),
+                                    });
+
+                                    // Refresh plugins list
+                                    let pm = pm.lock();
+                                    let plugin_events: Vec<jlivertool_core::events::PluginInfoEvent> = pm
+                                        .get_plugins_with_paths()
+                                        .into_iter()
+                                        .map(|(meta, path)| jlivertool_core::events::PluginInfoEvent {
+                                            id: meta.id,
+                                            name: meta.name,
+                                            author: meta.author,
+                                            desc: meta.desc,
+                                            version: meta.version,
+                                            path,
+                                        })
+                                        .collect();
+                                    let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
+                                }
+                                Err(e) => {
+                                    error!("Failed to load plugin: {}", e);
+                                    let _ = event_tx.send(Event::PluginImportResult {
+                                        success: false,
+                                        message: format!("加载插件失败: {}", e),
+                                    });
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to download plugin: {}", e);
+                            let _ = event_tx.send(Event::PluginImportResult {
+                                success: false,
+                                message: format!("下载失败: {}", e),
+                            });
+                        }
+                    }
+                });
+            }
+            UiCommand::RemovePlugin { plugin_id, plugin_path } => {
+                info!("Removing plugin: {} at {:?}", plugin_id, plugin_path);
+                let pm = plugin_manager.lock();
+
+                match pm.remove_plugin(&plugin_id, &plugin_path) {
+                    Ok(()) => {
+                        info!("Successfully removed plugin: {}", plugin_id);
+
+                        // Send updated plugin list to UI
+                        let plugin_events: Vec<jlivertool_core::events::PluginInfoEvent> = pm
+                            .get_plugins_with_paths()
+                            .into_iter()
+                            .map(|(meta, path)| jlivertool_core::events::PluginInfoEvent {
+                                id: meta.id,
+                                name: meta.name,
+                                author: meta.author,
+                                desc: meta.desc,
+                                version: meta.version,
+                                path,
+                            })
+                            .collect();
+                        let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
+                    }
+                    Err(e) => {
+                        error!("Failed to remove plugin: {}", e);
+                    }
+                }
             }
         }
     }

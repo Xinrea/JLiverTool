@@ -130,6 +130,12 @@ pub enum Event {
     PluginsRefreshed {
         plugins: Vec<PluginInfoEvent>,
     },
+
+    /// Plugin import result
+    PluginImportResult {
+        success: bool,
+        message: String,
+    },
 }
 
 /// Plugin info for events (simplified version)
@@ -254,6 +260,7 @@ impl EventBus {
             Event::AudienceListFetched { .. } => "audience_list_fetched",
             Event::GuardListFetched { .. } => "guard_list_fetched",
             Event::PluginsRefreshed { .. } => "plugins_refreshed",
+            Event::PluginImportResult { .. } => "plugin_import_result",
         }
     }
 }

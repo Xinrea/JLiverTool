@@ -13,4 +13,5 @@ anyhow = { workspace = true }
 log = { workspace = true }
 open = { workspace = true }
 chrono = { workspace = true }
+reqwest = { workspace = true }
 jlivertool-core = { path = "../jlivertool-core" }

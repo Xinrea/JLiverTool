@@ -337,6 +337,20 @@ impl MainView {
                     let _ = tx.send(UiCommand::RefreshPlugins);
                 }
             });
+
+            view.on_plugin_import({
+                let tx = command_tx.clone();
+                move |url, _window, _cx| {
+                    let _ = tx.send(UiCommand::ImportPlugin(url));
+                }
+            });
+
+            view.on_plugin_remove({
+                let tx = command_tx.clone();
+                move |plugin_id, plugin_path, _window, _cx| {
+                    let _ = tx.send(UiCommand::RemovePlugin { plugin_id, plugin_path });
+                }
+            });
         });
 
         let this = Self {
@@ -413,6 +427,13 @@ impl MainView {
     pub fn set_plugins(&mut self, plugins: Vec<crate::views::setting_view::PluginInfo>, cx: &mut Context<Self>) {
         self.setting_view.update(cx, |view, cx| {
             view.set_plugins(plugins, cx);
+        });
+    }
+
+    /// Set plugin import status message
+    pub fn set_plugin_import_status(&mut self, status: Option<String>, cx: &mut Context<Self>) {
+        self.setting_view.update(cx, |view, cx| {
+            view.set_plugin_import_status(status, cx);
         });
     }
 

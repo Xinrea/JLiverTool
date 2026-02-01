@@ -283,6 +283,13 @@ impl MainView {
                         .collect();
                     self.set_plugins(ui_plugins, cx);
                 }
+                Event::PluginImportResult { success, message } => {
+                    self.set_plugin_import_status(Some(message), cx);
+                    // Clear status after 5 seconds
+                    if success {
+                        // Status will be cleared when user starts typing a new URL
+                    }
+                }
                 _ => {}
             }
         }

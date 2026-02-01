@@ -76,6 +76,10 @@ pub enum UiCommand {
     TestTts,
     /// Refresh plugins list
     RefreshPlugins,
+    /// Import plugin from GitHub URL
+    ImportPlugin(String),
+    /// Remove a plugin by ID and path
+    RemovePlugin { plugin_id: String, plugin_path: std::path::PathBuf },
 }
 
 /// Wrapper for event receiver with a flag to indicate pending events
