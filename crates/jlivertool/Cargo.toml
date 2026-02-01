@@ -12,7 +12,6 @@ path = "src/main.rs"
 [dependencies]
 gpui = { workspace = true }
 gpui-component = { workspace = true }
-core-text = { workspace = true }
 jlivertool-core = { path = "../jlivertool-core" }
 jlivertool-ui = { path = "../jlivertool-ui" }
 jlivertool-plugin = { path = "../jlivertool-plugin" }
@@ -33,6 +32,9 @@ anyhow = { workspace = true }
 
 # Utilities
 parking_lot = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-text = { workspace = true }
 
 [package.metadata.packager]
 product-name = "JLiverTool"
