@@ -368,6 +368,8 @@ impl MainView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        use super::AVAILABLE_COMMANDS;
+
         let opacity = self.opacity;
         let command_tx = self.command_tx.clone();
         let room_id = self.room.as_ref().map(|r| r.real_id());
@@ -393,34 +395,79 @@ impl MainView {
         if self.input_state.as_ref() != Some(&input_state) {
             let command_tx_enter = self.command_tx.clone();
             let pending_clear = self.pending_input_clear.clone();
+            let show_popup = self.show_command_popup.clone();
+            let selected_idx = self.selected_command_index.clone();
+            let pending_cmd = self.pending_command_insert.clone();
             let subscription = cx.subscribe(
                 &input_state,
                 move |this, input, event: &gpui_component::input::InputEvent, cx| {
-                    if let gpui_component::input::InputEvent::PressEnter { .. } = event {
-                        let text = input.read(cx).text().to_string().trim().to_string();
-                        if text.is_empty() {
-                            return;
-                        }
-
-                        if let Some(room_id) = this.room.as_ref().map(|r| r.real_id()) {
-                            if let Some(title) = text.strip_prefix("/title ") {
-                                let title = title.trim().to_string();
-                                if !title.is_empty() {
-                                    let _ = command_tx_enter
-                                        .send(UiCommand::UpdateRoomTitle { room_id, title });
+                    match event {
+                        gpui_component::input::InputEvent::PressEnter { .. } => {
+                            // If popup is showing and user presses enter, select the command
+                            if show_popup.get() {
+                                let idx = selected_idx.get();
+                                if idx < AVAILABLE_COMMANDS.len() {
+                                    let (cmd, _) = AVAILABLE_COMMANDS[idx];
+                                    // Set the command text with a trailing space for /title
+                                    let new_text = if cmd == "/title" {
+                                        format!("{} ", cmd)
+                                    } else {
+                                        cmd.to_string()
+                                    };
+                                    *pending_cmd.borrow_mut() = Some(new_text);
+                                    show_popup.set(false);
+                                    selected_idx.set(0);
+                                    cx.notify();
+                                    return;
                                 }
-                            } else if text == "/bye" {
-                                let _ = command_tx_enter.send(UiCommand::StopLive { room_id });
-                            } else {
-                                let _ = command_tx_enter.send(UiCommand::SendDanmu {
-                                    room_id,
-                                    message: text,
-                                });
                             }
-                        }
 
-                        pending_clear.set(true);
-                        cx.notify();
+                            let text = input.read(cx).text().to_string().trim().to_string();
+                            if text.is_empty() {
+                                return;
+                            }
+
+                            if let Some(room_id) = this.room.as_ref().map(|r| r.real_id()) {
+                                if let Some(title) = text.strip_prefix("/title ") {
+                                    let title = title.trim().to_string();
+                                    if !title.is_empty() {
+                                        let _ = command_tx_enter
+                                            .send(UiCommand::UpdateRoomTitle { room_id, title });
+                                    }
+                                } else if text == "/bye" {
+                                    let _ = command_tx_enter.send(UiCommand::StopLive { room_id });
+                                } else {
+                                    let _ = command_tx_enter.send(UiCommand::SendDanmu {
+                                        room_id,
+                                        message: text,
+                                    });
+                                }
+                            }
+
+                            pending_clear.set(true);
+                            show_popup.set(false);
+                            selected_idx.set(0);
+                            cx.notify();
+                        }
+                        gpui_component::input::InputEvent::Change => {
+                            let text = input.read(cx).text().to_string();
+                            // Show popup when text starts with "/" but is not a complete command with args
+                            let should_show = text.starts_with('/')
+                                && !text.contains(' ')
+                                && text.len() < 10;
+                            show_popup.set(should_show);
+                            if !should_show {
+                                selected_idx.set(0);
+                            }
+                            cx.notify();
+                        }
+                        gpui_component::input::InputEvent::Blur => {
+                            // Hide popup when input loses focus
+                            show_popup.set(false);
+                            selected_idx.set(0);
+                            cx.notify();
+                        }
+                        _ => {}
                     }
                 },
             );
@@ -429,14 +476,48 @@ impl MainView {
             self._input_subscription = Some(subscription);
         }
 
+        // Handle pending input clear
         if self.pending_input_clear.get() {
             input_state.update(cx, |state, cx| {
                 state.set_value("", window, cx);
             });
             self.pending_input_clear.set(false);
+            self.show_command_popup.set(false);
+            self.selected_command_index.set(0);
+        }
+
+        // Handle pending command insert
+        if let Some(cmd) = self.pending_command_insert.borrow_mut().take() {
+            input_state.update(cx, |state, cx| {
+                state.set_value(&cmd, window, cx);
+            });
         }
 
         let input_state_for_click = input_state.clone();
+        let show_popup = self.show_command_popup.get();
+        let selected_idx = self.selected_command_index.get();
+
+        // Get current input text to filter commands
+        let current_text = input_state.read(cx).text().to_string();
+        let filtered_commands: Vec<(usize, &str, &str)> = AVAILABLE_COMMANDS
+            .iter()
+            .enumerate()
+            .filter(|(_, (cmd, _))| {
+                current_text.is_empty() || cmd.starts_with(&current_text)
+            })
+            .map(|(i, (cmd, desc))| (i, *cmd, *desc))
+            .collect();
+
+        // Clone state for popup click handlers
+        let input_state_for_popup = input_state.clone();
+        let show_popup_state = self.show_command_popup.clone();
+        let selected_idx_state = self.selected_command_index.clone();
+
+        // Clone state for key handler
+        let show_popup_for_key = self.show_command_popup.clone();
+        let selected_idx_for_key = self.selected_command_index.clone();
+        let pending_cmd_for_key = self.pending_command_insert.clone();
+        let filtered_count = filtered_commands.len();
 
         v_flex()
             .w_full()
@@ -471,69 +552,191 @@ impl MainView {
                     )),
             )
             .child(
-                h_flex()
+                div()
+                    .relative()
                     .w_full()
-                    .h(px(40.0))
-                    .px_3()
-                    .py_2()
-                    .gap_2()
-                    .items_center()
-                    .child(
-                        div()
-                            .flex_1()
-                            .child(gpui_component::input::Input::new(&input_state).cleanable(true)),
-                    )
-                    .child(
-                        div()
-                            .id("send-btn")
-                            .px_3()
-                            .py(px(6.0))
-                            .rounded(px(4.0))
-                            .cursor_pointer()
-                            .bg(Colors::accent())
-                            .hover(|s| s.opacity(0.8))
-                            .text_size(px(12.0))
-                            .text_color(Colors::button_text())
-                            .child("发送")
-                            .on_click({
-                                move |_event, window, cx| {
-                                    let text = input_state_for_click
-                                        .read(cx)
-                                        .text()
-                                        .to_string()
-                                        .trim()
-                                        .to_string();
-                                    if text.is_empty() {
-                                        return;
-                                    }
+                    .on_key_down(move |event, _window, cx| {
+                        if !show_popup_for_key.get() || filtered_count == 0 {
+                            return;
+                        }
 
-                                    if let Some(room_id) = room_id {
-                                        if let Some(title) = text.strip_prefix("/title ") {
-                                            let title = title.trim().to_string();
-                                            if !title.is_empty() {
-                                                let _ =
-                                                    command_tx.send(UiCommand::UpdateRoomTitle {
-                                                        room_id,
-                                                        title,
-                                                    });
+                        match event.keystroke.key.as_str() {
+                            "up" => {
+                                let current = selected_idx_for_key.get();
+                                if current == 0 {
+                                    selected_idx_for_key.set(filtered_count - 1);
+                                } else {
+                                    selected_idx_for_key.set(current - 1);
+                                }
+                                cx.stop_propagation();
+                                cx.refresh_windows();
+                            }
+                            "down" => {
+                                let current = selected_idx_for_key.get();
+                                selected_idx_for_key.set((current + 1) % filtered_count);
+                                cx.stop_propagation();
+                                cx.refresh_windows();
+                            }
+                            "escape" => {
+                                show_popup_for_key.set(false);
+                                selected_idx_for_key.set(0);
+                                cx.stop_propagation();
+                                cx.refresh_windows();
+                            }
+                            "tab" => {
+                                // Tab also selects the current command
+                                let idx = selected_idx_for_key.get();
+                                if idx < AVAILABLE_COMMANDS.len() {
+                                    let (cmd, _) = AVAILABLE_COMMANDS[idx];
+                                    let new_text = if cmd == "/title" {
+                                        format!("{} ", cmd)
+                                    } else {
+                                        cmd.to_string()
+                                    };
+                                    *pending_cmd_for_key.borrow_mut() = Some(new_text);
+                                    show_popup_for_key.set(false);
+                                    selected_idx_for_key.set(0);
+                                    cx.stop_propagation();
+                                    cx.refresh_windows();
+                                }
+                            }
+                            _ => {}
+                        }
+                    })
+                    .child(
+                        h_flex()
+                            .w_full()
+                            .h(px(40.0))
+                            .px_3()
+                            .py_2()
+                            .gap_2()
+                            .items_center()
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .child(gpui_component::input::Input::new(&input_state).cleanable(true)),
+                            )
+                            .child(
+                                div()
+                                    .id("send-btn")
+                                    .px_3()
+                                    .py(px(6.0))
+                                    .rounded(px(4.0))
+                                    .cursor_pointer()
+                                    .bg(Colors::accent())
+                                    .hover(|s| s.opacity(0.8))
+                                    .text_size(px(12.0))
+                                    .text_color(Colors::button_text())
+                                    .child("发送")
+                                    .on_click({
+                                        move |_event, window, cx| {
+                                            let text = input_state_for_click
+                                                .read(cx)
+                                                .text()
+                                                .to_string()
+                                                .trim()
+                                                .to_string();
+                                            if text.is_empty() {
+                                                return;
                                             }
-                                        } else if text == "/bye" {
-                                            let _ =
-                                                command_tx.send(UiCommand::StopLive { room_id });
-                                        } else {
-                                            let _ = command_tx.send(UiCommand::SendDanmu {
-                                                room_id,
-                                                message: text,
+
+                                            if let Some(room_id) = room_id {
+                                                if let Some(title) = text.strip_prefix("/title ") {
+                                                    let title = title.trim().to_string();
+                                                    if !title.is_empty() {
+                                                        let _ =
+                                                            command_tx.send(UiCommand::UpdateRoomTitle {
+                                                                room_id,
+                                                                title,
+                                                            });
+                                                    }
+                                                } else if text == "/bye" {
+                                                    let _ =
+                                                        command_tx.send(UiCommand::StopLive { room_id });
+                                                } else {
+                                                    let _ = command_tx.send(UiCommand::SendDanmu {
+                                                        room_id,
+                                                        message: text,
+                                                    });
+                                                }
+                                            }
+
+                                            input_state_for_click.update(cx, |state, cx| {
+                                                state.set_value("", window, cx);
                                             });
                                         }
-                                    }
+                                    }),
+                            ),
+                    )
+                    // Command autocomplete popup
+                    .when(show_popup && !filtered_commands.is_empty(), |this| {
+                        this.child(
+                            div()
+                                .absolute()
+                                .bottom(px(44.0))
+                                .left(px(12.0))
+                                .right(px(12.0))
+                                .bg(Colors::bg_secondary())
+                                .border_1()
+                                .border_color(Colors::border())
+                                .rounded(px(6.0))
+                                .shadow_lg()
+                                .overflow_hidden()
+                                .child(
+                                    v_flex()
+                                        .w_full()
+                                        .py_1()
+                                        .children(filtered_commands.iter().enumerate().map(|(display_idx, (_, cmd, desc))| {
+                                            let is_selected = display_idx == selected_idx;
+                                            let cmd_str = cmd.to_string();
+                                            let show_popup_for_item = show_popup_state.clone();
+                                            let selected_idx_for_item = selected_idx_state.clone();
+                                            let input_for_focus = input_state_for_popup.clone();
 
-                                    input_state_for_click.update(cx, |state, cx| {
-                                        state.set_value("", window, cx);
-                                    });
-                                }
-                            }),
-                    ),
+                                            div()
+                                                .id(SharedString::from(format!("cmd-{}", display_idx)))
+                                                .w_full()
+                                                .px_3()
+                                                .py_2()
+                                                .cursor_pointer()
+                                                .when(is_selected, |s| s.bg(Colors::bg_hover()))
+                                                .hover(|s| s.bg(Colors::bg_hover()))
+                                                .on_mouse_down(MouseButton::Left, move |_, window, cx| {
+                                                    let new_text = if cmd_str == "/title" {
+                                                        format!("{} ", cmd_str)
+                                                    } else {
+                                                        cmd_str.clone()
+                                                    };
+                                                    // Set the value directly since we have window access
+                                                    input_for_focus.update(cx, |state, cx| {
+                                                        state.set_value(&new_text, window, cx);
+                                                    });
+                                                    show_popup_for_item.set(false);
+                                                    selected_idx_for_item.set(0);
+                                                    cx.refresh_windows();
+                                                })
+                                                .child(
+                                                    h_flex()
+                                                        .gap_3()
+                                                        .items_center()
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(13.0))
+                                                                .font_weight(FontWeight::MEDIUM)
+                                                                .text_color(Colors::accent())
+                                                                .child(cmd.to_string()),
+                                                        )
+                                                        .child(
+                                                            div()
+                                                                .text_size(px(12.0))
+                                                                .text_color(Colors::text_muted())
+                                                                .child(desc.to_string()),
+                                                        ),
+                                                )
+                                        })),
+                                ),
+                        )
+                    }),
             )
     }
 

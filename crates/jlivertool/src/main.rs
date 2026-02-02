@@ -20,12 +20,46 @@ use jlivertool_core::types::RoomId;
 use jlivertool_plugin::PluginManager;
 use jlivertool_ui::{run_app_with_plugins, PluginInfo, UiCommand};
 use parking_lot::RwLock;
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
 use tokio::sync::mpsc as tokio_mpsc;
 use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+/// Get the data directory for the application
+fn get_data_dir() -> PathBuf {
+    directories::ProjectDirs::from("com", "jlivertool", "JLiverTool")
+        .map(|d| d.config_dir().to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
+/// Initialize logging with both console and file output
+fn init_logging(data_dir: &PathBuf) -> Result<tracing_appender::non_blocking::WorkerGuard> {
+    // Create logs directory
+    let logs_dir = data_dir.join("logs");
+    std::fs::create_dir_all(&logs_dir)?;
+
+    // Create a rolling file appender (daily rotation, keep 7 days)
+    let file_appender = tracing_appender::rolling::daily(&logs_dir, "jlivertool.log");
+    let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
+
+    // Set up the subscriber with both console and file output
+    let env_filter = EnvFilter::from_default_env()
+        .add_directive("jlivertool=info".parse()?)
+        .add_directive("jlivertool_core=info".parse()?)
+        .add_directive("jlivertool_ui=info".parse()?)
+        .add_directive("jlivertool_plugin=info".parse()?);
+
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt::layer().with_writer(std::io::stdout))
+        .with(fmt::layer().with_writer(non_blocking).with_ansi(false))
+        .init();
+
+    Ok(guard)
+}
 
 /// Backend control commands
 enum BackendCommand {
@@ -72,13 +106,16 @@ impl EventSender {
 }
 
 fn main() -> Result<()> {
-    // Initialize logging
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(EnvFilter::from_default_env().add_directive("jlivertool=info".parse()?))
-        .init();
+    // Get data directory and initialize logging
+    let data_dir = get_data_dir();
+    std::fs::create_dir_all(&data_dir)?;
+
+    // Initialize logging with file output
+    // Keep the guard alive for the duration of the program
+    let _log_guard = init_logging(&data_dir)?;
 
     info!("JLiverTool starting...");
+    info!("Data directory: {:?}", data_dir);
 
     // Create channels for communication
     let (event_tx, event_rx) = mpsc::channel::<Event>();
@@ -236,6 +273,7 @@ fn main() -> Result<()> {
     let api_clone = api.clone();
     let tts_clone = tts_manager.clone();
     let plugin_manager_clone = plugin_manager.clone();
+    let db_clone_for_commands = database.clone();
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -243,7 +281,7 @@ fn main() -> Result<()> {
             .expect("Failed to create tokio runtime");
 
         runtime.block_on(async move {
-            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, tts_clone, plugin_manager_clone, backend_cmd_tx).await;
+            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, tts_clone, plugin_manager_clone, db_clone_for_commands, backend_cmd_tx).await;
         });
     });
 
@@ -284,6 +322,8 @@ fn main() -> Result<()> {
             tts_gift_enabled: cfg.tts_gift_enabled,
             tts_sc_enabled: cfg.tts_sc_enabled,
             tts_volume: cfg.tts_volume,
+            max_danmu_count: cfg.max_danmu_count,
+            log_level: cfg.log_level,
         });
     }
 
@@ -361,6 +401,7 @@ async fn handle_commands(
     api: Arc<RwLock<BiliApi>>,
     tts_manager: Arc<TtsManager>,
     plugin_manager: Arc<parking_lot::Mutex<PluginManager>>,
+    database: Arc<Database>,
     backend_cmd_tx: tokio_mpsc::UnboundedSender<BackendCommand>,
 ) {
     while let Ok(command) = command_rx.recv() {
@@ -829,6 +870,53 @@ async fn handle_commands(
                     }
                 }
             }
+            UiCommand::UpdateAdvancedSettings { max_danmu, log_level } => {
+                info!("Updating advanced settings: max_danmu={}, log_level={}", max_danmu, log_level);
+                let config_write = config.write();
+                if let Err(e) = config_write.set("max_danmu_count", max_danmu) {
+                    error!("Failed to save max_danmu_count: {}", e);
+                }
+                if let Err(e) = config_write.set("log_level", &log_level) {
+                    error!("Failed to save log_level: {}", e);
+                }
+            }
+            UiCommand::ClearAllData => {
+                info!("Clearing all data");
+                // Get current room ID from config
+                let room_id = config.read().get_room().map(|r| r.real_id());
+                if let Some(room_id) = room_id {
+                    // Clear all data for the current room
+                    if let Err(e) = database.clear_room_data(room_id) {
+                        error!("Failed to clear room data: {}", e);
+                    } else {
+                        info!("Room data cleared successfully");
+                        let _ = event_tx.send(Event::DataCleared);
+                    }
+                }
+            }
+            UiCommand::OpenDataFolder => {
+                info!("Opening data folder");
+                let data_dir = config.read().data_dir();
+                // Open the folder using the system's default file manager
+                #[cfg(target_os = "macos")]
+                {
+                    let _ = std::process::Command::new("open")
+                        .arg(&data_dir)
+                        .spawn();
+                }
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = std::process::Command::new("explorer")
+                        .arg(&data_dir)
+                        .spawn();
+                }
+                #[cfg(target_os = "linux")]
+                {
+                    let _ = std::process::Command::new("xdg-open")
+                        .arg(&data_dir)
+                        .spawn();
+                }
+            }
         }
     }
 }
@@ -1187,6 +1275,7 @@ fn handle_message(
         }
         "ROOM_CHANGE" => {
             if let Some(room_change) = RoomChangeMessage::from_raw(body) {
+                info!("Room changed: title={}, area={}/{}", room_change.title, room_change.parent_area_name, room_change.area_name);
                 let _ = event_tx.send(Event::RoomChange(room_change));
             }
         }

@@ -80,6 +80,12 @@ pub enum UiCommand {
     ImportPlugin(String),
     /// Remove a plugin by ID and path
     RemovePlugin { plugin_id: String, plugin_path: std::path::PathBuf },
+    /// Update advanced settings (max danmu count, log level)
+    UpdateAdvancedSettings { max_danmu: usize, log_level: String },
+    /// Clear all data (danmu, gifts, superchats)
+    ClearAllData,
+    /// Open data folder
+    OpenDataFolder,
 }
 
 /// Wrapper for event receiver with a flag to indicate pending events

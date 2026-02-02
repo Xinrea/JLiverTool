@@ -41,6 +41,12 @@ use std::time::Duration;
 
 const MAX_DANMU_COUNT: usize = 200;
 
+/// Available commands for the command autocomplete
+pub const AVAILABLE_COMMANDS: &[(&str, &str)] = &[
+    ("/title", "修改直播间标题"),
+    ("/bye", "关闭直播"),
+];
+
 /// Main window view state
 pub struct MainView {
     event_rx: mpsc::Receiver<Event>,
@@ -107,6 +113,11 @@ pub struct MainView {
     plugin_windows: HashMap<String, AnyWindowHandle>,
     // WebSocket port for plugin communication
     ws_port: Option<u16>,
+    // Command autocomplete state
+    show_command_popup: Rc<Cell<bool>>,
+    selected_command_index: Rc<Cell<usize>>,
+    // Pending command to insert (set by subscription, applied in render)
+    pending_command_insert: Rc<RefCell<Option<String>>>,
 }
 
 impl MainView {
@@ -351,6 +362,34 @@ impl MainView {
                     let _ = tx.send(UiCommand::RemovePlugin { plugin_id, plugin_path });
                 }
             });
+
+            view.on_advanced_settings_change({
+                let tx = command_tx.clone();
+                move |max_danmu, log_level, _window, _cx| {
+                    let _ = tx.send(UiCommand::UpdateAdvancedSettings { max_danmu, log_level });
+                }
+            });
+
+            view.on_clear_data({
+                let tx = command_tx.clone();
+                move |_window, _cx| {
+                    let _ = tx.send(UiCommand::ClearAllData);
+                }
+            });
+
+            view.on_open_data_folder({
+                let tx = command_tx.clone();
+                move |_window, _cx| {
+                    let _ = tx.send(UiCommand::OpenDataFolder);
+                }
+            });
+
+            view.on_room_title_change({
+                let tx = command_tx.clone();
+                move |room_id, title, _window, _cx| {
+                    let _ = tx.send(UiCommand::UpdateRoomTitle { room_id, title });
+                }
+            });
         });
 
         let this = Self {
@@ -393,6 +432,9 @@ impl MainView {
             last_saved_bounds: None,
             plugin_windows: HashMap::new(),
             ws_port: None,
+            show_command_popup: Rc::new(Cell::new(false)),
+            selected_command_index: Rc::new(Cell::new(0)),
+            pending_command_insert: Rc::new(RefCell::new(None)),
         };
 
         // Start a timer to periodically check for new events from the backend

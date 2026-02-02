@@ -32,6 +32,14 @@ type PluginOpenCallback = Arc<dyn Fn(String, String, std::path::PathBuf, &mut Wi
 type PluginImportCallback = Arc<dyn Fn(String, &mut Window, &mut App) + Send + Sync>;
 /// Type alias for plugin remove callback (plugin_id, plugin_path)
 type PluginRemoveCallback = Arc<dyn Fn(String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for advanced settings callback (max_danmu, log_level)
+type AdvancedSettingsCallback = Arc<dyn Fn(usize, String, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for clear data callback
+type ClearDataCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
+/// Type alias for open data folder callback
+type OpenDataFolderCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
+/// Type alias for room title update callback (room_id, title)
+type RoomTitleCallback = Arc<dyn Fn(u64, String, &mut Window, &mut App) + Send + Sync>;
 
 /// Plugin info for display in settings
 #[derive(Debug, Clone)]
@@ -53,6 +61,8 @@ pub struct SettingView {
     room_id: Option<u64>,
     // Room owner UID (to check if user owns the room)
     room_owner_uid: Option<u64>,
+    // Room title (for room owners to edit)
+    room_title: String,
     // Room editing state
     room_input: Arc<RwLock<RoomInputState>>,
     // Account info
@@ -89,6 +99,14 @@ pub struct SettingView {
     on_plugin_import: Option<PluginImportCallback>,
     on_plugin_remove: Option<PluginRemoveCallback>,
     plugin_import_status: Arc<RwLock<Option<String>>>,
+    // Advanced settings
+    max_danmu_count: Arc<RwLock<usize>>,
+    log_level: Arc<RwLock<String>>,
+    on_advanced_settings_change: Option<AdvancedSettingsCallback>,
+    on_clear_data: Option<ClearDataCallback>,
+    on_open_data_folder: Option<OpenDataFolderCallback>,
+    on_room_title_change: Option<RoomTitleCallback>,
+    show_clear_data_confirm: bool,
 }
 
 /// Tab definition
@@ -228,6 +246,7 @@ impl SettingView {
             settings: Arc::new(RwLock::new(SettingsData::default())),
             room_id: None,
             room_owner_uid: None,
+            room_title: String::new(),
             room_input: Arc::new(RwLock::new(RoomInputState::default())),
             account: Arc::new(RwLock::new(AccountState::default())),
             qr_code_view,
@@ -256,6 +275,13 @@ impl SettingView {
             on_plugin_import: None,
             on_plugin_remove: None,
             plugin_import_status: Arc::new(RwLock::new(None)),
+            max_danmu_count: Arc::new(RwLock::new(200)),
+            log_level: Arc::new(RwLock::new("info".to_string())),
+            on_advanced_settings_change: None,
+            on_clear_data: None,
+            on_open_data_folder: None,
+            on_room_title_change: None,
+            show_clear_data_confirm: false,
         }
     }
 
@@ -270,6 +296,20 @@ impl SettingView {
             input.error = false;
         }
         cx.notify();
+    }
+
+    /// Set room title
+    pub fn set_room_title(&mut self, title: String, cx: &mut Context<Self>) {
+        self.room_title = title;
+        cx.notify();
+    }
+
+    /// Set room title change callback
+    pub fn on_room_title_change<F>(&mut self, callback: F)
+    where
+        F: Fn(u64, String, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_room_title_change = Some(Arc::new(callback));
     }
 
     /// Check if the logged-in user owns the current room
@@ -438,6 +478,37 @@ impl SettingView {
         F: Fn(String, std::path::PathBuf, &mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_plugin_remove = Some(Arc::new(callback));
+    }
+
+    /// Set advanced settings change callback
+    pub fn on_advanced_settings_change<F>(&mut self, callback: F)
+    where
+        F: Fn(usize, String, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_advanced_settings_change = Some(Arc::new(callback));
+    }
+
+    /// Set clear data callback
+    pub fn on_clear_data<F>(&mut self, callback: F)
+    where
+        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_clear_data = Some(Arc::new(callback));
+    }
+
+    /// Set open data folder callback
+    pub fn on_open_data_folder<F>(&mut self, callback: F)
+    where
+        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_open_data_folder = Some(Arc::new(callback));
+    }
+
+    /// Set advanced settings values
+    pub fn set_advanced_settings(&mut self, max_danmu: usize, log_level: String, cx: &mut Context<Self>) {
+        *self.max_danmu_count.write() = max_danmu;
+        *self.log_level.write() = log_level;
+        cx.notify();
     }
 
     /// Set plugin import status message
@@ -913,6 +984,9 @@ impl SettingView {
         let room_input = room_input_state.read().clone();
         let on_change_room = self.on_change_room.clone();
         let current_room_id = self.room_id;
+        let is_owner = self.is_room_owner();
+        let current_title = self.room_title.clone();
+        let on_room_title_change = self.on_room_title_change.clone();
 
         // Create InputState using keyed state - returns a wrapper struct
         struct RoomInputWrapper {
@@ -933,6 +1007,34 @@ impl SettingView {
             });
 
         let input_state = state.read(cx).input.clone();
+
+        // Create title input state for room owners
+        struct TitleInputWrapper {
+            input: Entity<gpui_component::input::InputState>,
+        }
+
+        let title_state = window.use_keyed_state(
+            SharedString::from("room-title-input-state"),
+            cx,
+            |window, cx| {
+                let input = cx.new(|cx| {
+                    gpui_component::input::InputState::new(window, cx)
+                        .placeholder("输入直播间标题...")
+                        .default_value(current_title.clone())
+                });
+                TitleInputWrapper { input }
+            },
+        );
+
+        let title_input_state = title_state.read(cx).input.clone();
+
+        // Sync title input with current title
+        title_input_state.update(cx, |state, _cx| {
+            let current_text = state.text().to_string();
+            if current_text != current_title && current_text.is_empty() {
+                // Only update if empty (initial state)
+            }
+        });
 
         self.render_section_card(
             v_flex()
@@ -993,6 +1095,66 @@ impl SettingView {
                                 .text_size(px(11.0))
                                 .text_color(Colors::error())
                                 .child("房间号无效，请检查输入"),
+                        )
+                    })
+                    // Room title editing for room owners
+                    .when(is_owner, |this| {
+                        this.child(
+                            div()
+                                .mt_4()
+                                .pt_4()
+                                .border_t_1()
+                                .border_color(Colors::bg_hover())
+                                .child(
+                                    v_flex()
+                                        .w_full()
+                                        .gap_2()
+                                        .child(
+                                            div()
+                                                .text_size(px(13.0))
+                                                .text_color(Colors::text_primary())
+                                                .child("直播间标题"),
+                                        )
+                                        .child(
+                                            div()
+                                                .text_size(px(11.0))
+                                                .text_color(Colors::text_muted())
+                                                .child("修改直播间标题（仅房主可用）"),
+                                        )
+                                        .child(
+                                            h_flex()
+                                                .w_full()
+                                                .gap_2()
+                                                .items_center()
+                                                .child(div().flex_1().child(
+                                                    gpui_component::input::Input::new(&title_input_state).cleanable(true),
+                                                ))
+                                                .child({
+                                                    let title_input_state = title_input_state.clone();
+                                                    let room_id = current_room_id;
+                                                    let callback = on_room_title_change.clone();
+                                                    div()
+                                                        .id("update-title-btn")
+                                                        .px_4()
+                                                        .py(px(7.0))
+                                                        .rounded_md()
+                                                        .cursor_pointer()
+                                                        .bg(Colors::accent())
+                                                        .hover(|s| s.opacity(0.8))
+                                                        .text_size(px(13.0))
+                                                        .text_color(Colors::button_text())
+                                                        .child("更新")
+                                                        .on_click(move |_event, window, cx| {
+                                                            let title = title_input_state.read(cx).text().to_string();
+                                                            if let Some(room_id) = room_id {
+                                                                if let Some(ref cb) = callback {
+                                                                    cb(room_id, title, window, cx);
+                                                                }
+                                                            }
+                                                        })
+                                                }),
+                                        ),
+                                ),
                         )
                     }),
             ),
@@ -1349,7 +1511,7 @@ impl SettingView {
     }
 
     fn render_tab_content(
-        &self,
+        &mut self,
         tab_index: usize,
         window: &mut Window,
         cx: &mut Context<Self>,
@@ -2588,13 +2750,22 @@ impl SettingView {
             )
     }
 
-    fn render_advanced_tab(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let log_levels = vec![("info", "Info"), ("debug", "Debug")];
+    fn render_advanced_tab(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
+        let log_levels = vec![("info", "Info"), ("debug", "Debug"), ("warn", "Warn"), ("error", "Error")];
+        let current_log_level = self.log_level.read().clone();
+        let current_max_danmu = *self.max_danmu_count.read();
+        let on_advanced_settings_change = self.on_advanced_settings_change.clone();
+        let on_clear_data = self.on_clear_data.clone();
+        let on_open_data_folder = self.on_open_data_folder.clone();
+        let show_clear_confirm = self.show_clear_data_confirm;
+        let max_danmu_count = self.max_danmu_count.clone();
+        let log_level = self.log_level.clone();
 
         v_flex()
             .w_full()
             .p_6()
             .gap_4()
+            // Danmu limit section
             .child(
                 self.render_section_card(
                     v_flex()
@@ -2623,14 +2794,162 @@ impl SettingView {
                                                     div()
                                                         .text_size(px(11.0))
                                                         .text_color(Colors::text_muted())
-                                                        .child("范围: 50 - 5000"),
+                                                        .child("超过此数量后，旧弹幕将被移除"),
+                                                ),
+                                        )
+                                        .child(
+                                            h_flex()
+                                                .gap_2()
+                                                .items_center()
+                                                .children([50usize, 100, 200, 500, 1000].into_iter().map(|count| {
+                                                    let is_selected = count == current_max_danmu;
+                                                    let max_danmu_count = max_danmu_count.clone();
+                                                    let log_level = log_level.clone();
+                                                    let callback = on_advanced_settings_change.clone();
+                                                    div()
+                                                        .id(SharedString::from(format!("max-danmu-{}", count)))
+                                                        .px_2()
+                                                        .py_1()
+                                                        .rounded(px(4.0))
+                                                        .cursor_pointer()
+                                                        .border_1()
+                                                        .when(is_selected, |this| {
+                                                            this.border_color(Colors::accent())
+                                                                .bg(Colors::accent().opacity(0.1))
+                                                        })
+                                                        .when(!is_selected, |this| {
+                                                            this.border_color(Colors::bg_hover())
+                                                                .hover(|s| s.bg(Colors::bg_hover()))
+                                                        })
+                                                        .text_size(px(11.0))
+                                                        .text_color(Colors::text_primary())
+                                                        .child(count.to_string())
+                                                        .on_click(move |_event, window, cx| {
+                                                            *max_danmu_count.write() = count;
+                                                            if let Some(ref cb) = callback {
+                                                                cb(count, log_level.read().clone(), window, cx);
+                                                            }
+                                                            cx.refresh_windows();
+                                                        })
+                                                })),
+                                        ),
+                                ),
+                        ),
+                ),
+            )
+            // Log level section
+            .child(
+                self.render_section_card(
+                    v_flex()
+                        .w_full()
+                        .child(self.render_section_title("日志设置"))
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .py_2()
+                                .gap_2()
+                                .child(
+                                    h_flex()
+                                        .w_full()
+                                        .justify_between()
+                                        .items_center()
+                                        .child(
+                                            div()
+                                                .text_size(px(13.0))
+                                                .text_color(Colors::text_primary())
+                                                .child("日志等级"),
+                                        )
+                                        .child(
+                                            h_flex()
+                                                .gap_2()
+                                                .children(log_levels.into_iter().map(|(id, name)| {
+                                                    let is_selected = id == current_log_level;
+                                                    let max_danmu_count = self.max_danmu_count.clone();
+                                                    let log_level = self.log_level.clone();
+                                                    let callback = self.on_advanced_settings_change.clone();
+                                                    div()
+                                                        .id(SharedString::from(format!("log-level-{}", id)))
+                                                        .px_3()
+                                                        .py_1()
+                                                        .rounded(px(4.0))
+                                                        .cursor_pointer()
+                                                        .border_1()
+                                                        .when(is_selected, |this| {
+                                                            this.border_color(Colors::accent())
+                                                                .bg(Colors::accent().opacity(0.1))
+                                                        })
+                                                        .when(!is_selected, |this| {
+                                                            this.border_color(Colors::bg_hover())
+                                                                .hover(|s| s.bg(Colors::bg_hover()))
+                                                        })
+                                                        .text_size(px(11.0))
+                                                        .text_color(Colors::text_primary())
+                                                        .child(name)
+                                                        .on_click(move |_event, window, cx| {
+                                                            *log_level.write() = id.to_string();
+                                                            if let Some(ref cb) = callback {
+                                                                cb(*max_danmu_count.read(), id.to_string(), window, cx);
+                                                            }
+                                                            cx.refresh_windows();
+                                                        })
+                                                })),
+                                        ),
+                                ),
+                        ),
+                ),
+            )
+            // Data management section
+            .child(
+                self.render_section_card(
+                    v_flex()
+                        .w_full()
+                        .child(self.render_section_title("数据管理"))
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .py_2()
+                                .gap_3()
+                                .child(
+                                    h_flex()
+                                        .w_full()
+                                        .justify_between()
+                                        .items_center()
+                                        .child(
+                                            v_flex()
+                                                .gap_1()
+                                                .child(
+                                                    div()
+                                                        .text_size(px(13.0))
+                                                        .text_color(Colors::text_primary())
+                                                        .child("打开数据目录"),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .text_size(px(11.0))
+                                                        .text_color(Colors::text_muted())
+                                                        .child("查看配置文件和数据库"),
                                                 ),
                                         )
                                         .child(
                                             div()
-                                                .text_size(px(13.0))
-                                                .text_color(Colors::text_secondary())
-                                                .child("200"),
+                                                .id("open-data-folder-btn")
+                                                .px_3()
+                                                .py_2()
+                                                .rounded(px(6.0))
+                                                .cursor_pointer()
+                                                .bg(Colors::bg_hover())
+                                                .text_size(px(12.0))
+                                                .text_color(Colors::text_primary())
+                                                .hover(|s| s.bg(Colors::accent().opacity(0.2)))
+                                                .child("打开目录")
+                                                .on_click({
+                                                    let callback = on_open_data_folder.clone();
+                                                    move |_event, window, cx| {
+                                                        if let Some(ref cb) = callback {
+                                                            cb(window, cx);
+                                                        }
+                                                    }
+                                                }),
                                         ),
                                 )
                                 .child(
@@ -2645,74 +2964,114 @@ impl SettingView {
                                                     div()
                                                         .text_size(px(13.0))
                                                         .text_color(Colors::text_primary())
-                                                        .child("详情窗口最大弹幕数"),
+                                                        .child("清除所有数据"),
                                                 )
                                                 .child(
                                                     div()
                                                         .text_size(px(11.0))
                                                         .text_color(Colors::text_muted())
-                                                        .child("范围: 50 - 5000"),
+                                                        .child("删除所有弹幕、礼物、SC记录"),
                                                 ),
                                         )
                                         .child(
                                             div()
-                                                .text_size(px(13.0))
-                                                .text_color(Colors::text_secondary())
-                                                .child("100"),
+                                                .id("clear-data-btn")
+                                                .px_3()
+                                                .py_2()
+                                                .rounded(px(6.0))
+                                                .cursor_pointer()
+                                                .bg(hsla(0.0, 0.7, 0.5, 0.2))
+                                                .text_size(px(12.0))
+                                                .text_color(hsla(0.0, 0.7, 0.5, 1.0))
+                                                .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.3)))
+                                                .child("清除数据")
+                                                .on_click(cx.listener(|this, _event, _window, cx| {
+                                                    this.show_clear_data_confirm = true;
+                                                    cx.notify();
+                                                })),
                                         ),
                                 ),
                         ),
                 ),
             )
-            .child(
-                self.render_section_card(
-                    v_flex()
-                        .w_full()
-                        .child(self.render_section_title("日志设置"))
+            // Clear data confirmation dialog
+            .when(show_clear_confirm, |this| {
+                this.child(
+                    div()
+                        .absolute()
+                        .top_0()
+                        .left_0()
+                        .size_full()
+                        .bg(hsla(0.0, 0.0, 0.0, 0.5))
+                        .flex()
+                        .items_center()
+                        .justify_center()
                         .child(
                             v_flex()
-                                .w_full()
-                                .py_2()
-                                .gap_2()
+                                .w(px(320.0))
+                                .p_4()
+                                .rounded(px(8.0))
+                                .bg(Colors::bg_secondary())
+                                .border_1()
+                                .border_color(Colors::border())
+                                .gap_3()
                                 .child(
                                     div()
-                                        .text_size(px(13.0))
-                                        .text_color(Colors::text_primary())
-                                        .child("日志等级"),
+                                        .text_size(px(14.0))
+                                        .font_weight(FontWeight::BOLD)
+                                        .child("确认清除数据"),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(12.0))
+                                        .text_color(Colors::text_secondary())
+                                        .child("此操作将删除所有弹幕、礼物、SC记录。此操作不可撤销！"),
                                 )
                                 .child(
                                     h_flex()
-                                        .w_full()
                                         .gap_2()
-                                        .children(log_levels.into_iter().map(|(id, name)| {
-                                            let is_selected = id == "info";
+                                        .justify_end()
+                                        .child(
                                             div()
-                                                .id(SharedString::from(format!("log-level-{}", id)))
+                                                .id("cancel-clear-data-btn")
                                                 .px_3()
-                                                .py_2()
-                                                .rounded(px(6.0))
+                                                .py(px(6.0))
+                                                .rounded(px(4.0))
                                                 .cursor_pointer()
-                                                .border_1()
-                                                .when(is_selected, |this| {
-                                                    this.border_color(Colors::accent())
-                                                        .bg(Colors::accent().opacity(0.1))
-                                                })
-                                                .when(!is_selected, |this| {
-                                                    this.border_color(Colors::bg_hover())
-                                                        .hover(|s| s.bg(Colors::bg_hover()))
-                                                })
+                                                .bg(Colors::bg_hover())
                                                 .text_size(px(12.0))
-                                                .text_color(Colors::text_primary())
-                                                .child(name)
-                                                .on_click(cx.listener(move |_this, _event, _window, cx| {
-                                                    tracing::info!("Log level selected: {}", id);
+                                                .hover(|s| s.opacity(0.8))
+                                                .on_click(cx.listener(|this, _event, _window, cx| {
+                                                    this.show_clear_data_confirm = false;
                                                     cx.notify();
                                                 }))
-                                        })),
+                                                .child("取消"),
+                                        )
+                                        .child({
+                                            let callback = on_clear_data.clone();
+                                            div()
+                                                .id("confirm-clear-data-btn")
+                                                .px_3()
+                                                .py(px(6.0))
+                                                .rounded(px(4.0))
+                                                .cursor_pointer()
+                                                .bg(hsla(0.0, 0.7, 0.5, 1.0))
+                                                .text_size(px(12.0))
+                                                .text_color(gpui::white())
+                                                .hover(|s| s.opacity(0.8))
+                                                .on_click(cx.listener(move |this, _event, window, cx| {
+                                                    this.show_clear_data_confirm = false;
+                                                    if let Some(ref cb) = callback {
+                                                        cb(window, cx);
+                                                    }
+                                                    cx.notify();
+                                                }))
+                                                .child("确认清除")
+                                        }),
                                 ),
                         ),
-                ),
-            )
+                )
+            })
     }
 
     fn render_about_tab(&self, cx: &mut Context<Self>) -> impl IntoElement {

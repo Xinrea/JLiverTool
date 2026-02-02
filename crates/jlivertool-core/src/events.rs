@@ -65,6 +65,8 @@ pub enum Event {
         tts_gift_enabled: bool,
         tts_sc_enabled: bool,
         tts_volume: f32,
+        max_danmu_count: usize,
+        log_level: String,
     },
 
     /// Detail window data updated
@@ -136,6 +138,9 @@ pub enum Event {
         success: bool,
         message: String,
     },
+
+    /// All data cleared
+    DataCleared,
 }
 
 /// Plugin info for events (simplified version)
@@ -261,6 +266,7 @@ impl EventBus {
             Event::GuardListFetched { .. } => "guard_list_fetched",
             Event::PluginsRefreshed { .. } => "plugins_refreshed",
             Event::PluginImportResult { .. } => "plugin_import_result",
+            Event::DataCleared => "data_cleared",
         }
     }
 }

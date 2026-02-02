@@ -199,15 +199,24 @@ impl DanmuListItemView {
         // Content or Emoji
         if let Some(emoji) = &danmu.emoji_content {
             // For emoji danmu, display emoji image constrained to row height
-            let emoji_size = row_height - 4.0;
+            // Only render if URL is not empty to avoid GPUI crash on empty images
+            if !emoji.url.is_empty() {
+                let emoji_size = row_height - 4.0;
 
-            el = el.child(
-                img(emoji.url.clone())
-                    .id(SharedString::from(format!("emoji-{}", item_index)))
-                    .max_w(px(emoji_size))
-                    .max_h(px(emoji_size))
-                    .object_fit(ObjectFit::Contain),
-            );
+                el = el.child(
+                    img(emoji.url.clone())
+                        .id(SharedString::from(format!("emoji-{}", item_index)))
+                        .max_w(px(emoji_size))
+                        .max_h(px(emoji_size))
+                        .object_fit(ObjectFit::Contain),
+                );
+            } else {
+                // Fallback to text content if emoji URL is empty
+                el = el.child(
+                    render_content_with_links(&danmu.content, font_size, Colors::text_primary(), item_index)
+                        .flex_1(),
+                );
+            }
         } else {
             // Regular text content with BV link support and tooltip for long content
             el = el.child(

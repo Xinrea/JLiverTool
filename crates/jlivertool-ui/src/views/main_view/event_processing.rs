@@ -16,8 +16,10 @@ impl MainView {
                 } => {
                     let real_id = room_id.real_id();
                     let owner_uid = room_id.owner_uid();
+                    let title_clone = title.clone();
                     self.setting_view.update(cx, |view, cx| {
                         view.set_room_id(Some(real_id), Some(owner_uid), cx);
+                        view.set_room_title(title_clone, cx);
                     });
 
                     let is_new_room = self.room.as_ref().map(|r| r.real_id()) != Some(real_id);
@@ -198,6 +200,8 @@ impl MainView {
                     tts_gift_enabled,
                     tts_sc_enabled,
                     tts_volume,
+                    max_danmu_count,
+                    log_level,
                 } => {
                     crate::theme::set_theme(&theme);
 
@@ -220,6 +224,8 @@ impl MainView {
                             },
                             cx,
                         );
+                        // Set advanced settings
+                        view.set_advanced_settings(max_danmu_count, log_level, cx);
                     });
                     self.opacity = opacity;
                     self.font_size = font_size;
@@ -288,6 +294,22 @@ impl MainView {
                     // Clear status after 5 seconds
                     if success {
                         // Status will be cleared when user starts typing a new URL
+                    }
+                }
+                Event::DataCleared => {
+                    // Clear all UI lists when data is cleared
+                    self.danmu_list.clear();
+                    list_modified = true;
+                    // Gift and SC views will be reloaded from database (which is now empty)
+                    tracing::info!("Data cleared, UI lists reset");
+                }
+                Event::RoomChange(room_change) => {
+                    // Update room title when it changes via WebSocket
+                    if !room_change.title.is_empty() {
+                        self.room_title = room_change.title.clone();
+                        self.setting_view.update(cx, |view, cx| {
+                            view.set_room_title(room_change.title, cx);
+                        });
                     }
                 }
                 _ => {}

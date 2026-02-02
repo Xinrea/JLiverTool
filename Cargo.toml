@@ -39,10 +39,12 @@ brotli = "7"
 
 # Crypto
 md-5 = "0.10"
+base64 = "0.22"
 
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
 
 # Error handling
 anyhow = "1"

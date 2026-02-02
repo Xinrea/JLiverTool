@@ -2,8 +2,9 @@
 
 use crate::types::{Cookies, RoomId, WindowType};
 use anyhow::Result;
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use parking_lot::RwLock;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -13,6 +14,55 @@ use tokio::sync::broadcast;
 /// Configuration store version
 const CONFIG_VERSION: u32 = 2;
 const CONFIG_FILENAME: &str = "config_v2.json";
+
+/// Custom serialization for cookies - encodes as base64
+mod encoded_cookies {
+    use super::*;
+
+    pub fn serialize<S>(cookies: &Option<Cookies>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match cookies {
+            Some(c) => {
+                // Serialize cookies to JSON, then base64 encode
+                let json = serde_json::to_string(c).map_err(serde::ser::Error::custom)?;
+                let encoded = BASE64.encode(json.as_bytes());
+                serializer.serialize_some(&encoded)
+            }
+            None => serializer.serialize_none(),
+        }
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Cookies>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let opt: Option<Value> = Option::deserialize(deserializer)?;
+        match opt {
+            Some(Value::String(encoded)) => {
+                // Try to decode as base64 first (new format)
+                if let Ok(decoded_bytes) = BASE64.decode(&encoded) {
+                    if let Ok(json_str) = String::from_utf8(decoded_bytes) {
+                        if let Ok(cookies) = serde_json::from_str::<Cookies>(&json_str) {
+                            return Ok(Some(cookies));
+                        }
+                    }
+                }
+                // If base64 decode fails, it might be old format - ignore
+                Ok(None)
+            }
+            Some(Value::Object(map)) => {
+                // Old format: cookies stored as plain JSON object
+                // Convert to Cookies struct
+                let cookies: Cookies =
+                    serde_json::from_value(Value::Object(map)).map_err(serde::de::Error::custom)?;
+                Ok(Some(cookies))
+            }
+            _ => Ok(None),
+        }
+    }
+}
 
 /// Window position and size
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -40,7 +90,7 @@ pub struct Config {
     #[serde(default)]
     pub version: u32,
 
-    #[serde(default)]
+    #[serde(default, with = "encoded_cookies")]
     pub cookies: Option<Cookies>,
 
     #[serde(default)]
@@ -94,6 +144,9 @@ pub struct Config {
     #[serde(default = "default_log_level")]
     pub log_level: String,
 
+    #[serde(default = "default_max_danmu_count")]
+    pub max_danmu_count: usize,
+
     #[serde(default)]
     pub tts_provider: TtsProvider,
 
@@ -132,6 +185,10 @@ fn default_max_detail_entry() -> usize {
 
 fn default_log_level() -> String {
     "info".to_string()
+}
+
+fn default_max_danmu_count() -> usize {
+    200
 }
 
 fn default_opacity() -> f32 {
@@ -176,6 +233,7 @@ impl Default for Config {
             plugin_list: Vec::new(),
             windows: HashMap::new(),
             log_level: default_log_level(),
+            max_danmu_count: default_max_danmu_count(),
             tts_provider: TtsProvider::None,
             tts_aliyun_app_key: String::new(),
             tts_aliyun_access_key_id: String::new(),
