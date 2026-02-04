@@ -10,37 +10,30 @@ env:
 jobs:
   build-macos:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        target: [x86_64-apple-darwin, aarch64-apple-darwin]
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
-        with:
-          key: ${{ matrix.target }}
 
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
 
       - name: Build release
-        run: cargo build --release --target ${{ matrix.target }} -p jlivertool
+        run: cargo build --release -p jlivertool
 
       - name: Package
-        run: cargo packager --release --target ${{ matrix.target }} -p jlivertool
+        run: cargo packager --release -p jlivertool
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.target }}
+          name: macos-aarch64
           path: |
-            target/${{ matrix.target }}/release/bundle/*.dmg
+            target/release/bundle/*.dmg
 
   build-windows:
     runs-on: windows-latest
