@@ -2,42 +2,144 @@ name: Release
 
 on:
   push:
-    tags: '*'
+    tags: 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-macos:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
-          node-version: 20.8.0
-          cache: 'npm'
-      - run: brew install python-setuptools
-      - run: npm install
-      - name: generate version
-        run: echo "${{ github.ref }}" | sed 's/refs\/tags\/v//g' | xargs npm version --no-git-tag-version
-      - run: npm run build
-      - uses: ncipollo/release-action@v1
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
         with:
-          artifacts: 'dist/*.dmg,dist/*.exe,dist/*.blockmap,dist/*.deb,dist/*.AppImage,dist/*.pacman'
-          token: ${{ github.token }}
+          key: ${{ matrix.target }}
+
+      - name: Install cargo-packager
+        run: cargo install cargo-packager --locked
+
+      - name: Build release
+        run: cargo build --release --target ${{ matrix.target }} -p jlivertool
+
+      - name: Package
+        run: cargo packager --release --target ${{ matrix.target }} -p jlivertool
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/bundle/*.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-packager
+        run: cargo install cargo-packager --locked
+
+      - name: Build release
+        run: cargo build --release -p jlivertool
+
+      - name: Package
+        run: cargo packager --release -p jlivertool
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64
+          path: |
+            target/release/bundle/*.exe
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libvulkan-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libssl-dev \
+            pkg-config \
+            cmake
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-packager
+        run: cargo install cargo-packager --locked
+
+      - name: Build release
+        run: cargo build --release -p jlivertool
+
+      - name: Package deb
+        run: cargo packager --release -p jlivertool --formats deb
+
+      - name: Package AppImage
+        run: cargo packager --release -p jlivertool --formats appimage
+
+      - name: Package pacman
+        run: cargo packager --release -p jlivertool --formats pacman
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-x86_64
+          path: |
+            target/release/bundle/*.deb
+            target/release/bundle/*.AppImage
+            target/release/bundle/*.pacman
+
+  release:
+    needs: [build-macos, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display structure of downloaded files
+        run: ls -R artifacts
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "artifacts/**/*.dmg,artifacts/**/*.exe,artifacts/**/*.deb,artifacts/**/*.AppImage,artifacts/**/*.pacman"
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
-      - run: mv dist jlivertool
-      - name: Upload to oss
-        id: upload_to_oss
-        uses: tvrcgo/upload-to-oss@master
-        with:
-          key-id: ${{ secrets.OSS_KEY_ID }}
-          key-secret: ${{ secrets.OSS_KEY_SECRET }}
-          region: oss-cn-beijing
-          bucket: raw-content
-          assets: |
-            jlivertool/*.dmg:/
-            jlivertool/*.exe:/
-            jlivertool/*.yml:/
-            jlivertool/*.blockmap:/
-            jlivertool/*.deb:/
-            jlivertool/*.AppImage:/
-            jlivertool/*.pacman:/
+          generateReleaseNotes: true

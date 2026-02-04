@@ -52,3 +52,10 @@ minimum-system-version = "10.15"
 languages = ["English", "SimpChinese"]
 display-language-selector = true
 installer-icon = "../../icons/icon.ico"
+
+[package.metadata.packager.deb]
+depends = ["libvulkan1", "libxkbcommon0", "libwayland-client0", "libfontconfig1"]
+section = "utils"
+
+[package.metadata.packager.pacman]
+depends = ["vulkan-icd-loader", "libxkbcommon", "wayland", "fontconfig"]
