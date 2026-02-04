@@ -67,6 +67,7 @@ pub enum Event {
         tts_volume: f32,
         max_danmu_count: usize,
         log_level: String,
+        auto_update_check: bool,
     },
 
     /// Detail window data updated
@@ -141,6 +142,15 @@ pub enum Event {
 
     /// All data cleared
     DataCleared,
+
+    /// Update check result
+    UpdateCheckResult {
+        has_update: bool,
+        current_version: String,
+        latest_version: String,
+        release_url: String,
+        error: Option<String>,
+    },
 }
 
 /// Plugin info for events (simplified version)
@@ -267,6 +277,7 @@ impl EventBus {
             Event::PluginsRefreshed { .. } => "plugins_refreshed",
             Event::PluginImportResult { .. } => "plugin_import_result",
             Event::DataCleared => "data_cleared",
+            Event::UpdateCheckResult { .. } => "update_check_result",
         }
     }
 }

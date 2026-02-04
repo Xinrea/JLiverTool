@@ -86,6 +86,10 @@ pub enum UiCommand {
     ClearAllData,
     /// Open data folder
     OpenDataFolder,
+    /// Check for updates
+    CheckForUpdate,
+    /// Update auto-update check setting
+    UpdateAutoUpdateCheck(bool),
 }
 
 /// Wrapper for event receiver with a flag to indicate pending events

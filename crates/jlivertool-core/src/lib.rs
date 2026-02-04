@@ -16,9 +16,11 @@ pub mod events;
 pub mod messages;
 pub mod tts;
 pub mod types;
+pub mod update;
 
 pub use bilibili::api::BiliApi;
 pub use bilibili::ws::BiliWebSocket;
 pub use config::ConfigStore;
 pub use database::Database;
 pub use events::{Event, EventBus};
+pub use update::{check_for_update, UpdateInfo};

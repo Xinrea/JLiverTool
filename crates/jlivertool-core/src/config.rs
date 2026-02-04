@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::broadcast;
+use tracing::{debug, info, warn};
 
 /// Configuration store version
 const CONFIG_VERSION: u32 = 2;
@@ -174,9 +175,16 @@ pub struct Config {
     #[serde(default = "default_tts_volume")]
     pub tts_volume: f32,
 
+    #[serde(default = "default_auto_update_check")]
+    pub auto_update_check: bool,
+
     // Extra fields for extensibility
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
+}
+
+fn default_auto_update_check() -> bool {
+    true
 }
 
 fn default_max_detail_entry() -> usize {
@@ -243,6 +251,7 @@ impl Default for Config {
             tts_gift_enabled: false,
             tts_sc_enabled: false,
             tts_volume: default_tts_volume(),
+            auto_update_check: default_auto_update_check(),
             extra: HashMap::new(),
         }
     }
@@ -279,9 +288,20 @@ impl ConfigStore {
         let config_path = config_dir.join(CONFIG_FILENAME);
 
         let config = if config_path.exists() {
+            info!("Loading config from {:?}", config_path);
             let content = std::fs::read_to_string(&config_path)?;
-            serde_json::from_str(&content).unwrap_or_default()
+            match serde_json::from_str(&content) {
+                Ok(cfg) => {
+                    debug!("Config loaded successfully");
+                    cfg
+                }
+                Err(e) => {
+                    warn!("Failed to parse config, using defaults: {}", e);
+                    Config::default()
+                }
+            }
         } else {
+            info!("No config file found, using defaults");
             Config::default()
         };
 
@@ -399,6 +419,7 @@ impl ConfigStore {
         let config = self.inner.config.read();
         let content = serde_json::to_string_pretty(&*config)?;
         std::fs::write(&self.inner.config_path, content)?;
+        debug!("Config saved to {:?}", self.inner.config_path);
         Ok(())
     }
 

@@ -841,6 +841,9 @@ impl Render for MainView {
             Vec::new()
         };
 
+        let show_update_dialog = self.show_update_dialog;
+        let update_info = self.update_info.clone();
+
         v_flex()
             .size_full()
             .bg(Colors::bg_primary_with_opacity(opacity))
@@ -889,6 +892,86 @@ impl Render for MainView {
                                         .on_click(move |_, _, cx| {
                                             *state_for_close.borrow_mut() = None;
                                             cx.refresh_windows();
+                                        }),
+                                ),
+                        ),
+                )
+            })
+            // Update available dialog
+            .when(show_update_dialog, |this| {
+                let info = update_info.clone();
+                this.child(
+                    div()
+                        .id("update-dialog-overlay")
+                        .absolute()
+                        .inset_0()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .bg(hsla(0.0, 0.0, 0.0, 0.5))
+                        .child(
+                            v_flex()
+                                .w(px(320.0))
+                                .p_4()
+                                .rounded(px(8.0))
+                                .bg(Colors::bg_secondary())
+                                .border_1()
+                                .border_color(Colors::border())
+                                .gap_3()
+                                .child(
+                                    div()
+                                        .text_size(px(16.0))
+                                        .font_weight(FontWeight::BOLD)
+                                        .child("发现新版本"),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(13.0))
+                                        .text_color(Colors::text_secondary())
+                                        .child(format!(
+                                            "新版本 v{} 已发布，建议更新以获得最新功能和修复。",
+                                            info.as_ref().map(|i| i.latest_version.as_str()).unwrap_or("")
+                                        )),
+                                )
+                                .child(
+                                    h_flex()
+                                        .gap_2()
+                                        .justify_end()
+                                        .child(
+                                            div()
+                                                .id("update-later-btn")
+                                                .px_3()
+                                                .py(px(6.0))
+                                                .rounded(px(4.0))
+                                                .cursor_pointer()
+                                                .bg(Colors::bg_hover())
+                                                .text_size(px(12.0))
+                                                .hover(|s| s.opacity(0.8))
+                                                .on_click(cx.listener(|this, _event, _window, cx| {
+                                                    this.show_update_dialog = false;
+                                                    cx.notify();
+                                                }))
+                                                .child("稍后"),
+                                        )
+                                        .child({
+                                            let url = info.map(|i| i.release_url).unwrap_or_default();
+                                            div()
+                                                .id("update-now-btn")
+                                                .px_3()
+                                                .py(px(6.0))
+                                                .rounded(px(4.0))
+                                                .cursor_pointer()
+                                                .bg(Colors::accent())
+                                                .text_size(px(12.0))
+                                                .text_color(gpui::white())
+                                                .hover(|s| s.opacity(0.8))
+                                                .on_click(cx.listener(move |this, _event, _window, cx| {
+                                                    // Open release URL in browser
+                                                    let _ = open::that(&url);
+                                                    this.show_update_dialog = false;
+                                                    cx.notify();
+                                                }))
+                                                .child("前往下载")
                                         }),
                                 ),
                         ),

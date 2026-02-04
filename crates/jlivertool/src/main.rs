@@ -114,8 +114,11 @@ fn main() -> Result<()> {
     // Keep the guard alive for the duration of the program
     let _log_guard = init_logging(&data_dir)?;
 
-    info!("JLiverTool starting...");
+    info!("========================================");
+    info!("JLiverTool v{}", env!("CARGO_PKG_VERSION"));
+    info!("OS: {} ({})", std::env::consts::OS, std::env::consts::ARCH);
     info!("Data directory: {:?}", data_dir);
+    info!("========================================");
 
     // Create channels for communication
     let (event_tx, event_rx) = mpsc::channel::<Event>();
@@ -316,15 +319,45 @@ fn main() -> Result<()> {
             lite_mode: cfg.lite_mode,
             medal_display: cfg.medal_display,
             interact_display: cfg.interact_display,
-            theme: cfg.theme,
+            theme: cfg.theme.clone(),
             font_size: cfg.font_size,
             tts_enabled: cfg.tts_enabled,
             tts_gift_enabled: cfg.tts_gift_enabled,
             tts_sc_enabled: cfg.tts_sc_enabled,
             tts_volume: cfg.tts_volume,
             max_danmu_count: cfg.max_danmu_count,
-            log_level: cfg.log_level,
+            log_level: cfg.log_level.clone(),
+            auto_update_check: cfg.auto_update_check,
         });
+
+        // Auto-check for updates on startup if enabled
+        if cfg.auto_update_check {
+            let event_tx = event_sender.clone();
+            let current_version = env!("CARGO_PKG_VERSION").to_string();
+            std::thread::spawn(move || {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .expect("Failed to create tokio runtime");
+
+                runtime.block_on(async move {
+                    match jlivertool_core::check_for_update(&current_version).await {
+                        Ok(update_info) => {
+                            let _ = event_tx.send(Event::UpdateCheckResult {
+                                has_update: update_info.has_update,
+                                current_version: update_info.current_version,
+                                latest_version: update_info.latest_version,
+                                release_url: update_info.release_url,
+                                error: None,
+                            });
+                        }
+                        Err(e) => {
+                            tracing::warn!("Auto update check failed: {}", e);
+                        }
+                    }
+                });
+            });
+        }
     }
 
     // Run UI on main thread
@@ -915,6 +948,39 @@ async fn handle_commands(
                     let _ = std::process::Command::new("xdg-open")
                         .arg(&data_dir)
                         .spawn();
+                }
+            }
+            UiCommand::CheckForUpdate => {
+                info!("Checking for updates...");
+                let event_tx = event_tx.clone();
+                let current_version = env!("CARGO_PKG_VERSION").to_string();
+                tokio::spawn(async move {
+                    match jlivertool_core::check_for_update(&current_version).await {
+                        Ok(update_info) => {
+                            let _ = event_tx.send(Event::UpdateCheckResult {
+                                has_update: update_info.has_update,
+                                current_version: update_info.current_version,
+                                latest_version: update_info.latest_version,
+                                release_url: update_info.release_url,
+                                error: None,
+                            });
+                        }
+                        Err(e) => {
+                            let _ = event_tx.send(Event::UpdateCheckResult {
+                                has_update: false,
+                                current_version,
+                                latest_version: String::new(),
+                                release_url: String::new(),
+                                error: Some(e.to_string()),
+                            });
+                        }
+                    }
+                });
+            }
+            UiCommand::UpdateAutoUpdateCheck(enabled) => {
+                info!("Updating auto update check setting: {}", enabled);
+                if let Err(e) = config.write().set("auto_update_check", enabled) {
+                    error!("Failed to save auto_update_check: {}", e);
                 }
             }
         }

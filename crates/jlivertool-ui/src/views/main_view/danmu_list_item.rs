@@ -202,10 +202,17 @@ impl DanmuListItemView {
             // Only render if URL is not empty to avoid GPUI crash on empty images
             if !emoji.url.is_empty() {
                 let emoji_size = row_height - 4.0;
+                // Use a hash of the URL in the element ID to ensure fresh state when
+                // the image changes. This prevents GPUI's animated image frame_index
+                // from becoming stale when a different image is displayed at the same index.
+                use std::hash::{Hash, Hasher};
+                let mut hasher = std::collections::hash_map::DefaultHasher::new();
+                emoji.url.hash(&mut hasher);
+                let url_hash = hasher.finish();
 
                 el = el.child(
                     img(emoji.url.clone())
-                        .id(SharedString::from(format!("emoji-{}", item_index)))
+                        .id(SharedString::from(format!("emoji-{}-{:x}", item_index, url_hash)))
                         .max_w(px(emoji_size))
                         .max_h(px(emoji_size))
                         .object_fit(ObjectFit::Contain),

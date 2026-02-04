@@ -118,6 +118,16 @@ pub struct MainView {
     selected_command_index: Rc<Cell<usize>>,
     // Pending command to insert (set by subscription, applied in render)
     pending_command_insert: Rc<RefCell<Option<String>>>,
+    // Update dialog state
+    show_update_dialog: bool,
+    update_info: Option<UpdateDialogInfo>,
+}
+
+/// Update dialog information
+#[derive(Clone)]
+pub struct UpdateDialogInfo {
+    pub latest_version: String,
+    pub release_url: String,
 }
 
 impl MainView {
@@ -390,6 +400,20 @@ impl MainView {
                     let _ = tx.send(UiCommand::UpdateRoomTitle { room_id, title });
                 }
             });
+
+            view.on_check_update({
+                let tx = command_tx.clone();
+                move |_window, _cx| {
+                    let _ = tx.send(UiCommand::CheckForUpdate);
+                }
+            });
+
+            view.on_auto_update_change({
+                let tx = command_tx.clone();
+                move |enabled, _window, _cx| {
+                    let _ = tx.send(UiCommand::UpdateAutoUpdateCheck(enabled));
+                }
+            });
         });
 
         let this = Self {
@@ -435,6 +459,8 @@ impl MainView {
             show_command_popup: Rc::new(Cell::new(false)),
             selected_command_index: Rc::new(Cell::new(0)),
             pending_command_insert: Rc::new(RefCell::new(None)),
+            show_update_dialog: false,
+            update_info: None,
         };
 
         // Start a timer to periodically check for new events from the backend

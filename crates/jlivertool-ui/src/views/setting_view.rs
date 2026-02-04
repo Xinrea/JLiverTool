@@ -40,6 +40,10 @@ type ClearDataCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
 type OpenDataFolderCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
 /// Type alias for room title update callback (room_id, title)
 type RoomTitleCallback = Arc<dyn Fn(u64, String, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for update check callback
+type UpdateCheckCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
+/// Type alias for auto update setting change callback (enabled)
+type AutoUpdateCallback = Arc<dyn Fn(bool, &mut Window, &mut App) + Send + Sync>;
 
 /// Plugin info for display in settings
 #[derive(Debug, Clone)]
@@ -107,6 +111,25 @@ pub struct SettingView {
     on_open_data_folder: Option<OpenDataFolderCallback>,
     on_room_title_change: Option<RoomTitleCallback>,
     show_clear_data_confirm: bool,
+    // Update check
+    auto_update_check: Arc<RwLock<bool>>,
+    update_status: Arc<RwLock<UpdateStatus>>,
+    on_check_update: Option<UpdateCheckCallback>,
+    on_auto_update_change: Option<AutoUpdateCallback>,
+}
+
+/// Update check status
+#[derive(Clone, Default)]
+pub enum UpdateStatus {
+    #[default]
+    Idle,
+    Checking,
+    UpToDate,
+    UpdateAvailable {
+        version: String,
+        url: String,
+    },
+    Error(String),
 }
 
 /// Tab definition
@@ -282,6 +305,10 @@ impl SettingView {
             on_open_data_folder: None,
             on_room_title_change: None,
             show_clear_data_confirm: false,
+            auto_update_check: Arc::new(RwLock::new(true)),
+            update_status: Arc::new(RwLock::new(UpdateStatus::default())),
+            on_check_update: None,
+            on_auto_update_change: None,
         }
     }
 
@@ -502,6 +529,34 @@ impl SettingView {
         F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_open_data_folder = Some(Arc::new(callback));
+    }
+
+    /// Set check update callback
+    pub fn on_check_update<F>(&mut self, callback: F)
+    where
+        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_check_update = Some(Arc::new(callback));
+    }
+
+    /// Set auto update setting change callback
+    pub fn on_auto_update_change<F>(&mut self, callback: F)
+    where
+        F: Fn(bool, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_auto_update_change = Some(Arc::new(callback));
+    }
+
+    /// Set auto update check setting
+    pub fn set_auto_update_check(&mut self, enabled: bool, cx: &mut Context<Self>) {
+        *self.auto_update_check.write() = enabled;
+        cx.notify();
+    }
+
+    /// Set update status
+    pub fn set_update_status(&mut self, status: UpdateStatus, cx: &mut Context<Self>) {
+        *self.update_status.write() = status;
+        cx.notify();
     }
 
     /// Set advanced settings values
@@ -3262,36 +3317,99 @@ impl SettingView {
                                 .child(self.render_setting_row(
                                     "自动检查更新",
                                     "启动时检查新版本",
-                                    Switch::new("auto_update").checked(true).on_click({
-                                        let entity = cx.entity().clone();
-                                        move |_checked: &bool, _window, cx| {
-                                            entity.update(cx, |_, cx| cx.notify());
-                                        }
-                                    }),
+                                    Switch::new("auto_update")
+                                        .checked(*self.auto_update_check.read())
+                                        .on_click({
+                                            let entity = cx.entity().clone();
+                                            let auto_update_check = self.auto_update_check.clone();
+                                            let on_auto_update_change = self.on_auto_update_change.clone();
+                                            move |checked: &bool, window, cx| {
+                                                let checked = *checked;
+                                                *auto_update_check.write() = checked;
+                                                if let Some(ref callback) = on_auto_update_change {
+                                                    callback(checked, window, cx);
+                                                }
+                                                entity.update(cx, |_, cx| cx.notify());
+                                            }
+                                        }),
                                 ))
-                                .child(
-                                    div()
-                                        .id("check-update-btn")
-                                        .w_full()
-                                        .px_3()
-                                        .py_2()
-                                        .rounded(px(6.0))
-                                        .cursor_pointer()
-                                        .bg(Colors::accent())
-                                        .hover(|s| s.opacity(0.8))
-                                        .text_size(px(13.0))
-                                        .text_color(Colors::button_text())
-                                        .flex()
-                                        .items_center()
-                                        .justify_center()
-                                        .child("检查更新")
-                                        .on_click(cx.listener(|_this, _event, _window, cx| {
-                                            tracing::info!("Check update clicked");
-                                            cx.notify();
-                                        })),
-                                ),
+                                .child(self.render_update_button(cx)),
                         ),
                 ),
+            )
+    }
+
+    fn render_update_button(&self, cx: &mut Context<Self>) -> impl IntoElement {
+        let status = self.update_status.read().clone();
+        let (button_text, button_enabled, status_text) = match &status {
+            UpdateStatus::Idle => ("检查更新", true, None),
+            UpdateStatus::Checking => ("检查中...", false, None),
+            UpdateStatus::UpToDate => ("检查更新", true, Some("已是最新版本".to_string())),
+            UpdateStatus::UpdateAvailable { version, .. } => {
+                ("前往下载", true, Some(format!("发现新版本: {}", version)))
+            }
+            UpdateStatus::Error(msg) => ("重试", true, Some(format!("检查失败: {}", msg))),
+        };
+
+        let is_update_available = matches!(status, UpdateStatus::UpdateAvailable { .. });
+        let update_url = if let UpdateStatus::UpdateAvailable { url, .. } = &status {
+            Some(url.clone())
+        } else {
+            None
+        };
+
+        v_flex()
+            .w_full()
+            .gap_2()
+            .when_some(status_text, |this, text| {
+                this.child(
+                    div()
+                        .w_full()
+                        .text_size(px(12.0))
+                        .text_color(if is_update_available {
+                            Colors::accent()
+                        } else {
+                            Colors::text_muted()
+                        })
+                        .child(text),
+                )
+            })
+            .child(
+                div()
+                    .id("check-update-btn")
+                    .w_full()
+                    .px_3()
+                    .py_2()
+                    .rounded(px(6.0))
+                    .when(button_enabled, |this| this.cursor_pointer())
+                    .when(!button_enabled, |this| this.opacity(0.6))
+                    .bg(if is_update_available {
+                        Colors::accent()
+                    } else {
+                        Colors::bg_secondary()
+                    })
+                    .when(button_enabled, |this| this.hover(|s| s.opacity(0.8)))
+                    .text_size(px(13.0))
+                    .text_color(if is_update_available {
+                        Colors::button_text()
+                    } else {
+                        Colors::text_primary()
+                    })
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(button_text)
+                    .when(button_enabled, |this| {
+                        this.on_click(cx.listener(move |this, _event, window, cx| {
+                            if let Some(ref url) = update_url {
+                                cx.open_url(url);
+                            } else if let Some(ref callback) = this.on_check_update {
+                                *this.update_status.write() = UpdateStatus::Checking;
+                                callback(window, cx);
+                            }
+                            cx.notify();
+                        }))
+                    }),
             )
     }
 }

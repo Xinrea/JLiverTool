@@ -202,6 +202,7 @@ impl MainView {
                     tts_volume,
                     max_danmu_count,
                     log_level,
+                    auto_update_check,
                 } => {
                     crate::theme::set_theme(&theme);
 
@@ -226,6 +227,8 @@ impl MainView {
                         );
                         // Set advanced settings
                         view.set_advanced_settings(max_danmu_count, log_level, cx);
+                        // Set auto update check setting
+                        view.set_auto_update_check(auto_update_check, cx);
                     });
                     self.opacity = opacity;
                     self.font_size = font_size;
@@ -311,6 +314,34 @@ impl MainView {
                             view.set_room_title(room_change.title, cx);
                         });
                     }
+                }
+                Event::UpdateCheckResult {
+                    has_update,
+                    latest_version,
+                    release_url,
+                    error,
+                    ..
+                } => {
+                    use crate::views::setting_view::UpdateStatus;
+                    let status = if let Some(err) = error {
+                        UpdateStatus::Error(err)
+                    } else if has_update {
+                        // Show update dialog popup
+                        self.show_update_dialog = true;
+                        self.update_info = Some(super::UpdateDialogInfo {
+                            latest_version: latest_version.clone(),
+                            release_url: release_url.clone(),
+                        });
+                        UpdateStatus::UpdateAvailable {
+                            version: latest_version,
+                            url: release_url,
+                        }
+                    } else {
+                        UpdateStatus::UpToDate
+                    };
+                    self.setting_view.update(cx, |view, cx| {
+                        view.set_update_status(status, cx);
+                    });
                 }
                 _ => {}
             }
