@@ -61,6 +61,24 @@
 
 大部分功能需要登录后才能使用，当登录账号与直播间号匹配时，直播间标题设置和开/关播按钮才可使用。
 
+## 安装说明
+
+### macOS
+
+由于应用未经 Apple 签名，首次运行时可能提示"文件已损坏"。请在终端中执行以下命令：
+
+```bash
+xattr -cr /Applications/JLiverTool.app
+```
+
+### Arch Linux
+
+下载 `PKGBUILD` 和 `jlivertool_*_x86_64.tar.gz` 到同一目录，然后执行：
+
+```bash
+makepkg -si
+```
+
 ## 开发说明
 
 ### 代码格式

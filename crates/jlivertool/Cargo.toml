@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
+build = "build.rs"
 
 [[bin]]
 name = "jlivertool"
@@ -37,6 +38,9 @@ directories = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-text = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+winresource = "0.1"
 
 [package.metadata.packager]
 product-name = "JLiverTool"
