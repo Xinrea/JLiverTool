@@ -2,7 +2,7 @@ name: Release
 
 on:
   push:
-    tags: 'v*'
+    tags: "v*"
 
 env:
   CARGO_TERM_COLOR: always
@@ -33,7 +33,7 @@ jobs:
         with:
           name: macos-aarch64
           path: |
-            target/release/bundle/*.dmg
+            target/release/*.dmg
 
   build-windows:
     runs-on: windows-latest
@@ -60,7 +60,7 @@ jobs:
         with:
           name: windows-x86_64
           path: |
-            target/release/bundle/*.exe
+            target/release/*.exe
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -114,7 +114,7 @@ jobs:
       - name: Package AppImage
         run: cargo packager --release -p jlivertool --formats appimage
 
-      - name: Package pacman
+      - name: Generate PKGBUILD for Arch Linux
         run: cargo packager --release -p jlivertool --formats pacman
 
       - name: Upload artifacts
@@ -122,9 +122,10 @@ jobs:
         with:
           name: linux-x86_64
           path: |
-            target/release/bundle/*.deb
-            target/release/bundle/*.AppImage
-            target/release/bundle/*.pacman
+            target/release/*.deb
+            target/release/*.AppImage
+            target/release/PKGBUILD
+            target/release/*_x86_64.tar.gz
 
   release:
     needs: [build-macos, build-windows, build-linux]
@@ -141,7 +142,7 @@ jobs:
       - name: Create Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "artifacts/**/*.dmg,artifacts/**/*.exe,artifacts/**/*.deb,artifacts/**/*.AppImage,artifacts/**/*.pacman"
+          artifacts: "artifacts/**/*.dmg,artifacts/**/*.exe,artifacts/**/*.deb,artifacts/**/*.AppImage,artifacts/**/PKGBUILD,artifacts/**/*_x86_64.tar.gz"
           token: ${{ secrets.GITHUB_TOKEN }}
           draft: true
           generateReleaseNotes: true
