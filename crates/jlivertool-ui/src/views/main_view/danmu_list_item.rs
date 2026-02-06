@@ -20,6 +20,7 @@ pub struct DanmuListItemView {
     font_size: f32,
     lite_mode: bool,
     medal_display: bool,
+    opacity: f32,
     selected_user: SelectedUserState,
 }
 
@@ -30,6 +31,7 @@ impl DanmuListItemView {
         font_size: f32,
         lite_mode: bool,
         medal_display: bool,
+        opacity: f32,
         selected_user: SelectedUserState,
     ) -> Self {
         Self {
@@ -38,6 +40,7 @@ impl DanmuListItemView {
             font_size,
             lite_mode,
             medal_display,
+            opacity,
             selected_user,
         }
     }
@@ -53,6 +56,7 @@ impl DanmuListItemView {
     fn render_danmu(&self, danmu: &DanmuMessage) -> Div {
         let font_size = self.font_size;
         let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
         let row_height = self.row_height();
         let sender = &danmu.sender;
         let medal = &sender.medal_info;
@@ -65,7 +69,7 @@ impl DanmuListItemView {
             .gap_1()
             .items_center()
             .rounded_sm()
-            .hover(|s| s.bg(Colors::bg_hover()))
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
             .overflow_hidden();
 
         if lite_mode {
@@ -238,6 +242,7 @@ impl DanmuListItemView {
     fn render_interact(&self, interact: &InteractMessage) -> Div {
         let font_size = self.font_size;
         let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
         let row_height = self.row_height();
 
         let action_text = if interact.action == 2 {
@@ -252,7 +257,7 @@ impl DanmuListItemView {
             .gap_1()
             .items_center()
             .rounded_sm()
-            .hover(|s| s.bg(Colors::bg_hover()))
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
             .overflow_hidden();
 
         if lite_mode {
@@ -281,6 +286,7 @@ impl DanmuListItemView {
     fn render_entry_effect(&self, entry: &EntryEffectMessage) -> Div {
         let font_size = self.font_size;
         let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
         let row_height = self.row_height();
 
         let privilege_type = entry.privilege_type;
@@ -298,7 +304,7 @@ impl DanmuListItemView {
             .rounded_sm()
             .border_l_2()
             .border_color(entry_color)
-            .hover(|s| s.bg(Colors::bg_hover()))
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
             .overflow_hidden();
 
         if lite_mode {
@@ -328,6 +334,7 @@ impl DanmuListItemView {
     fn render_gift(&self, gift: &GiftMessage) -> Div {
         let font_size = self.font_size;
         let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
         let row_height = self.row_height();
 
         let is_paid = gift.gift_info.coin_type != "silver";
@@ -354,7 +361,7 @@ impl DanmuListItemView {
             .border_t_1()
             .border_b_1()
             .border_color(gift_color)
-            .hover(|s| s.bg(Colors::bg_hover()))
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
             .overflow_hidden();
 
         if lite_mode {

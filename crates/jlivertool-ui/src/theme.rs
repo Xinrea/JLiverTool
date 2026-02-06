@@ -405,6 +405,13 @@ impl Colors {
         current_theme().read().live_color
     }
 
+    /// LIVE status color with custom opacity
+    pub fn live_with_opacity(opacity: f32) -> Hsla {
+        let mut color = current_theme().read().live_color;
+        color.a = opacity;
+        color
+    }
+
     // Guard colors
     pub fn guard_1() -> Hsla {
         hsla(45.0 / 360.0, 0.9, 0.6, 1.0) // 总督 - Gold

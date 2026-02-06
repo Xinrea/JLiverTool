@@ -554,7 +554,7 @@ impl GiftView {
                                     .cursor_pointer()
                                     .text_size(px(11.0))
                                     .text_color(Colors::text_muted())
-                                    .hover(|s| s.bg(Colors::bg_hover()))
+                                    .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
                                     .on_click(cx.listener(|this, _event, _window, cx| {
                                         this.show_clear_confirm = true;
                                         cx.notify();
@@ -571,6 +571,7 @@ impl GiftView {
         let scroll_handle = self.scroll_handle.clone();
         let pending_archive_toggle = self.pending_archive_toggle.clone();
         let pending_delete = self.pending_delete.clone();
+        let opacity = self.opacity;
 
         h_flex()
             .id("gift-container")
@@ -586,7 +587,7 @@ impl GiftView {
                                 let entry = gift_list[ix].clone();
                                 let pending = pending_archive_toggle.clone();
                                 let pending_del = pending_delete.clone();
-                                cx.new(|_| GiftItemView::new(entry, ix, pending, pending_del))
+                                cx.new(|_| GiftItemView::new(entry, ix, opacity, pending, pending_del))
                             })
                             .collect()
                     }
@@ -630,7 +631,7 @@ impl Render for GiftView {
                         .top_0()
                         .left_0()
                         .size_full()
-                        .bg(hsla(0.0, 0.0, 0.0, 0.5))
+                        .bg(hsla(0.0, 0.0, 0.0, 0.5 * opacity))
                         .flex()
                         .items_center()
                         .justify_center()
@@ -639,7 +640,7 @@ impl Render for GiftView {
                                 .w(px(280.0))
                                 .p_4()
                                 .rounded(px(8.0))
-                                .bg(Colors::bg_secondary())
+                                .bg(Colors::bg_secondary_with_opacity(opacity))
                                 .border_1()
                                 .border_color(Colors::border())
                                 .gap_3()
@@ -666,7 +667,7 @@ impl Render for GiftView {
                                                 .py(px(6.0))
                                                 .rounded(px(4.0))
                                                 .cursor_pointer()
-                                                .bg(Colors::bg_hover())
+                                                .bg(Colors::bg_hover_with_opacity(opacity))
                                                 .text_size(px(12.0))
                                                 .hover(|s| s.opacity(0.8))
                                                 .on_click(cx.listener(|this, _event, _window, cx| {
@@ -702,13 +703,14 @@ impl Render for GiftView {
 struct GiftItemView {
     entry: GiftEntry,
     index: usize,
+    opacity: f32,
     pending_archive_toggle: PendingArchiveToggle,
     pending_delete: PendingDelete,
 }
 
 impl GiftItemView {
-    fn new(entry: GiftEntry, index: usize, pending_archive_toggle: PendingArchiveToggle, pending_delete: PendingDelete) -> Self {
-        Self { entry, index, pending_archive_toggle, pending_delete }
+    fn new(entry: GiftEntry, index: usize, opacity: f32, pending_archive_toggle: PendingArchiveToggle, pending_delete: PendingDelete) -> Self {
+        Self { entry, index, opacity, pending_archive_toggle, pending_delete }
     }
 
     fn format_timestamp(timestamp: i64) -> String {
@@ -723,6 +725,7 @@ impl Render for GiftItemView {
         let archived = self.entry.archived();
         let id = self.entry.id().to_string();
         let index = self.index;
+        let opacity = self.opacity;
         let pending_archive_toggle = self.pending_archive_toggle.clone();
         let pending_delete = self.pending_delete.clone();
 
@@ -755,9 +758,9 @@ impl Render for GiftItemView {
                     .py_2()
                     .gap_1()
                     .border_b_1()
-                    .border_color(Colors::bg_hover())
+                    .border_color(Colors::bg_hover_with_opacity(opacity))
                     .when(archived, |el| el.opacity(0.5))
-                    .hover(|s| s.bg(Colors::bg_hover()))
+                    .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
                     .child(
                         h_flex()
                             .w_full()
@@ -812,7 +815,7 @@ impl Render for GiftItemView {
                                             .px_2()
                                             .py(px(2.0))
                                             .rounded(px(4.0))
-                                            .bg(if archived { Colors::accent().opacity(0.2) } else { Colors::bg_hover() })
+                                            .bg(if archived { Colors::accent().opacity(0.2 * opacity) } else { Colors::bg_hover_with_opacity(opacity) })
                                             .cursor_pointer()
                                             .text_size(px(10.0))
                                             .font_weight(FontWeight::MEDIUM)
@@ -821,7 +824,7 @@ impl Render for GiftItemView {
                                             } else {
                                                 Colors::text_secondary()
                                             })
-                                            .hover(|s| s.bg(if archived { Colors::accent().opacity(0.3) } else { Colors::bg_secondary() }))
+                                            .hover(|s| s.bg(if archived { Colors::accent().opacity(0.3 * opacity) } else { Colors::bg_secondary_with_opacity(opacity) }))
                                             .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
                                                 *pending.borrow_mut() = Some(id.clone());
                                                 cx.refresh_windows();
@@ -836,12 +839,12 @@ impl Render for GiftItemView {
                                             .px_2()
                                             .py(px(2.0))
                                             .rounded(px(4.0))
-                                            .bg(Colors::bg_hover())
+                                            .bg(Colors::bg_hover_with_opacity(opacity))
                                             .cursor_pointer()
                                             .text_size(px(10.0))
                                             .font_weight(FontWeight::MEDIUM)
                                             .text_color(hsla(0.0, 0.7, 0.5, 1.0))
-                                            .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.2)))
+                                            .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.2 * opacity)))
                                             .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
                                                 *pending.borrow_mut() = Some(id.clone());
                                                 cx.refresh_windows();
@@ -868,19 +871,19 @@ impl Render for GiftItemView {
                     Colors::text_primary()
                 };
                 let guard_bg = if archived {
-                    hsla(0.0, 0.0, 0.5, 0.1)
+                    hsla(0.0, 0.0, 0.5, 0.1 * opacity)
                 } else {
-                    hsla(0.15, 0.8, 0.5, 0.1)
+                    hsla(0.15, 0.8, 0.5, 0.1 * opacity)
                 };
                 let guard_hover_bg = if archived {
-                    hsla(0.0, 0.0, 0.5, 0.15)
+                    hsla(0.0, 0.0, 0.5, 0.15 * opacity)
                 } else {
-                    hsla(0.15, 0.8, 0.5, 0.15)
+                    hsla(0.15, 0.8, 0.5, 0.15 * opacity)
                 };
                 let guard_badge_bg = if archived {
-                    hsla(0.0, 0.0, 0.5, 0.3)
+                    hsla(0.0, 0.0, 0.5, 0.3 * opacity)
                 } else {
-                    hsla(0.15, 0.8, 0.5, 0.3)
+                    hsla(0.15, 0.8, 0.5, 0.3 * opacity)
                 };
                 let price_color = if archived {
                     Colors::text_muted()
@@ -894,7 +897,7 @@ impl Render for GiftItemView {
                     .py_2()
                     .gap_1()
                     .border_b_1()
-                    .border_color(Colors::bg_hover())
+                    .border_color(Colors::bg_hover_with_opacity(opacity))
                     .bg(guard_bg)
                     .when(archived, |el| el.opacity(0.5))
                     .hover(|s| s.bg(guard_hover_bg))
@@ -957,7 +960,7 @@ impl Render for GiftItemView {
                                             .px_2()
                                             .py(px(2.0))
                                             .rounded(px(4.0))
-                                            .bg(if archived { Colors::accent().opacity(0.2) } else { Colors::bg_hover() })
+                                            .bg(if archived { Colors::accent().opacity(0.2 * opacity) } else { Colors::bg_hover_with_opacity(opacity) })
                                             .cursor_pointer()
                                             .text_size(px(10.0))
                                             .font_weight(FontWeight::MEDIUM)
@@ -966,7 +969,7 @@ impl Render for GiftItemView {
                                             } else {
                                                 Colors::text_secondary()
                                             })
-                                            .hover(|s| s.bg(if archived { Colors::accent().opacity(0.3) } else { Colors::bg_secondary() }))
+                                            .hover(|s| s.bg(if archived { Colors::accent().opacity(0.3 * opacity) } else { Colors::bg_secondary_with_opacity(opacity) }))
                                             .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
                                                 *pending.borrow_mut() = Some(id.clone());
                                                 cx.refresh_windows();
@@ -981,12 +984,12 @@ impl Render for GiftItemView {
                                             .px_2()
                                             .py(px(2.0))
                                             .rounded(px(4.0))
-                                            .bg(Colors::bg_hover())
+                                            .bg(Colors::bg_hover_with_opacity(opacity))
                                             .cursor_pointer()
                                             .text_size(px(10.0))
                                             .font_weight(FontWeight::MEDIUM)
                                             .text_color(hsla(0.0, 0.7, 0.5, 1.0))
-                                            .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.2)))
+                                            .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.2 * opacity)))
                                             .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
                                                 *pending.borrow_mut() = Some(id.clone());
                                                 cx.refresh_windows();

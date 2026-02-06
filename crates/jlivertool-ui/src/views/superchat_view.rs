@@ -310,7 +310,7 @@ impl SuperChatView {
                                     .cursor_pointer()
                                     .text_size(px(11.0))
                                     .text_color(Colors::text_muted())
-                                    .hover(|s| s.bg(Colors::bg_hover()))
+                                    .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
                                     .on_click(cx.listener(|this, _event, _window, cx| {
                                         this.show_clear_confirm = true;
                                         cx.notify();
@@ -397,7 +397,7 @@ impl Render for SuperChatView {
                         .top_0()
                         .left_0()
                         .size_full()
-                        .bg(hsla(0.0, 0.0, 0.0, 0.5))
+                        .bg(hsla(0.0, 0.0, 0.0, 0.5 * opacity))
                         .flex()
                         .items_center()
                         .justify_center()
@@ -406,7 +406,7 @@ impl Render for SuperChatView {
                                 .w(px(280.0))
                                 .p_4()
                                 .rounded(px(8.0))
-                                .bg(Colors::bg_secondary())
+                                .bg(Colors::bg_secondary_with_opacity(opacity))
                                 .border_1()
                                 .border_color(Colors::border())
                                 .gap_3()
@@ -433,7 +433,7 @@ impl Render for SuperChatView {
                                                 .py(px(6.0))
                                                 .rounded(px(4.0))
                                                 .cursor_pointer()
-                                                .bg(Colors::bg_hover())
+                                                .bg(Colors::bg_hover_with_opacity(opacity))
                                                 .text_size(px(12.0))
                                                 .hover(|s| s.opacity(0.8))
                                                 .on_click(cx.listener(|this, _event, _window, cx| {
@@ -449,7 +449,7 @@ impl Render for SuperChatView {
                                                 .py(px(6.0))
                                                 .rounded(px(4.0))
                                                 .cursor_pointer()
-                                                .bg(hsla(0.0, 0.7, 0.5, 1.0))
+                                                .bg(hsla(0.0, 0.7, 0.5, opacity))
                                                 .text_size(px(12.0))
                                                 .text_color(gpui::white())
                                                 .hover(|s| s.opacity(0.8))

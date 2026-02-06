@@ -22,7 +22,7 @@ impl MainView {
         let left_padding = px(12.0);
 
         let header_bg = if is_live {
-            Colors::live()
+            Colors::live_with_opacity(opacity)
         } else {
             Colors::bg_secondary_with_opacity(opacity)
         };
@@ -523,7 +523,7 @@ impl MainView {
             .w_full()
             .bg(Colors::bg_secondary_with_opacity(opacity))
             .border_t_1()
-            .border_color(Colors::bg_hover())
+            .border_color(Colors::bg_hover_with_opacity(opacity))
             .child(
                 h_flex()
                     .w_full()
@@ -676,7 +676,7 @@ impl MainView {
                                 .bottom(px(44.0))
                                 .left(px(12.0))
                                 .right(px(12.0))
-                                .bg(Colors::bg_secondary())
+                                .bg(Colors::bg_secondary_with_opacity(opacity))
                                 .border_1()
                                 .border_color(Colors::border())
                                 .rounded(px(6.0))
@@ -699,8 +699,8 @@ impl MainView {
                                                 .px_3()
                                                 .py_2()
                                                 .cursor_pointer()
-                                                .when(is_selected, |s| s.bg(Colors::bg_hover()))
-                                                .hover(|s| s.bg(Colors::bg_hover()))
+                                                .when(is_selected, |s| s.bg(Colors::bg_hover_with_opacity(opacity)))
+                                                .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
                                                 .on_mouse_down(MouseButton::Left, move |_, window, cx| {
                                                     let new_text = if cmd_str == "/title" {
                                                         format!("{} ", cmd_str)
@@ -748,6 +748,7 @@ impl MainView {
         let font_size = self.font_size;
         let lite_mode = self.lite_mode;
         let medal_display = self.medal_display;
+        let opacity = self.opacity;
         let scroll_handle = self.scroll_handle.clone();
         let selected_user = self.selected_user.clone();
 
@@ -774,6 +775,7 @@ impl MainView {
                                     font_size,
                                     lite_mode,
                                     medal_display,
+                                    opacity,
                                     selected_user,
                                 ).render_element()
                             })
@@ -879,7 +881,7 @@ impl Render for MainView {
                         .items_center()
                         .justify_center()
                         .p_4()
-                        .bg(hsla(0.0, 0.0, 0.0, 0.5))
+                        .bg(hsla(0.0, 0.0, 0.0, 0.5 * opacity))
                         .child(
                             div()
                                 .relative()
@@ -895,7 +897,7 @@ impl Render for MainView {
                                         .size(px(24.0))
                                         .rounded_full()
                                         .cursor_pointer()
-                                        .bg(Colors::bg_secondary())
+                                        .bg(Colors::bg_secondary_with_opacity(opacity))
                                         .border_2()
                                         .border_color(Colors::border())
                                         .hover(|s| s.bg(Colors::error()))
@@ -924,7 +926,7 @@ impl Render for MainView {
                         .flex()
                         .items_center()
                         .justify_center()
-                        .bg(hsla(0.0, 0.0, 0.0, 0.5))
+                        .bg(hsla(0.0, 0.0, 0.0, 0.5 * opacity))
                         .child(
                             v_flex()
                                 .w(px(320.0))
@@ -960,7 +962,7 @@ impl Render for MainView {
                                                 .py(px(6.0))
                                                 .rounded(px(4.0))
                                                 .cursor_pointer()
-                                                .bg(Colors::bg_hover())
+                                                .bg(Colors::bg_hover_with_opacity(opacity))
                                                 .text_size(px(12.0))
                                                 .hover(|s| s.opacity(0.8))
                                                 .on_click(cx.listener(|this, _event, _window, cx| {
