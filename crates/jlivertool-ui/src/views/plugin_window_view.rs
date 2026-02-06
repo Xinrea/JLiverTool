@@ -40,19 +40,16 @@ impl PluginWindowView {
         }
     }
 
-    fn create_webview(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.webview_initialized {
-            return;
-        }
-        self.webview_initialized = true;
-
+    fn create_webview_deferred(
+        &mut self,
+        plugin_path: PathBuf,
+        ws_port: u16,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         // Build the URL with WebSocket port parameter
-        let index_path = self.plugin_path.join("index.html");
-        let url = format!(
-            "file://{}?ws_port={}",
-            index_path.display(),
-            self.ws_port
-        );
+        let index_path = plugin_path.join("index.html");
+        let url = format!("file://{}?ws_port={}", index_path.display(), ws_port);
 
         // Get the window handle for wry
         let window_handle = match window.window_handle() {
@@ -74,6 +71,7 @@ impl PluginWindowView {
             Ok(wv) => {
                 let webview = cx.new(|cx| WebView::new(wv, window, cx));
                 self.webview = Some(webview);
+                cx.notify();
             }
             Err(e) => {
                 tracing::error!("Failed to create webview: {}", e);
@@ -105,8 +103,16 @@ impl PluginWindowView {
 
 impl Render for PluginWindowView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // Defer webview creation to first render
-        self.create_webview(window, cx);
+        // Defer webview creation to avoid reentrancy issues on Windows
+        // The webview2 creation pumps the message loop which can cause RefCell borrow conflicts
+        if !self.webview_initialized {
+            self.webview_initialized = true;
+            let plugin_path = self.plugin_path.clone();
+            let ws_port = self.ws_port;
+            cx.defer(move |view, window, cx| {
+                view.create_webview_deferred(plugin_path, ws_port, window, cx);
+            });
+        }
 
         let entity = cx.entity().clone();
 
