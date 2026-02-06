@@ -796,6 +796,22 @@ impl Render for MainView {
             crate::platform::set_window_always_on_top(window, always_on_top);
         }
 
+        // Check if tray requested to open settings
+        // Use cx.spawn to defer window opening to after render completes
+        // Opening a window during render causes segfault due to GPUI global state modification
+        if self.pending_open_settings.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            cx.spawn(async move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
+                // Small delay to ensure render is complete
+                Timer::after(std::time::Duration::from_millis(1)).await;
+                let _ = cx.update(|cx| {
+                    let _ = this.update(cx, |view, cx| {
+                        view.open_settings_window_deferred(cx);
+                    });
+                });
+            })
+            .detach();
+        }
+
         let bounds = window.bounds();
         let current_bounds = (
             f32::from(bounds.origin.x) as i32,

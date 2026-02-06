@@ -18,7 +18,7 @@ use jlivertool_core::messages::{
 use jlivertool_core::tts::{TtsEnabled, TtsManager, TtsMessage};
 use jlivertool_core::types::RoomId;
 use jlivertool_plugin::PluginManager;
-use jlivertool_ui::{run_app_with_plugins, PluginInfo, UiCommand};
+use jlivertool_ui::{run_app_with_tray, PluginInfo, UiCommand};
 use parking_lot::RwLock;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -360,8 +360,17 @@ fn main() -> Result<()> {
         }
     }
 
-    // Run UI on main thread
-    run_app_with_plugins(event_rx, command_tx, Some(database), Some(config), has_events, ui_plugins, ws_port);
+    // Run UI on main thread with tray support
+    // Tray icon is now initialized inside the GPUI event loop to avoid conflicts
+    run_app_with_tray(
+        event_rx,
+        command_tx,
+        Some(database),
+        Some(config),
+        has_events,
+        ui_plugins,
+        ws_port,
+    );
 
     Ok(())
 }

@@ -1083,13 +1083,13 @@ impl SettingView {
 
         let title_input_state = title_state.read(cx).input.clone();
 
-        // Sync title input with current title
-        title_input_state.update(cx, |state, _cx| {
-            let current_text = state.text().to_string();
-            if current_text != current_title && current_text.is_empty() {
-                // Only update if empty (initial state)
-            }
-        });
+        // Sync title input with current title when room changes
+        let current_input_text = title_input_state.read(cx).text().to_string();
+        if current_input_text != current_title {
+            title_input_state.update(cx, |state, cx| {
+                state.set_value(&current_title, window, cx);
+            });
+        }
 
         self.render_section_card(
             v_flex()

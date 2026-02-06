@@ -59,6 +59,9 @@ impl MainView {
                     if is_new_room {
                         self.live_status = live_status;
                     }
+
+                    // Update tray state
+                    self.update_tray_state();
                 }
                 Event::UpdateOnline { count } => {
                     self.online_count = count;
@@ -158,23 +161,34 @@ impl MainView {
                 }
                 Event::ConnectionStatus { connected } => {
                     self.connected = connected;
+                    self.update_tray_state();
                 }
                 Event::LiveStart => {
                     self.live_status = 1;
+                    self.update_tray_state();
                 }
                 Event::LiveEnd => {
                     self.live_status = 0;
                     self.setting_view.update(cx, |view, cx| {
                         view.clear_rtmp_info(cx);
                     });
+                    self.update_tray_state();
                 }
                 Event::LoginStatusChanged {
                     logged_in,
                     user_info,
                 } => {
+                    self.logged_in = logged_in;
+                    // Store the logged-in user's UID
+                    self.logged_in_uid = if logged_in {
+                        user_info.as_ref().map(|u| u.mid)
+                    } else {
+                        None
+                    };
                     self.setting_view.update(cx, |view, cx| {
                         view.set_login_status(logged_in, user_info, cx);
                     });
+                    self.update_tray_state();
                 }
                 Event::QrCodeGenerated { url, qrcode_key: _ } => {
                     self.setting_view.update(cx, |view, cx| {

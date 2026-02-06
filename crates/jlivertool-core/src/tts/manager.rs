@@ -128,7 +128,10 @@ impl TtsManager {
         #[cfg(target_os = "macos")]
         let synthesizer = super::system_macos::SystemTts::new();
 
-        #[cfg(not(target_os = "macos"))]
+        #[cfg(target_os = "windows")]
+        let synthesizer = super::system_windows::SystemTts::new();
+
+        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
         let synthesizer: Option<()> = None;
 
         let runtime = tokio::runtime::Builder::new_current_thread()
@@ -164,6 +167,10 @@ impl TtsManager {
                             if let Some(ref synth) = synthesizer {
                                 synth.stop();
                             }
+                            #[cfg(target_os = "windows")]
+                            if let Some(ref synth) = synthesizer {
+                                synth.stop();
+                            }
                         }
                         TtsCommand::Shutdown => {
                             info!("TTS worker shutting down");
@@ -181,7 +188,12 @@ impl TtsManager {
                         synth.speak(&message.text, current_volume);
                     }
 
-                    #[cfg(not(target_os = "macos"))]
+                    #[cfg(target_os = "windows")]
+                    if let Some(ref synth) = synthesizer {
+                        synth.speak(&message.text, current_volume);
+                    }
+
+                    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
                     {
                         let _ = current_volume;
                         info!("TTS (not implemented): {}", message.text);

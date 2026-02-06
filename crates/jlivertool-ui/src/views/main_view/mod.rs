@@ -18,6 +18,7 @@ use danmu_list_item::DanmuListItemView;
 use user_info_card::{SelectedUserState, UserInfoCard};
 
 use crate::app::UiCommand;
+use crate::tray::{TrayManager, TrayState};
 use crate::views::AudienceView;
 use crate::views::GiftView;
 use crate::views::PluginWindowView;
@@ -121,6 +122,14 @@ pub struct MainView {
     // Update dialog state
     show_update_dialog: bool,
     update_info: Option<UpdateDialogInfo>,
+    // Tray manager for system tray integration
+    tray_manager: Option<Arc<parking_lot::Mutex<TrayManager>>>,
+    // Login status for tray
+    logged_in: bool,
+    // Logged-in user's UID (to check if user owns the room)
+    logged_in_uid: Option<u64>,
+    // Pending tray command to open settings (Arc for thread-safe sharing)
+    pending_open_settings: Arc<AtomicBool>,
 }
 
 /// Update dialog information
@@ -461,6 +470,10 @@ impl MainView {
             pending_command_insert: Rc::new(RefCell::new(None)),
             show_update_dialog: false,
             update_info: None,
+            tray_manager: None,
+            logged_in: false,
+            logged_in_uid: None,
+            pending_open_settings: Arc::new(AtomicBool::new(false)),
         };
 
         // Start a timer to periodically check for new events from the backend
@@ -523,6 +536,46 @@ impl MainView {
         self.config = Some(config);
     }
 
+    /// Set the tray manager reference
+    pub fn set_tray_manager(&mut self, tray: Arc<parking_lot::Mutex<TrayManager>>) {
+        self.tray_manager = Some(tray);
+    }
+
+    /// Set the pending_open_settings flag (shared with tray command handler)
+    pub fn set_pending_open_settings_flag(&mut self, flag: Arc<AtomicBool>) {
+        self.pending_open_settings = flag;
+    }
+
+    /// Get the pending_open_settings flag for tray command handling
+    pub fn pending_open_settings_flag(&self) -> Arc<AtomicBool> {
+        self.pending_open_settings.clone()
+    }
+
+    /// Update the tray state based on current view state
+    fn update_tray_state(&self) {
+        if let Some(ref tray) = self.tray_manager {
+            // Check if logged-in user owns the current room
+            let is_room_owner = match (self.logged_in_uid, self.room.as_ref()) {
+                (Some(uid), Some(room)) => uid == room.owner_uid(),
+                _ => false,
+            };
+
+            let state = TrayState {
+                room_id: self.room.as_ref().map(|r| r.real_id()),
+                room_title: self.room_title.clone(),
+                live_status: self.live_status,
+                logged_in: self.logged_in,
+                is_room_owner,
+                connected: self.connected,
+                window_visible: true, // We don't track this in MainView currently
+            };
+            tray.lock().update_state(state);
+
+            // Update icon based on live status
+            tray.lock().update_icon(self.live_status == 1);
+        }
+    }
+
     /// Check if scroll is at or near the bottom
     fn is_at_bottom(&self) -> bool {
         if self.danmu_list.len() <= 1 {
@@ -551,6 +604,71 @@ impl MainView {
 
     /// Open settings window
     fn open_settings_window(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
+        use crate::views::WindowBoundsTracker;
+        use gpui_component::Root;
+        use jlivertool_core::types::WindowType;
+
+        // Check if window is already open and focus it
+        if let Some(handle) = &self.settings_window {
+            if cx
+                .update_window(*handle, |_, window, _cx| {
+                    window.activate_window();
+                })
+                .is_ok()
+            {
+                return;
+            }
+            self.settings_window = None;
+        }
+
+        // Load saved bounds or use default
+        let bounds = if let Some(ref config) = self.config {
+            let saved = config.read().get_window_config(WindowType::Setting);
+            if saved.width > 0 && saved.height > 0 {
+                Bounds::new(
+                    point(px(saved.x as f32), px(saved.y as f32)),
+                    size(px(saved.width as f32), px(saved.height as f32)),
+                )
+            } else {
+                Bounds::centered(None, size(px(800.0), px(700.0)), cx)
+            }
+        } else {
+            Bounds::centered(None, size(px(800.0), px(700.0)), cx)
+        };
+
+        let setting_view = self.setting_view.clone();
+        let always_on_top = self.always_on_top;
+        let command_tx = self.command_tx.clone();
+
+        if let Ok(handle) = cx.open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                titlebar: Some(TitlebarOptions {
+                    title: Some("设置".into()),
+                    appears_transparent: true,
+                    ..Default::default()
+                }),
+                window_background: WindowBackgroundAppearance::Transparent,
+                window_min_size: Some(size(px(700.0), px(500.0))),
+                ..Default::default()
+            },
+            |new_window, cx| {
+                if always_on_top {
+                    crate::platform::set_window_always_on_top(new_window, true);
+                }
+                let tracker = cx.new(|_| {
+                    WindowBoundsTracker::new(setting_view, WindowType::Setting, command_tx)
+                });
+                cx.new(|cx| Root::new(tracker, new_window, cx))
+            },
+        ) {
+            self.settings_window = Some(handle.into());
+        }
+    }
+
+    /// Open settings window (deferred version for use outside render context)
+    /// This is called from cx.spawn() to avoid opening windows during render
+    fn open_settings_window_deferred(&mut self, cx: &mut Context<Self>) {
         use crate::views::WindowBoundsTracker;
         use gpui_component::Root;
         use jlivertool_core::types::WindowType;
