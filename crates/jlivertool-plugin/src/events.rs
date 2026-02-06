@@ -172,7 +172,7 @@ impl PluginEvent {
             Event::NewGuard(msg) => Some(PluginEvent::NewGuard(msg.into())),
             Event::NewSuperChat(msg) => Some(PluginEvent::NewSuperChat(msg.into())),
             Event::NewInteract(msg) => Some(PluginEvent::NewInteract(msg.into())),
-            Event::UpdateRoom { room_id, title, live_status } => Some(PluginEvent::UpdateRoom {
+            Event::UpdateRoom { room_id, title, live_status, .. } => Some(PluginEvent::UpdateRoom {
                 room_id: room_id.real_id(),
                 title: title.clone(),
                 live_status: *live_status,

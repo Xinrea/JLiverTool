@@ -524,6 +524,7 @@ async fn handle_commands(
                                     room_id: room.clone(),
                                     title: room_info.title,
                                     live_status: room_info.live_status,
+                                    area_id: room_info.area_id,
                                 });
 
                                 // Signal backend to change room
@@ -539,6 +540,7 @@ async fn handle_commands(
                                     room_id: room.clone(),
                                     title: String::new(),
                                     live_status: 0,
+                                    area_id: 0,
                                 });
                                 let _ = backend_cmd_tx.send(BackendCommand::ChangeRoom(room));
                             }
@@ -593,17 +595,29 @@ async fn handle_commands(
                 let api_read = api.read().clone();
 
                 match api_read.start_live(room_id, area_v2).await {
-                    Ok(data) => {
+                    Ok(response) => {
+                        // Check if face auth is required
+                        if response.code != 0 {
+                            if let Some(ref data) = response.data {
+                                if data.need_face_auth && !data.qr.is_empty() {
+                                    info!("Face auth required for starting live");
+                                    let _ = event_tx.send(Event::FaceAuthRequired {
+                                        qr_url: data.qr.clone(),
+                                    });
+                                    continue;
+                                }
+                            }
+                            error!("Failed to start live: {} (code: {})", response.message, response.code);
+                            continue;
+                        }
+
                         info!("Live started successfully");
 
-                        if let Some(rtmp) = data.get("rtmp") {
-                            if let (Some(addr), Some(code)) = (
-                                rtmp.get("addr").and_then(|v| v.as_str()),
-                                rtmp.get("code").and_then(|v| v.as_str()),
-                            ) {
+                        if let Some(ref data) = response.data {
+                            if let Some(ref rtmp) = data.rtmp {
                                 let _ = event_tx.send(Event::RtmpInfo {
-                                    addr: addr.to_string(),
-                                    code: code.to_string(),
+                                    addr: rtmp.addr.clone(),
+                                    code: rtmp.code.clone(),
                                 });
                             }
                         }
@@ -1131,6 +1145,7 @@ async fn run_backend(
                     room_id: current_room.clone(),
                     title: room_info.title.clone(),
                     live_status: room_info.live_status,
+                    area_id: room_info.area_id,
                 });
             }
             Err(e) => {

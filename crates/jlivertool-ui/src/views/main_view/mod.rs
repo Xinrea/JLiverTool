@@ -59,6 +59,7 @@ pub struct MainView {
     room: Option<RoomId>,
     room_title: String,
     live_status: u8,
+    area_id: u64,
     online_count: u64,
     connected: bool,
     danmu_list: VecDeque<DisplayMessage>,
@@ -218,18 +219,18 @@ impl MainView {
 
             view.on_start_live({
                 let tx = command_tx.clone();
-                move |room_id, _window, _cx| {
+                move |room_id, area_id, _window, _cx| {
                     let _ = tx.send(UiCommand::StartLive {
                         room_id,
-                        area_v2: 235,
+                        area_v2: area_id,
                     });
                 }
             });
 
             view.on_stop_live({
                 let tx = command_tx.clone();
-                move |_window, _cx| {
-                    let _ = tx.send(UiCommand::StopLive { room_id: 0 });
+                move |room_id, _window, _cx| {
+                    let _ = tx.send(UiCommand::StopLive { room_id });
                 }
             });
 
@@ -432,6 +433,7 @@ impl MainView {
             room: None,
             room_title: String::new(),
             live_status: 0,
+            area_id: 0,
             online_count: 0,
             connected: false,
             danmu_list: VecDeque::with_capacity(MAX_DANMU_COUNT),
@@ -563,6 +565,7 @@ impl MainView {
             let state = TrayState {
                 room_id: self.room.as_ref().map(|r| r.real_id()),
                 room_title: self.room_title.clone(),
+                area_id: self.area_id,
                 live_status: self.live_status,
                 logged_in: self.logged_in,
                 is_room_owner,

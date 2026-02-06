@@ -21,6 +21,7 @@ pub enum Event {
         room_id: RoomId,
         title: String,
         live_status: u8,
+        area_id: u64,
     },
 
     /// Online count updated
@@ -106,6 +107,11 @@ pub enum Event {
     RtmpInfo {
         addr: String,
         code: String,
+    },
+
+    /// Face authentication required for starting live
+    FaceAuthRequired {
+        qr_url: String,
     },
 
     /// Clear danmu list (used when changing rooms)
@@ -270,6 +276,7 @@ impl EventBus {
             Event::QrLoginStatus { .. } => "qr_login_status",
             Event::RequestLogout => "request_logout",
             Event::RtmpInfo { .. } => "rtmp_info",
+            Event::FaceAuthRequired { .. } => "face_auth_required",
             Event::ClearDanmuList => "clear_danmu_list",
             Event::UserInfoFetched { .. } => "user_info_fetched",
             Event::AudienceListFetched { .. } => "audience_list_fetched",

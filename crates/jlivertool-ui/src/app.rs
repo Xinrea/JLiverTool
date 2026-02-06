@@ -339,14 +339,14 @@ pub fn run_app_with_tray(
                                     cx.refresh_windows();
                                 });
                             }
-                            TrayCommand::StartLive => {
+                            TrayCommand::StartLive(room_id, area_v2) => {
                                 let _ = command_tx_clone.send(UiCommand::StartLive {
-                                    room_id: 0,
-                                    area_v2: 235,
+                                    room_id,
+                                    area_v2,
                                 });
                             }
-                            TrayCommand::StopLive => {
-                                let _ = command_tx_clone.send(UiCommand::StopLive { room_id: 0 });
+                            TrayCommand::StopLive(room_id) => {
+                                let _ = command_tx_clone.send(UiCommand::StopLive { room_id });
                             }
                             TrayCommand::Quit => {
                                 let _ = cx.update(|cx| {

@@ -18,6 +18,8 @@ use std::sync::Arc;
 type SimpleCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
 /// Type alias for room-related callbacks (room_id parameter)
 type RoomCallback = Arc<dyn Fn(u64, &mut Window, &mut App) + Send + Sync>;
+/// Type alias for start live callback (room_id, area_id parameters)
+type StartLiveCallback = Arc<dyn Fn(u64, u64, &mut Window, &mut App) + Send + Sync>;
 /// Type alias for opacity/font size callbacks (f32 parameter)
 type FloatCallback = Arc<dyn Fn(f32, &mut Window, &mut App) + Send + Sync>;
 /// Type alias for window settings callback (5 bool parameters)
@@ -67,6 +69,13 @@ pub struct SettingView {
     room_owner_uid: Option<u64>,
     // Room title (for room owners to edit)
     room_title: String,
+    // Room area ID (for starting live)
+    area_id: u64,
+    // Face auth dialog state
+    show_face_auth_dialog: bool,
+    face_auth_qr_url: String,
+    // Face auth QR code view
+    face_auth_qr_view: Entity<QrCodeView>,
     // Room editing state
     room_input: Arc<RwLock<RoomInputState>>,
     // Account info
@@ -81,8 +90,8 @@ pub struct SettingView {
     on_open_gift_window: Option<SimpleCallback>,
     on_open_superchat_window: Option<SimpleCallback>,
     on_open_statistics_window: Option<SimpleCallback>,
-    on_start_live: Option<RoomCallback>,
-    on_stop_live: Option<SimpleCallback>,
+    on_start_live: Option<StartLiveCallback>,
+    on_stop_live: Option<RoomCallback>,
     on_window_settings_change: Option<WindowSettingsCallback>,
     on_theme_change: Option<ThemeCallback>,
     on_font_size_change: Option<FloatCallback>,
@@ -264,12 +273,17 @@ impl Default for SettingsData {
 impl SettingView {
     pub fn new(cx: &mut Context<Self>) -> Self {
         let qr_code_view = cx.new(QrCodeView::new);
+        let face_auth_qr_view = cx.new(QrCodeView::new);
 
         Self {
             settings: Arc::new(RwLock::new(SettingsData::default())),
             room_id: None,
             room_owner_uid: None,
             room_title: String::new(),
+            area_id: 0,
+            show_face_auth_dialog: false,
+            face_auth_qr_url: String::new(),
+            face_auth_qr_view,
             room_input: Arc::new(RwLock::new(RoomInputState::default())),
             account: Arc::new(RwLock::new(AccountState::default())),
             qr_code_view,
@@ -328,6 +342,35 @@ impl SettingView {
     /// Set room title
     pub fn set_room_title(&mut self, title: String, cx: &mut Context<Self>) {
         self.room_title = title;
+        cx.notify();
+    }
+
+    /// Set area ID for starting live
+    pub fn set_area_id(&mut self, area_id: u64, cx: &mut Context<Self>) {
+        self.area_id = area_id;
+        cx.notify();
+    }
+
+    /// Get area ID for starting live
+    pub fn get_area_id(&self) -> u64 {
+        self.area_id
+    }
+
+    /// Show face auth dialog with QR code
+    pub fn show_face_auth_dialog(&mut self, qr_url: String, cx: &mut Context<Self>) {
+        self.face_auth_qr_url = qr_url.clone();
+        self.show_face_auth_dialog = true;
+        // Set the QR code data
+        self.face_auth_qr_view.update(cx, |view, cx| {
+            view.set_data(qr_url, cx);
+        });
+        cx.notify();
+    }
+
+    /// Hide face auth dialog
+    pub fn hide_face_auth_dialog(&mut self, cx: &mut Context<Self>) {
+        self.show_face_auth_dialog = false;
+        self.face_auth_qr_url.clear();
         cx.notify();
     }
 
@@ -406,14 +449,14 @@ impl SettingView {
 
     pub fn on_start_live<F>(&mut self, callback: F)
     where
-        F: Fn(u64, &mut Window, &mut App) + Send + Sync + 'static,
+        F: Fn(u64, u64, &mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_start_live = Some(Arc::new(callback));
     }
 
     pub fn on_stop_live<F>(&mut self, callback: F)
     where
-        F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
+        F: Fn(u64, &mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_stop_live = Some(Arc::new(callback));
     }
@@ -1221,6 +1264,7 @@ impl SettingView {
         let on_stop_live = self.on_stop_live.clone();
         let rtmp_info = self.rtmp_info.read().clone();
         let room_id = self.room_id;
+        let area_id = self.area_id;
         let is_live = rtmp_info.is_some();
 
         self.render_section_card(
@@ -1352,7 +1396,7 @@ impl SettingView {
                                         .on_click(cx.listener(move |_view, _event, window, cx| {
                                             if let Some(ref callback) = on_start_live {
                                                 if let Some(room_id) = room_id {
-                                                    callback(room_id, window, cx);
+                                                    callback(room_id, area_id, window, cx);
                                                 }
                                             }
                                         })),
@@ -1399,7 +1443,9 @@ impl SettingView {
                                         .child("停止直播")
                                         .on_click(cx.listener(move |_view, _event, window, cx| {
                                             if let Some(ref callback) = on_stop_live {
-                                                callback(window, cx);
+                                                if let Some(room_id) = room_id {
+                                                    callback(room_id, window, cx);
+                                                }
                                             }
                                         })),
                                 ),
@@ -3512,5 +3558,73 @@ impl Render for SettingView {
                             ),
                     ),
             )
+            // Face auth dialog overlay
+            .when(self.show_face_auth_dialog, |this| {
+                this.child(
+                    div()
+                        .absolute()
+                        .inset_0()
+                        .bg(gpui::black().opacity(0.5))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(
+                            v_flex()
+                                .w(px(320.0))
+                                .p_6()
+                                .rounded(px(12.0))
+                                .bg(Colors::bg_primary())
+                                .border_1()
+                                .border_color(Colors::bg_hover())
+                                .gap_4()
+                                .child(
+                                    h_flex()
+                                        .w_full()
+                                        .items_center()
+                                        .justify_between()
+                                        .child(
+                                            div()
+                                                .text_size(px(16.0))
+                                                .font_weight(FontWeight::BOLD)
+                                                .text_color(Colors::text_primary())
+                                                .child("人脸认证"),
+                                        )
+                                        .child(
+                                            div()
+                                                .id("close-face-auth")
+                                                .cursor_pointer()
+                                                .p_1()
+                                                .rounded(px(4.0))
+                                                .hover(|s| s.bg(Colors::bg_hover()))
+                                                .text_color(Colors::text_muted())
+                                                .child("✕")
+                                                .on_click(cx.listener(|view, _event, _window, cx| {
+                                                    view.hide_face_auth_dialog(cx);
+                                                })),
+                                        ),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(13.0))
+                                        .text_color(Colors::text_secondary())
+                                        .child("请使用哔哩哔哩APP扫描下方二维码完成人脸认证"),
+                                )
+                                .child(
+                                    div()
+                                        .w_full()
+                                        .flex()
+                                        .justify_center()
+                                        .child(self.face_auth_qr_view.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(12.0))
+                                        .text_color(Colors::text_muted())
+                                        .text_align(gpui::TextAlign::Center)
+                                        .child("认证完成后请重新点击开始直播"),
+                                ),
+                        ),
+                )
+            })
     }
 }

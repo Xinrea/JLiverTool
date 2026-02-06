@@ -31,6 +31,37 @@ impl<T> ApiResponse<T> {
     }
 }
 
+/// Start live response data
+#[derive(Debug, Clone, Deserialize)]
+pub struct StartLiveData {
+    /// Whether face auth is needed
+    #[serde(default)]
+    pub need_face_auth: bool,
+    /// QR code URL for face auth (if needed)
+    #[serde(default)]
+    pub qr: String,
+    /// RTMP info (if live started successfully)
+    pub rtmp: Option<RtmpData>,
+    /// Change status (1 = started, 0 = already live)
+    #[serde(default)]
+    pub change: i32,
+}
+
+/// RTMP connection info
+#[derive(Debug, Clone, Deserialize)]
+pub struct RtmpData {
+    pub addr: String,
+    pub code: String,
+}
+
+/// Start live response (includes code for face auth check)
+#[derive(Debug, Clone)]
+pub struct StartLiveResponse {
+    pub code: i32,
+    pub message: String,
+    pub data: Option<StartLiveData>,
+}
+
 /// Room init response
 #[derive(Debug, Deserialize)]
 pub struct RoomInitData {
@@ -49,7 +80,9 @@ pub struct RoomInfoData {
     pub uid: u64,
     pub title: String,
     pub live_status: u8,
+    pub area_id: u64,
     pub area_name: String,
+    pub parent_area_id: u64,
     pub parent_area_name: String,
     pub keyframe: String,
     pub tags: String,
@@ -525,7 +558,8 @@ impl BiliApi {
     }
 
     /// Start live stream
-    pub async fn start_live(&self, room_id: u64, area_v2: u64) -> Result<serde_json::Value> {
+    /// Returns StartLiveResponse which includes code for checking face auth requirement
+    pub async fn start_live(&self, room_id: u64, area_v2: u64) -> Result<StartLiveResponse> {
         let cookies = self
             .cookies
             .as_ref()
@@ -539,7 +573,13 @@ impl BiliApi {
         form.insert("csrf_token".to_string(), cookies.bili_jct.clone());
 
         let url = format!("{}/room/v1/Room/startLive", LIVE_API_BASE);
-        self.post_form(&url, &form).await?.into_result()
+        let resp: ApiResponse<StartLiveData> = self.post_form(&url, &form).await?;
+
+        Ok(StartLiveResponse {
+            code: resp.code,
+            message: resp.message,
+            data: resp.data,
+        })
     }
 
     /// Stop live stream
@@ -551,6 +591,7 @@ impl BiliApi {
 
         let mut form = HashMap::new();
         form.insert("room_id".to_string(), room_id.to_string());
+        form.insert("platform".to_string(), "pc_link".to_string());
         form.insert("csrf".to_string(), cookies.bili_jct.clone());
         form.insert("csrf_token".to_string(), cookies.bili_jct.clone());
 

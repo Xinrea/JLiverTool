@@ -13,6 +13,7 @@ impl MainView {
                     room_id,
                     title,
                     live_status,
+                    area_id,
                 } => {
                     let real_id = room_id.real_id();
                     let owner_uid = room_id.owner_uid();
@@ -20,6 +21,7 @@ impl MainView {
                     self.setting_view.update(cx, |view, cx| {
                         view.set_room_id(Some(real_id), Some(owner_uid), cx);
                         view.set_room_title(title_clone, cx);
+                        view.set_area_id(area_id, cx);
                     });
 
                     let is_new_room = self.room.as_ref().map(|r| r.real_id()) != Some(real_id);
@@ -55,6 +57,7 @@ impl MainView {
 
                     self.room = Some(room_id);
                     self.room_title = title;
+                    self.area_id = area_id;
 
                     if is_new_room {
                         self.live_status = live_status;
@@ -267,6 +270,11 @@ impl MainView {
                 Event::RtmpInfo { addr, code } => {
                     self.setting_view.update(cx, |view, cx| {
                         view.set_rtmp_info(addr, code, cx);
+                    });
+                }
+                Event::FaceAuthRequired { qr_url } => {
+                    self.setting_view.update(cx, |view, cx| {
+                        view.show_face_auth_dialog(qr_url, cx);
                     });
                 }
                 Event::ClearDanmuList => {

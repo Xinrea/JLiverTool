@@ -20,10 +20,10 @@ pub enum TrayCommand {
     ToggleWindow,
     /// Open settings window
     OpenSettings,
-    /// Start live streaming
-    StartLive,
-    /// Stop live streaming
-    StopLive,
+    /// Start live streaming (room_id, area_id)
+    StartLive(u64, u64),
+    /// Stop live streaming (room_id)
+    StopLive(u64),
     /// Quit the application
     Quit,
 }
@@ -33,6 +33,7 @@ pub enum TrayCommand {
 pub struct TrayState {
     pub room_id: Option<u64>,
     pub room_title: String,
+    pub area_id: u64,
     pub live_status: u8,
     pub logged_in: bool,
     pub is_room_owner: bool,
@@ -173,9 +174,13 @@ impl TrayManager {
             } else if event.id == self.menu_ids.settings.id() {
                 Some(TrayCommand::OpenSettings)
             } else if event.id == self.menu_ids.start_live.id() {
-                Some(TrayCommand::StartLive)
+                self.state.room_id.map(|room_id| {
+                    TrayCommand::StartLive(room_id, self.state.area_id)
+                })
             } else if event.id == self.menu_ids.stop_live.id() {
-                Some(TrayCommand::StopLive)
+                self.state.room_id.map(|room_id| {
+                    TrayCommand::StopLive(room_id)
+                })
             } else if event.id == self.menu_ids.quit.id() {
                 Some(TrayCommand::Quit)
             } else {
