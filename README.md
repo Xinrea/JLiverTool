@@ -1,6 +1,5 @@
 # JLiverTool
 
-[![CodeFactor](https://www.codefactor.io/repository/github/xinrea/jlivertool/badge)](https://www.codefactor.io/repository/github/xinrea/jlivertool)
 [![GitHub release (latest by date)](https://img.shields.io/github/downloads/xinrea/jlivertool/total.svg)](https://github.com/Xinrea/JLiverTool/releases)
 
 ![screenshot](imgs/screenshot.png)
