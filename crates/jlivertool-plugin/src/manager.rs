@@ -6,6 +6,7 @@ use std::sync::{Arc, RwLock};
 use tokio::sync::broadcast;
 
 use crate::events::PluginEvent;
+use crate::http_server::PluginHttpServer;
 use crate::plugin::{Plugin, PluginMeta, PluginState};
 use crate::ws_server::PluginWsServer;
 
@@ -23,6 +24,8 @@ struct GitHubContent {
 pub struct PluginManager {
     plugins: Arc<RwLock<HashMap<String, Plugin>>>,
     ws_server: Option<PluginWsServer>,
+    http_server: Option<PluginHttpServer>,
+    plugins_dir: Option<PathBuf>,
 }
 
 impl PluginManager {
@@ -30,6 +33,8 @@ impl PluginManager {
         Self {
             plugins: Arc::new(RwLock::new(HashMap::new())),
             ws_server: None,
+            http_server: None,
+            plugins_dir: None,
         }
     }
 
@@ -45,11 +50,17 @@ impl PluginManager {
 
     /// Start the WebSocket server for plugin communication
     pub async fn start_ws_server(&mut self) -> Result<u16> {
+        self.start_ws_server_on_port(0).await
+    }
+
+    /// Start the WebSocket server on a specific port
+    /// If port is 0, a random available port will be used
+    pub async fn start_ws_server_on_port(&mut self, port: u16) -> Result<u16> {
         let mut server = PluginWsServer::new();
-        server.start().await?;
-        let port = server.port();
+        server.start_on_port(port).await?;
+        let actual_port = server.port();
         self.ws_server = Some(server);
-        Ok(port)
+        Ok(actual_port)
     }
 
     /// Stop the WebSocket server
@@ -57,6 +68,38 @@ impl PluginManager {
         if let Some(mut server) = self.ws_server.take() {
             server.stop().await;
         }
+    }
+
+    /// Start the HTTP server for serving plugin files
+    pub async fn start_http_server(&mut self, plugins_dir: PathBuf) -> Result<u16> {
+        self.start_http_server_on_port(plugins_dir, 0).await
+    }
+
+    /// Start the HTTP server on a specific port
+    /// If port is 0, a random available port will be used
+    pub async fn start_http_server_on_port(&mut self, plugins_dir: PathBuf, port: u16) -> Result<u16> {
+        self.plugins_dir = Some(plugins_dir.clone());
+        let mut server = PluginHttpServer::new();
+        let actual_port = server.start_on_port(plugins_dir, port).await?;
+        self.http_server = Some(server);
+        Ok(actual_port)
+    }
+
+    /// Stop the HTTP server
+    pub async fn stop_http_server(&mut self) {
+        if let Some(mut server) = self.http_server.take() {
+            server.stop().await;
+        }
+    }
+
+    /// Get the HTTP server port (if started)
+    pub fn http_port(&self) -> Option<u16> {
+        self.http_server.as_ref().map(|s| s.port())
+    }
+
+    /// Get the plugins directory
+    pub fn plugins_dir(&self) -> Option<&PathBuf> {
+        self.plugins_dir.as_ref()
     }
 
     /// Broadcast an event to all connected plugins

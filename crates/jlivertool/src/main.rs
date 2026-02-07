@@ -81,10 +81,17 @@ struct EventSender {
 
 impl EventSender {
     fn new(tx: mpsc::Sender<Event>, has_events: Arc<AtomicBool>) -> Self {
-        Self { tx, has_events, plugin_tx: None }
+        Self {
+            tx,
+            has_events,
+            plugin_tx: None,
+        }
     }
 
-    fn with_plugin_sender(mut self, plugin_tx: tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>) -> Self {
+    fn with_plugin_sender(
+        mut self,
+        plugin_tx: tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>,
+    ) -> Self {
         self.plugin_tx = Some(plugin_tx);
         self
     }
@@ -135,6 +142,7 @@ fn main() -> Result<()> {
     // need to be created separately due to thread safety constraints)
     let plugin_manager = Arc::new(parking_lot::Mutex::new(PluginManager::new()));
     let plugins_dir = config.read().data_dir().join("plugins");
+
     match plugin_manager.lock().scan_plugins_dir(&plugins_dir) {
         Ok(loaded) => {
             if !loaded.is_empty() {
@@ -162,9 +170,22 @@ fn main() -> Result<()> {
         .collect();
 
     // Start WebSocket server for plugin communication (always start, even if no plugins yet)
-    let (ws_port, plugin_event_tx) = {
+    // Get configured ports from config
+    let (configured_ws_port, configured_http_port) = {
+        let cfg = config.read().get_config();
+        (cfg.plugin_ws_port, cfg.plugin_http_port)
+    };
+
+    let (ws_port, http_port, plugin_event_tx) = {
         let plugin_manager_clone = plugin_manager.clone();
-        let (port_tx, port_rx) = std::sync::mpsc::channel::<Option<(u16, tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>)>>();
+        let plugins_dir_clone = plugins_dir.clone();
+        let (port_tx, port_rx) = std::sync::mpsc::channel::<
+            Option<(
+                u16,
+                u16,
+                tokio::sync::broadcast::Sender<jlivertool_plugin::PluginEvent>,
+            )>,
+        >();
         std::thread::spawn(move || {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -172,42 +193,65 @@ fn main() -> Result<()> {
                 .expect("Failed to create tokio runtime for plugin WS server");
 
             runtime.block_on(async move {
-                // Start the WebSocket server
-                let result = {
+                // Start the WebSocket server on configured port
+                let ws_result = {
                     let mut pm = plugin_manager_clone.lock();
-                    pm.start_ws_server().await
+                    pm.start_ws_server_on_port(configured_ws_port).await
                 };
 
-                match result {
+                let ws_port = match ws_result {
                     Ok(port) => {
                         info!("Plugin WebSocket server started on port {}", port);
-                        // Get the event sender
-                        let event_sender = {
-                            let pm = plugin_manager_clone.lock();
-                            pm.get_event_sender()
-                        };
-                        if let Some(sender) = event_sender {
-                            let _ = port_tx.send(Some((port, sender)));
-                        } else {
-                            let _ = port_tx.send(None);
-                        }
-                        // Keep the runtime alive to maintain the WebSocket server
-                        // Wait indefinitely (server runs in background)
-                        loop {
-                            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
-                        }
+                        port
                     }
                     Err(e) => {
                         error!("Failed to start plugin WebSocket server: {}", e);
                         let _ = port_tx.send(None);
+                        return;
                     }
+                };
+
+                // Start the HTTP server on configured port
+                let http_result = {
+                    let mut pm = plugin_manager_clone.lock();
+                    pm.start_http_server_on_port(plugins_dir_clone, configured_http_port)
+                        .await
+                };
+
+                let http_port = match http_result {
+                    Ok(port) => {
+                        info!("Plugin HTTP server started on port {}", port);
+                        port
+                    }
+                    Err(e) => {
+                        error!("Failed to start plugin HTTP server: {}", e);
+                        let _ = port_tx.send(None);
+                        return;
+                    }
+                };
+
+                // Get the event sender
+                let event_sender = {
+                    let pm = plugin_manager_clone.lock();
+                    pm.get_event_sender()
+                };
+
+                if let Some(sender) = event_sender {
+                    let _ = port_tx.send(Some((ws_port, http_port, sender)));
+                } else {
+                    let _ = port_tx.send(None);
+                }
+
+                // Keep the runtime alive to maintain the servers
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
                 }
             });
         });
-        // Wait for the port and event sender to be available
+        // Wait for the ports and event sender to be available
         match port_rx.recv().unwrap_or(None) {
-            Some((port, sender)) => (Some(port), Some(sender)),
-            None => (None, None),
+            Some((ws_port, http_port, sender)) => (Some(ws_port), Some(http_port), Some(sender)),
+            None => (None, None, None),
         }
     };
 
@@ -264,7 +308,16 @@ fn main() -> Result<()> {
             .expect("Failed to create tokio runtime");
 
         runtime.block_on(async move {
-            if let Err(e) = run_backend(event_sender_clone, config_clone, api_clone, db_clone, tts_clone, backend_cmd_rx).await {
+            if let Err(e) = run_backend(
+                event_sender_clone,
+                config_clone,
+                api_clone,
+                db_clone,
+                tts_clone,
+                backend_cmd_rx,
+            )
+            .await
+            {
                 error!("Backend error: {}", e);
             }
         });
@@ -284,7 +337,17 @@ fn main() -> Result<()> {
             .expect("Failed to create tokio runtime");
 
         runtime.block_on(async move {
-            handle_commands(command_rx, event_sender_clone, config_clone, api_clone, tts_clone, plugin_manager_clone, db_clone_for_commands, backend_cmd_tx).await;
+            handle_commands(
+                command_rx,
+                event_sender_clone,
+                config_clone,
+                api_clone,
+                tts_clone,
+                plugin_manager_clone,
+                db_clone_for_commands,
+                backend_cmd_tx,
+            )
+            .await;
         });
     });
 
@@ -370,6 +433,7 @@ fn main() -> Result<()> {
         has_events,
         ui_plugins,
         ws_port,
+        http_port,
     );
 
     Ok(())
@@ -555,7 +619,10 @@ async fn handle_commands(
                 info!("Sending danmu to room {}: {}", room_id, message);
                 let api_read = api.read().clone();
 
-                match api_read.send_danmu(room_id, &message, 1, 16777215, 25).await {
+                match api_read
+                    .send_danmu(room_id, &message, 1, 16777215, 25)
+                    .await
+                {
                     Ok(_) => {
                         info!("Danmu sent successfully");
                     }
@@ -607,7 +674,10 @@ async fn handle_commands(
                                     continue;
                                 }
                             }
-                            error!("Failed to start live: {} (code: {})", response.message, response.code);
+                            error!(
+                                "Failed to start live: {} (code: {})",
+                                response.message, response.code
+                            );
                             continue;
                         }
 
@@ -725,7 +795,11 @@ async fn handle_commands(
                     }
                 });
             }
-            UiCommand::FetchGuardList { room_id, ruid, page } => {
+            UiCommand::FetchGuardList {
+                room_id,
+                ruid,
+                page,
+            } => {
                 info!("Fetching guard list for room {} page {}", room_id, page);
                 let api_read = api.read().clone();
                 let event_tx = event_tx.clone();
@@ -736,7 +810,11 @@ async fn handle_commands(
                             // Combine top3 and list
                             let mut combined_list = data.top3;
                             combined_list.extend(data.list);
-                            info!("Guard list fetched: {} guards (total: {})", combined_list.len(), data.info.num);
+                            info!(
+                                "Guard list fetched: {} guards (total: {})",
+                                combined_list.len(),
+                                data.info.num
+                            );
                             let _ = event_tx.send(Event::GuardListFetched {
                                 list: combined_list,
                                 total: data.info.num,
@@ -766,8 +844,15 @@ async fn handle_commands(
                     error!("Failed to save window bounds: {}", e);
                 }
             }
-            UiCommand::UpdateTtsEnabled { danmu, gift, superchat } => {
-                info!("Updating TTS enabled: danmu={}, gift={}, superchat={}", danmu, gift, superchat);
+            UiCommand::UpdateTtsEnabled {
+                danmu,
+                gift,
+                superchat,
+            } => {
+                info!(
+                    "Updating TTS enabled: danmu={}, gift={}, superchat={}",
+                    danmu, gift, superchat
+                );
                 tts_manager.set_enabled(TtsEnabled {
                     danmu,
                     gift,
@@ -835,7 +920,9 @@ async fn handle_commands(
                     .collect();
                 info!("Sending {} plugins to UI", plugin_events.len());
 
-                let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
+                let _ = event_tx.send(Event::PluginsRefreshed {
+                    plugins: plugin_events,
+                });
             }
             UiCommand::ImportPlugin(github_url) => {
                 info!("Importing plugin from GitHub: {}", github_url);
@@ -865,19 +952,25 @@ async fn handle_commands(
 
                                     // Refresh plugins list
                                     let pm = pm.lock();
-                                    let plugin_events: Vec<jlivertool_core::events::PluginInfoEvent> = pm
+                                    let plugin_events: Vec<
+                                        jlivertool_core::events::PluginInfoEvent,
+                                    > = pm
                                         .get_plugins_with_paths()
                                         .into_iter()
-                                        .map(|(meta, path)| jlivertool_core::events::PluginInfoEvent {
-                                            id: meta.id,
-                                            name: meta.name,
-                                            author: meta.author,
-                                            desc: meta.desc,
-                                            version: meta.version,
-                                            path,
+                                        .map(|(meta, path)| {
+                                            jlivertool_core::events::PluginInfoEvent {
+                                                id: meta.id,
+                                                name: meta.name,
+                                                author: meta.author,
+                                                desc: meta.desc,
+                                                version: meta.version,
+                                                path,
+                                            }
                                         })
                                         .collect();
-                                    let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
+                                    let _ = event_tx.send(Event::PluginsRefreshed {
+                                        plugins: plugin_events,
+                                    });
                                 }
                                 Err(e) => {
                                     error!("Failed to load plugin: {}", e);
@@ -898,7 +991,10 @@ async fn handle_commands(
                     }
                 });
             }
-            UiCommand::RemovePlugin { plugin_id, plugin_path } => {
+            UiCommand::RemovePlugin {
+                plugin_id,
+                plugin_path,
+            } => {
                 info!("Removing plugin: {} at {:?}", plugin_id, plugin_path);
                 let pm = plugin_manager.lock();
 
@@ -919,15 +1015,23 @@ async fn handle_commands(
                                 path,
                             })
                             .collect();
-                        let _ = event_tx.send(Event::PluginsRefreshed { plugins: plugin_events });
+                        let _ = event_tx.send(Event::PluginsRefreshed {
+                            plugins: plugin_events,
+                        });
                     }
                     Err(e) => {
                         error!("Failed to remove plugin: {}", e);
                     }
                 }
             }
-            UiCommand::UpdateAdvancedSettings { max_danmu, log_level } => {
-                info!("Updating advanced settings: max_danmu={}, log_level={}", max_danmu, log_level);
+            UiCommand::UpdateAdvancedSettings {
+                max_danmu,
+                log_level,
+            } => {
+                info!(
+                    "Updating advanced settings: max_danmu={}, log_level={}",
+                    max_danmu, log_level
+                );
                 let config_write = config.write();
                 if let Err(e) = config_write.set("max_danmu_count", max_danmu) {
                     error!("Failed to save max_danmu_count: {}", e);
@@ -956,9 +1060,7 @@ async fn handle_commands(
                 // Open the folder using the system's default file manager
                 #[cfg(target_os = "macos")]
                 {
-                    let _ = std::process::Command::new("open")
-                        .arg(&data_dir)
-                        .spawn();
+                    let _ = std::process::Command::new("open").arg(&data_dir).spawn();
                 }
                 #[cfg(target_os = "windows")]
                 {
@@ -1004,6 +1106,15 @@ async fn handle_commands(
                 info!("Updating auto update check setting: {}", enabled);
                 if let Err(e) = config.write().set("auto_update_check", enabled) {
                     error!("Failed to save auto_update_check: {}", e);
+                }
+            }
+            UiCommand::UpdatePluginPorts { ws_port, http_port } => {
+                info!("Updating plugin ports: WS={}, HTTP={}", ws_port, http_port);
+                if let Err(e) = config.write().set("plugin_ws_port", ws_port) {
+                    error!("Failed to save plugin_ws_port: {}", e);
+                }
+                if let Err(e) = config.write().set("plugin_http_port", http_port) {
+                    error!("Failed to save plugin_http_port: {}", e);
                 }
             }
         }
@@ -1316,7 +1427,11 @@ fn handle_message(
                     warn!("Failed to store gift: {}", e);
                 }
                 // TTS for gift
-                tts_manager.speak(TtsMessage::gift(&gift.sender.uname, &gift.gift_info.name, gift.num));
+                tts_manager.speak(TtsMessage::gift(
+                    &gift.sender.uname,
+                    &gift.gift_info.name,
+                    gift.num,
+                ));
                 let _ = event_tx.send(Event::NewGift(gift));
             }
         }
@@ -1340,16 +1455,18 @@ fn handle_message(
             if let Some(sc) = SuperChatMessage::from_raw(body, room_id) {
                 info!(
                     "New superchat: {} sent ¥{} - {}",
-                    sc.sender.uname,
-                    sc.price,
-                    sc.message
+                    sc.sender.uname, sc.price, sc.message
                 );
                 // Store in database
                 if let Err(e) = database.insert_superchat(&sc) {
                     warn!("Failed to store superchat: {}", e);
                 }
                 // TTS for superchat
-                tts_manager.speak(TtsMessage::superchat(&sc.sender.uname, sc.price, &sc.message));
+                tts_manager.speak(TtsMessage::superchat(
+                    &sc.sender.uname,
+                    sc.price,
+                    &sc.message,
+                ));
                 let _ = event_tx.send(Event::NewSuperChat(sc));
             }
         }
@@ -1365,7 +1482,10 @@ fn handle_message(
         }
         "ROOM_CHANGE" => {
             if let Some(room_change) = RoomChangeMessage::from_raw(body) {
-                info!("Room changed: title={}, area={}/{}", room_change.title, room_change.parent_area_name, room_change.area_name);
+                info!(
+                    "Room changed: title={}, area={}/{}",
+                    room_change.title, room_change.parent_area_name, room_change.area_name
+                );
                 let _ = event_tx.send(Event::RoomChange(room_change));
             }
         }

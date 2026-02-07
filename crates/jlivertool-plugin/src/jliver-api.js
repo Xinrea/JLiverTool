@@ -1,5 +1,5 @@
-// JLiverTool Plugin Preload Script
-// This script is injected into plugin webviews to provide the jliverAPI
+// JLiverTool Plugin API Script
+// This script is served by the HTTP server and provides the jliverAPI to plugins
 
 (function() {
     'use strict';

@@ -21,7 +21,6 @@ use crate::app::UiCommand;
 use crate::tray::{TrayManager, TrayState};
 use crate::views::AudienceView;
 use crate::views::GiftView;
-use crate::views::PluginWindowView;
 use crate::views::SettingView;
 use crate::views::StatisticsView;
 use crate::views::SuperChatView;
@@ -31,7 +30,6 @@ use jlivertool_core::events::Event;
 use jlivertool_core::types::RoomId;
 use std::cell::Cell;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -111,10 +109,10 @@ pub struct MainView {
     selected_user: SelectedUserState,
     // Last saved window bounds (to avoid saving on every frame)
     last_saved_bounds: Option<(i32, i32, u32, u32)>,
-    // Plugin windows (plugin_id -> window handle)
-    plugin_windows: HashMap<String, AnyWindowHandle>,
     // WebSocket port for plugin communication
     ws_port: Option<u16>,
+    // HTTP port for serving plugin files
+    http_port: Option<u16>,
     // Command autocomplete state
     show_command_popup: Rc<Cell<bool>>,
     selected_command_index: Rc<Cell<usize>>,
@@ -342,7 +340,7 @@ impl MainView {
                 let entity = entity.clone();
                 move |plugin_id, plugin_name, plugin_path, window, cx| {
                     let _ = entity.update(cx, |view, cx| {
-                        view.open_plugin_window(plugin_id, plugin_name, plugin_path, window, cx);
+                        view.open_plugin_in_browser(plugin_id, plugin_name, plugin_path, window, cx);
                     });
                 }
             });
@@ -424,6 +422,13 @@ impl MainView {
                     let _ = tx.send(UiCommand::UpdateAutoUpdateCheck(enabled));
                 }
             });
+
+            view.on_plugin_port_change({
+                let tx = command_tx.clone();
+                move |ws_port, http_port, _window, _cx| {
+                    let _ = tx.send(UiCommand::UpdatePluginPorts { ws_port, http_port });
+                }
+            });
         });
 
         let this = Self {
@@ -465,8 +470,8 @@ impl MainView {
             pending_input_clear: Rc::new(Cell::new(false)),
             selected_user: Rc::new(RefCell::new(None)),
             last_saved_bounds: None,
-            plugin_windows: HashMap::new(),
             ws_port: None,
+            http_port: None,
             show_command_popup: Rc::new(Cell::new(false)),
             selected_command_index: Rc::new(Cell::new(0)),
             pending_command_insert: Rc::new(RefCell::new(None)),
@@ -521,8 +526,25 @@ impl MainView {
     }
 
     /// Set the WebSocket port for plugin communication
-    pub fn set_ws_port(&mut self, port: u16) {
+    pub fn set_ws_port(&mut self, port: u16, cx: &mut Context<Self>) {
         self.ws_port = Some(port);
+        // Update setting view with the port
+        if let Some(http_port) = self.http_port {
+            self.setting_view.update(cx, |view, cx| {
+                view.set_plugin_ports(port, http_port, cx);
+            });
+        }
+    }
+
+    /// Set the HTTP port for serving plugin files
+    pub fn set_http_port(&mut self, port: u16, cx: &mut Context<Self>) {
+        self.http_port = Some(port);
+        // Update setting view with the port
+        if let Some(ws_port) = self.ws_port {
+            self.setting_view.update(cx, |view, cx| {
+                view.set_plugin_ports(ws_port, port, cx);
+            });
+        }
     }
 
     /// Set the database reference
@@ -1028,72 +1050,51 @@ impl MainView {
         }
     }
 
-    /// Open plugin window
-    fn open_plugin_window(
-        &mut self,
-        plugin_id: String,
-        plugin_name: String,
+    /// Open plugin in the system's default browser
+    fn open_plugin_in_browser(
+        &self,
+        _plugin_id: String,
+        _plugin_name: String,
         plugin_path: PathBuf,
         _window: &mut Window,
-        cx: &mut Context<Self>,
+        _cx: &mut Context<Self>,
     ) {
-        use gpui_component::Root;
-
-        // Check if window is already open and focus it
-        if let Some(handle) = self.plugin_windows.get(&plugin_id) {
-            if cx
-                .update_window(*handle, |_, window, _cx| {
-                    window.activate_window();
-                })
-                .is_ok()
-            {
-                return;
-            }
-            self.plugin_windows.remove(&plugin_id);
-        }
-
-        let ws_port = match self.ws_port {
+        let http_port = match self.http_port {
             Some(port) => port,
             None => {
-                tracing::error!("WebSocket port not set, cannot open plugin window");
+                tracing::error!("HTTP port not set, cannot open plugin in browser");
                 return;
             }
         };
 
-        let bounds = Bounds::centered(None, size(px(600.0), px(500.0)), cx);
-        let always_on_top = self.always_on_top;
-        let plugin_id_clone = plugin_id.clone();
+        let ws_port = match self.ws_port {
+            Some(port) => port,
+            None => {
+                tracing::error!("WebSocket port not set, cannot open plugin in browser");
+                return;
+            }
+        };
 
-        if let Ok(handle) = cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                titlebar: Some(TitlebarOptions {
-                    title: Some(plugin_name.clone().into()),
-                    appears_transparent: true,
-                    ..Default::default()
-                }),
-                window_background: WindowBackgroundAppearance::Transparent,
-                window_min_size: Some(size(px(400.0), px(300.0))),
-                ..Default::default()
-            },
-            |new_window, cx| {
-                if always_on_top {
-                    crate::platform::set_window_always_on_top(new_window, true);
-                }
-                let plugin_view = cx.new(|cx| {
-                    PluginWindowView::new(
-                        plugin_id_clone,
-                        plugin_name,
-                        plugin_path,
-                        ws_port,
-                        new_window,
-                        cx,
-                    )
-                });
-                cx.new(|cx| Root::new(plugin_view, new_window, cx))
-            },
-        ) {
-            self.plugin_windows.insert(plugin_id, handle.into());
+        // Get the folder name from the plugin path
+        let folder_name = match plugin_path.file_name() {
+            Some(name) => name.to_string_lossy().to_string(),
+            None => {
+                tracing::error!("Invalid plugin path: {:?}", plugin_path);
+                return;
+            }
+        };
+
+        // Build the URL for the plugin
+        let url = format!(
+            "http://127.0.0.1:{}/{}/index.html?ws_port={}",
+            http_port, folder_name, ws_port
+        );
+
+        tracing::info!("Opening plugin in browser: {}", url);
+
+        // Open in the system's default browser
+        if let Err(e) = open::that(&url) {
+            tracing::error!("Failed to open plugin in browser: {}", e);
         }
     }
 }

@@ -15,3 +15,8 @@ open = { workspace = true }
 chrono = { workspace = true }
 reqwest = { workspace = true }
 jlivertool-core = { path = "../jlivertool-core" }
+
+# HTTP server for plugin serving
+axum = "0.8"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+mime_guess = "2"

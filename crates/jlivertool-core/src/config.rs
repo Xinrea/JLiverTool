@@ -178,6 +178,12 @@ pub struct Config {
     #[serde(default = "default_auto_update_check")]
     pub auto_update_check: bool,
 
+    #[serde(default = "default_plugin_ws_port")]
+    pub plugin_ws_port: u16,
+
+    #[serde(default = "default_plugin_http_port")]
+    pub plugin_http_port: u16,
+
     // Extra fields for extensibility
     #[serde(flatten)]
     pub extra: HashMap<String, Value>,
@@ -185,6 +191,14 @@ pub struct Config {
 
 fn default_auto_update_check() -> bool {
     true
+}
+
+fn default_plugin_ws_port() -> u16 {
+    8081
+}
+
+fn default_plugin_http_port() -> u16 {
+    8080
 }
 
 fn default_max_detail_entry() -> usize {
@@ -252,6 +266,8 @@ impl Default for Config {
             tts_sc_enabled: false,
             tts_volume: default_tts_volume(),
             auto_update_check: default_auto_update_check(),
+            plugin_ws_port: default_plugin_ws_port(),
+            plugin_http_port: default_plugin_http_port(),
             extra: HashMap::new(),
         }
     }

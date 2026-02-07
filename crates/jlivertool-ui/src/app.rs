@@ -91,6 +91,8 @@ pub enum UiCommand {
     CheckForUpdate,
     /// Update auto-update check setting
     UpdateAutoUpdateCheck(bool),
+    /// Update plugin server ports
+    UpdatePluginPorts { ws_port: u16, http_port: u16 },
 }
 
 /// Wrapper for event receiver with a flag to indicate pending events
@@ -183,7 +185,7 @@ pub fn run_app_with_plugins(
                     }
                     // Set WebSocket port for plugin communication
                     if let Some(port) = ws_port {
-                        view.set_ws_port(port);
+                        view.set_ws_port(port, cx);
                     }
                     view
                 });
@@ -204,6 +206,7 @@ pub fn run_app_with_tray(
     has_events: Arc<AtomicBool>,
     plugins: Vec<crate::views::setting_view::PluginInfo>,
     ws_port: Option<u16>,
+    http_port: Option<u16>,
 ) {
     // Get saved window bounds for main window
     let main_window_config = config
@@ -281,7 +284,11 @@ pub fn run_app_with_tray(
                     }
                     // Set WebSocket port for plugin communication
                     if let Some(port) = ws_port {
-                        view.set_ws_port(port);
+                        view.set_ws_port(port, cx);
+                    }
+                    // Set HTTP port for plugin serving
+                    if let Some(port) = http_port {
+                        view.set_http_port(port, cx);
                     }
                     // Set tray manager
                     if let Some(ref tray) = tray_manager {

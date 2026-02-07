@@ -4,7 +4,21 @@
 
 ## 插件开发
 
-插件至少包含两个文件，`meta.json` 和 `index.html`；其中 `meta.json` 是插件的元数据，`index.html` 是插件的主页面，JLiverTool 将会创建一个独立窗口并加载 `index.html`，作为插件窗口展示。
+插件至少包含两个文件，`meta.json` 和 `index.html`；其中 `meta.json` 是插件的元数据，`index.html` 是插件的主页面。点击打开插件时，JLiverTool 会在系统默认浏览器中打开插件页面。
+
+### 插件运行方式
+
+JLiverTool 内置了一个 HTTP 服务器来提供插件文件服务。当你打开一个插件时：
+
+1. 插件页面通过 `http://127.0.0.1:{http_port}/{plugin_folder}/index.html?ws_port={ws_port}` 在浏览器中打开
+2. HTTP 服务器会自动在 HTML 文件中注入 `jliver-api.js` 脚本，无需手动引入
+3. `jliver-api.js` 会自动从 URL 参数中读取 `ws_port` 并连接到 WebSocket 服务器
+
+**默认端口：**
+- HTTP 服务端口：8080
+- WebSocket 服务端口：8081
+
+端口可在设置 -> 插件管理中修改，修改后需重启应用生效。
 
 ### 插件目录结构
 
@@ -49,7 +63,9 @@ plugins/
 
 ## jliverAPI
 
-JLiverTool 在加载 `index.html` 时会自动注入 `window.jliverAPI` 对象，插件可以通过这个对象访问 JLiverTool 提供的 API。
+JLiverTool 会自动在插件的 HTML 页面中注入 `jliver-api.js` 脚本，该脚本提供 `window.jliverAPI` 对象供插件使用。
+
+**注意：** 脚本是自动注入的，无需在 HTML 中手动引入。
 
 ### API 概览
 
@@ -331,7 +347,7 @@ jliverAPI.reconnect();
         let danmuCount = 0;
         let giftCount = 0;
 
-        // 等待 API 加载
+        // 等待 API 加载（jliver-api.js 会自动注入）
         function waitForApi(callback) {
             if (window.jliverAPI) {
                 callback();
@@ -374,22 +390,26 @@ jliverAPI.reconnect();
 
 ## 调试技巧
 
-1. **使用浏览器开发者工具**：插件窗口支持右键菜单打开开发者工具进行调试。
+1. **使用浏览器开发者工具**：插件在浏览器中运行，可以直接使用浏览器的开发者工具（F12）进行调试。
 
-2. **检查连接状态**：使用 `jliverAPI.isConnected()` 检查是否已连接。
+2. **检查连接状态**：使用 `jliverAPI.isConnected()` 检查是否已连接到 WebSocket 服务器。
 
 3. **监听所有事件**：使用 `jliverAPI.register('*', callback)` 监听所有事件，方便调试。
 
-4. **查看控制台日志**：JLiverTool 会在控制台输出连接状态和错误信息。
+4. **查看控制台日志**：`jliver-api.js` 会在控制台输出连接状态和错误信息。
+
+5. **检查 URL 参数**：确保 URL 中包含正确的 `ws_port` 参数，例如 `?ws_port=8081`。
 
 ## 注意事项
 
-1. **等待 API 加载**：`jliverAPI` 对象是异步注入的，需要等待其可用后再使用。
+1. **自动注入脚本**：`jliver-api.js` 会自动注入到 HTML 文件中，无需手动引入。
 
-2. **事件频道名称不区分大小写**：`NewDanmu`、`newdanmu`、`NEWDANMU` 都是有效的。
+2. **等待 API 加载**：`jliverAPI` 对象是异步初始化的，需要等待其可用后再使用。
 
-3. **自动重连**：插件会自动尝试重新连接，无需手动处理断线重连。
+3. **事件频道名称不区分大小写**：`NewDanmu`、`newdanmu`、`NEWDANMU` 都是有效的。
 
-4. **资源路径**：插件中的资源文件（如图片、CSS、JS）使用相对路径即可。
+4. **自动重连**：插件会自动尝试重新连接，无需手动处理断线重连。
 
-5. **跨域限制**：插件运行在本地文件协议下，可能存在跨域限制，建议使用 `jliverAPI.util.openUrl()` 打开外部链接。
+5. **资源路径**：插件中的资源文件（如图片、CSS、JS）使用相对路径即可，会相对于插件目录解析。
+
+6. **端口配置**：默认 HTTP 端口为 8080，WebSocket 端口为 8081。可在设置 -> 插件管理中修改。

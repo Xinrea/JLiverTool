@@ -89,9 +89,16 @@ impl PluginWsServer {
     }
 
     /// Start the WebSocket server
+    /// If port is 0, a random available port will be used
     pub async fn start(&mut self) -> Result<()> {
-        // Bind to a random available port on localhost
-        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        self.start_on_port(0).await
+    }
+
+    /// Start the WebSocket server on a specific port
+    /// If port is 0, a random available port will be used
+    pub async fn start_on_port(&mut self, port: u16) -> Result<()> {
+        // Bind to the specified port on localhost
+        let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).await?;
         let addr = listener.local_addr()?;
         self.port = addr.port();
 

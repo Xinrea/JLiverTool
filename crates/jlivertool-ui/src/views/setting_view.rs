@@ -47,6 +47,9 @@ type UpdateCheckCallback = Arc<dyn Fn(&mut Window, &mut App) + Send + Sync>;
 /// Type alias for auto update setting change callback (enabled)
 type AutoUpdateCallback = Arc<dyn Fn(bool, &mut Window, &mut App) + Send + Sync>;
 
+/// Type alias for plugin port change callback (ws_port, http_port)
+type PluginPortCallback = Arc<dyn Fn(u16, u16, &mut Window, &mut App) + Send + Sync>;
+
 /// Plugin info for display in settings
 #[derive(Debug, Clone)]
 pub struct PluginInfo {
@@ -112,6 +115,10 @@ pub struct SettingView {
     on_plugin_import: Option<PluginImportCallback>,
     on_plugin_remove: Option<PluginRemoveCallback>,
     plugin_import_status: Arc<RwLock<Option<String>>>,
+    // Plugin server ports (display only, requires restart to change)
+    plugin_ws_port: Arc<RwLock<String>>,
+    plugin_http_port: Arc<RwLock<String>>,
+    on_plugin_port_change: Option<PluginPortCallback>,
     // Advanced settings
     max_danmu_count: Arc<RwLock<usize>>,
     log_level: Arc<RwLock<String>>,
@@ -312,6 +319,9 @@ impl SettingView {
             on_plugin_import: None,
             on_plugin_remove: None,
             plugin_import_status: Arc::new(RwLock::new(None)),
+            plugin_ws_port: Arc::new(RwLock::new("8081".to_string())),
+            plugin_http_port: Arc::new(RwLock::new("8080".to_string())),
+            on_plugin_port_change: None,
             max_danmu_count: Arc::new(RwLock::new(200)),
             log_level: Arc::new(RwLock::new("info".to_string())),
             on_advanced_settings_change: None,
@@ -619,6 +629,21 @@ impl SettingView {
     pub fn set_plugins(&mut self, plugins: Vec<PluginInfo>, cx: &mut Context<Self>) {
         *self.plugins.write() = plugins;
         cx.notify();
+    }
+
+    /// Set the plugin server ports (for display)
+    pub fn set_plugin_ports(&mut self, ws_port: u16, http_port: u16, cx: &mut Context<Self>) {
+        *self.plugin_ws_port.write() = ws_port.to_string();
+        *self.plugin_http_port.write() = http_port.to_string();
+        cx.notify();
+    }
+
+    /// Set callback for plugin port changes
+    pub fn on_plugin_port_change<F>(&mut self, callback: F)
+    where
+        F: Fn(u16, u16, &mut Window, &mut App) + Send + Sync + 'static,
+    {
+        self.on_plugin_port_change = Some(Arc::new(callback));
     }
 
     /// Update a plugin's enabled state
@@ -2849,6 +2874,169 @@ impl SettingView {
                         ),
                 ),
             )
+            // Server ports section
+            .child({
+                let ws_port = self.plugin_ws_port.clone();
+                let http_port = self.plugin_http_port.clone();
+                let on_port_change = self.on_plugin_port_change.clone();
+                let ws_port_value = self.plugin_ws_port.read().clone();
+                let http_port_value = self.plugin_http_port.read().clone();
+
+                // Create input states for port inputs
+                struct WsPortInputWrapper {
+                    input: Entity<gpui_component::input::InputState>,
+                }
+                struct HttpPortInputWrapper {
+                    input: Entity<gpui_component::input::InputState>,
+                }
+
+                let ws_input_state = window.use_keyed_state(
+                    SharedString::from("ws-port-input-state"),
+                    cx,
+                    |window, cx| {
+                        let input = cx.new(|cx| {
+                            gpui_component::input::InputState::new(window, cx)
+                                .placeholder("8081")
+                                .default_value(ws_port_value.clone())
+                        });
+                        WsPortInputWrapper { input }
+                    },
+                );
+
+                let http_input_state = window.use_keyed_state(
+                    SharedString::from("http-port-input-state"),
+                    cx,
+                    |window, cx| {
+                        let input = cx.new(|cx| {
+                            gpui_component::input::InputState::new(window, cx)
+                                .placeholder("8080")
+                                .default_value(http_port_value.clone())
+                        });
+                        HttpPortInputWrapper { input }
+                    },
+                );
+
+                let ws_input = ws_input_state.read(cx).input.clone();
+                let http_input = http_input_state.read(cx).input.clone();
+
+                self.render_section_card(
+                    v_flex()
+                        .w_full()
+                        .child(self.render_section_title("服务端口"))
+                        .child(
+                            v_flex()
+                                .w_full()
+                                .py_2()
+                                .gap_3()
+                                .child(
+                                    h_flex()
+                                        .w_full()
+                                        .justify_between()
+                                        .items_center()
+                                        .child(
+                                            div()
+                                                .text_size(px(13.0))
+                                                .text_color(Colors::text_secondary())
+                                                .child("HTTP 端口"),
+                                        )
+                                        .child(
+                                            div()
+                                                .w(px(100.0))
+                                                .child(gpui_component::input::Input::new(&http_input)),
+                                        ),
+                                )
+                                .child(
+                                    h_flex()
+                                        .w_full()
+                                        .justify_between()
+                                        .items_center()
+                                        .child(
+                                            div()
+                                                .text_size(px(13.0))
+                                                .text_color(Colors::text_secondary())
+                                                .child("WebSocket 端口"),
+                                        )
+                                        .child(
+                                            div()
+                                                .w(px(100.0))
+                                                .child(gpui_component::input::Input::new(&ws_input)),
+                                        ),
+                                )
+                                .child(
+                                    div()
+                                        .pt_2()
+                                        .text_size(px(11.0))
+                                        .text_color(Colors::text_muted())
+                                        .child("修改端口后需重启应用生效。默认端口: HTTP 8080, WS 8081"),
+                                )
+                                .child(
+                                    h_flex()
+                                        .pt_3()
+                                        .gap_2()
+                                        .child({
+                                            let ws_input = ws_input.clone();
+                                            let http_input = http_input.clone();
+                                            let ws_port = ws_port.clone();
+                                            let http_port = http_port.clone();
+                                            let callback = on_port_change.clone();
+                                            div()
+                                                .id("save-ports-btn")
+                                                .px_4()
+                                                .py(px(7.0))
+                                                .rounded_md()
+                                                .cursor_pointer()
+                                                .bg(Colors::accent())
+                                                .hover(|s| s.opacity(0.8))
+                                                .text_size(px(13.0))
+                                                .text_color(gpui::white())
+                                                .child("保存")
+                                                .on_click(move |_event, window, cx| {
+                                                    let ws_value = ws_input.read(cx).value().to_string();
+                                                    let http_value = http_input.read(cx).value().to_string();
+
+                                                    // Parse ports
+                                                    let ws_port_num = ws_value.parse::<u16>().unwrap_or(8081);
+                                                    let http_port_num = http_value.parse::<u16>().unwrap_or(8080);
+
+                                                    // Update state
+                                                    *ws_port.write() = ws_port_num.to_string();
+                                                    *http_port.write() = http_port_num.to_string();
+
+                                                    // Call callback to save
+                                                    if let Some(ref cb) = callback {
+                                                        cb(ws_port_num, http_port_num, window, cx);
+                                                    }
+                                                    cx.refresh_windows();
+                                                })
+                                        })
+                                        .child({
+                                            let ws_input = ws_input.clone();
+                                            let http_input = http_input.clone();
+                                            div()
+                                                .id("reset-ports-btn")
+                                                .px_4()
+                                                .py(px(7.0))
+                                                .rounded_md()
+                                                .cursor_pointer()
+                                                .bg(Colors::bg_hover())
+                                                .text_size(px(13.0))
+                                                .text_color(Colors::text_primary())
+                                                .hover(|s| s.bg(Colors::accent().opacity(0.2)))
+                                                .child("重置")
+                                                .on_click(move |_event, window, cx| {
+                                                    ws_input.update(cx, |state, cx| {
+                                                        state.set_value("8081", window, cx);
+                                                    });
+                                                    http_input.update(cx, |state, cx| {
+                                                        state.set_value("8080", window, cx);
+                                                    });
+                                                    cx.refresh_windows();
+                                                })
+                                        }),
+                                ),
+                        ),
+                )
+            })
     }
 
     fn render_advanced_tab(&mut self, cx: &mut Context<Self>) -> impl IntoElement {
