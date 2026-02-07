@@ -47,13 +47,41 @@ pub fn update_gpui_component_theme(cx: &mut App) {
     // Muted color - derived from font color
     let font = theme_colors.font_color;
     gpui_theme.colors.muted = hsla(font.h, font.s * 0.5, font.l * 0.6, 0.6);
+    gpui_theme.colors.muted_foreground = hsla(font.h, font.s * 0.3, font.l * 0.8, 0.8);
 
     // Set caret (cursor) color to be more visible - use the font color for best contrast
     gpui_theme.colors.caret = theme_colors.font_color;
 
-    // Switch colors - derive from theme
+    // List colors for Select dropdown
     let (r, g, b) = theme_colors.main_bg;
     let is_light = (r as u32 + g as u32 + b as u32) > 384; // Light theme detection
+
+    // List active (selected item) - use accent color with proper contrast
+    gpui_theme.colors.list_active = theme_colors.uname_color;
+    // For selected item text, use white for dark accent, black for light accent
+    let accent_lightness = theme_colors.uname_color.l;
+    if accent_lightness > 0.5 {
+        gpui_theme.colors.foreground = theme_colors.font_color;
+    }
+
+    // List hover
+    if is_light {
+        gpui_theme.colors.list_hover = hsla(0.0, 0.0, 0.9, 1.0);
+        gpui_theme.colors.list = hsla(0.0, 0.0, 0.95, 1.0);
+    } else {
+        gpui_theme.colors.list_hover = hsla(0.0, 0.0, 0.2, 1.0);
+        gpui_theme.colors.list = hsla(0.0, 0.0, 0.15, 1.0);
+    }
+
+    // Popover colors (for dropdown menus)
+    let (r, g, b) = theme_colors.gift_bg;
+    gpui_theme.colors.popover = rgb_to_hsla(r, g, b);
+    gpui_theme.colors.popover_foreground = theme_colors.font_color;
+
+    // Input colors
+    gpui_theme.colors.input = theme_colors.border;
+
+    // Switch colors - derive from theme
     if is_light {
         // Light theme: darker switch background, white thumb
         gpui_theme.colors.switch = hsla(0.0, 0.0, 0.7, 1.0);

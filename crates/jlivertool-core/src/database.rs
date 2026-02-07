@@ -930,6 +930,168 @@ impl TimeSeriesPoint {
     }
 }
 
+impl Database {
+    /// Get statistics for a specific time range
+    pub fn get_time_based_stats_range(
+        &self,
+        room_id: u64,
+        start_timestamp: i64,
+        end_timestamp: i64,
+    ) -> Result<TimeBasedStats> {
+        let conn = self.conn.lock();
+
+        // Danmu count
+        let danmu_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM danmus WHERE room_id = ?1 AND timestamp >= ?2 AND timestamp <= ?3",
+            params![room_id as i64, start_timestamp, end_timestamp],
+            |row| row.get(0),
+        )?;
+
+        // Gift count and value (only paid gifts)
+        let (gift_count, gift_value): (i64, i64) = conn.query_row(
+            "SELECT COUNT(*), COALESCE(SUM(gift_price * num), 0) FROM gifts WHERE room_id = ?1 AND timestamp >= ?2 AND timestamp <= ?3 AND coin_type = 'gold'",
+            params![room_id as i64, start_timestamp, end_timestamp],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+
+        // Guard count and value (guards are always paid)
+        let (guard_count, guard_value): (i64, i64) = conn.query_row(
+            "SELECT COUNT(*), COALESCE(SUM(price), 0) FROM guards WHERE room_id = ?1 AND timestamp >= ?2 AND timestamp <= ?3",
+            params![room_id as i64, start_timestamp, end_timestamp],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+
+        // Superchat count and value
+        let (sc_count, sc_value): (i64, i64) = conn.query_row(
+            "SELECT COUNT(*), COALESCE(SUM(price), 0) FROM superchats WHERE room_id = ?1 AND timestamp >= ?2 AND timestamp <= ?3",
+            params![room_id as i64, start_timestamp, end_timestamp],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+
+        Ok(TimeBasedStats {
+            danmu_count: danmu_count as u64,
+            gift_count: (gift_count + guard_count) as u64,
+            gift_value: (gift_value + guard_value) as u64,
+            superchat_count: sc_count as u64,
+            superchat_value: sc_value as u64,
+        })
+    }
+
+    /// Get time-series statistics for a specific time range
+    pub fn get_time_series_stats_range(
+        &self,
+        room_id: u64,
+        start_timestamp: i64,
+        end_timestamp: i64,
+        bucket_seconds: i64,
+    ) -> Result<Vec<TimeSeriesPoint>> {
+        use std::collections::HashMap;
+
+        let conn = self.conn.lock();
+
+        // Calculate number of buckets
+        let total_seconds = end_timestamp - start_timestamp;
+        let num_buckets = (total_seconds / bucket_seconds).max(1) as usize;
+
+        // Danmu counts by bucket
+        let mut danmu_buckets: HashMap<i64, u64> = HashMap::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT (timestamp / ?1) * ?1 as bucket, COUNT(*) as cnt
+                 FROM danmus WHERE room_id = ?2 AND timestamp >= ?3 AND timestamp <= ?4
+                 GROUP BY bucket"
+            )?;
+            let rows = stmt.query_map(
+                params![bucket_seconds, room_id as i64, start_timestamp, end_timestamp],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+            )?;
+            for row in rows {
+                if let Ok((bucket, count)) = row {
+                    danmu_buckets.insert(bucket, count as u64);
+                }
+            }
+        }
+
+        // Gift values by bucket (only paid gifts)
+        let mut gift_buckets: HashMap<i64, i64> = HashMap::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT (timestamp / ?1) * ?1 as bucket, COALESCE(SUM(gift_price * num), 0) as val
+                 FROM gifts WHERE room_id = ?2 AND timestamp >= ?3 AND timestamp <= ?4 AND coin_type = 'gold'
+                 GROUP BY bucket"
+            )?;
+            let rows = stmt.query_map(
+                params![bucket_seconds, room_id as i64, start_timestamp, end_timestamp],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+            )?;
+            for row in rows {
+                if let Ok((bucket, value)) = row {
+                    gift_buckets.insert(bucket, value);
+                }
+            }
+        }
+
+        // Guard values by bucket
+        let mut guard_buckets: HashMap<i64, i64> = HashMap::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT (timestamp / ?1) * ?1 as bucket, COALESCE(SUM(price), 0) as val
+                 FROM guards WHERE room_id = ?2 AND timestamp >= ?3 AND timestamp <= ?4
+                 GROUP BY bucket"
+            )?;
+            let rows = stmt.query_map(
+                params![bucket_seconds, room_id as i64, start_timestamp, end_timestamp],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+            )?;
+            for row in rows {
+                if let Ok((bucket, value)) = row {
+                    guard_buckets.insert(bucket, value);
+                }
+            }
+        }
+
+        // Superchat values by bucket
+        let mut sc_buckets: HashMap<i64, i64> = HashMap::new();
+        {
+            let mut stmt = conn.prepare(
+                "SELECT (timestamp / ?1) * ?1 as bucket, COALESCE(SUM(price), 0) as val
+                 FROM superchats WHERE room_id = ?2 AND timestamp >= ?3 AND timestamp <= ?4
+                 GROUP BY bucket"
+            )?;
+            let rows = stmt.query_map(
+                params![bucket_seconds, room_id as i64, start_timestamp, end_timestamp],
+                |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+            )?;
+            for row in rows {
+                if let Ok((bucket, value)) = row {
+                    sc_buckets.insert(bucket, value);
+                }
+            }
+        }
+
+        // Build result vector from aggregated data
+        let mut points: Vec<TimeSeriesPoint> = Vec::with_capacity(num_buckets);
+        for i in 0..num_buckets {
+            let bucket_start = start_timestamp + (i as i64 * bucket_seconds);
+            let bucket_key = (bucket_start / bucket_seconds) * bucket_seconds;
+
+            let danmu_count = danmu_buckets.get(&bucket_key).copied().unwrap_or(0);
+            let gift_value = gift_buckets.get(&bucket_key).copied().unwrap_or(0);
+            let guard_value = guard_buckets.get(&bucket_key).copied().unwrap_or(0);
+            let sc_value = sc_buckets.get(&bucket_key).copied().unwrap_or(0);
+
+            points.push(TimeSeriesPoint {
+                timestamp: bucket_start,
+                danmu_count,
+                gift_value: (gift_value + guard_value) as u64,
+                superchat_value: sc_value as u64,
+            });
+        }
+
+        Ok(points)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
