@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Art Canvas</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+        }
+        h1 {
+            font-size: 20px;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        .main-container {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .canvas-wrapper {
+            background: #16213e;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        #pixel-canvas {
+            display: block;
+            image-rendering: pixelated;
+            cursor: crosshair;
+            border: 2px solid #0f3460;
+        }
+        .side-panel {
+            background: #16213e;
+            padding: 16px;
+            border-radius: 8px;
+            width: 280px;
+        }
+        .panel-title {
+            font-size: 14px;
+            color: #00d4ff;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .help-section {
+            margin-bottom: 16px;
+        }
+        .help-section h3 {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+        .command {
+            background: #0f3460;
+            padding: 8px 10px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .command .cmd {
+            color: #00d4ff;
+        }
+        .command .desc {
+            color: #888;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        .color-swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        .color-swatch.selected {
+            border-color: #fff;
+        }
+        .color-name {
+            font-size: 10px;
+            color: #888;
+            text-align: center;
+            margin-top: 2px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .stat-card {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            margin-top: 2px;
+        }
+        .recent-activity {
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .activity-item {
+            padding: 6px 8px;
+            background: #0f3460;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .activity-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .activity-text {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .activity-user {
+            color: #00d4ff;
+        }
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        button {
+            flex: 1;
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #00b8e6;
+        }
+        button.secondary {
+            background: #0f3460;
+            color: #eee;
+        }
+        button.secondary:hover {
+            background: #1a4a7a;
+        }
+        .coordinates {
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+            margin-top: 8px;
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            justify-content: center;
+        }
+        .zoom-btn {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            font-size: 18px;
+            flex: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pixel Art Canvas</h1>
+    <p class="subtitle">Send danmu commands to draw pixels collaboratively!</p>
+
+    <div class="main-container">
+        <div>
+            <div class="canvas-wrapper">
+                <canvas id="pixel-canvas" width="320" height="320"></canvas>
+            </div>
+            <div class="coordinates" id="coordinates">Hover to see coordinates</div>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomOut()">-</button>
+                <span id="zoom-level">10x</span>
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+            </div>
+        </div>
+
+        <div class="side-panel">
+            <div class="panel-title">Commands</div>
+            <div class="help-section">
+                <h3>Draw Pixel</h3>
+                <div class="command">
+                    <div class="cmd">#draw x y color</div>
+                    <div class="desc">Example: #draw 15 10 red</div>
+                </div>
+                <div class="command">
+                    <div class="cmd">#d x y color</div>
+                    <div class="desc">Short form</div>
+                </div>
+            </div>
+            <div class="help-section">
+                <h3>Available Colors</h3>
+                <div class="color-palette" id="color-palette"></div>
+            </div>
+
+            <div class="panel-title">Statistics</div>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="pixel-count">0</div>
+                    <div class="stat-label">Pixels Drawn</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="artist-count">0</div>
+                    <div class="stat-label">Artists</div>
+                </div>
+            </div>
+
+            <div class="panel-title">Recent Activity</div>
+            <div class="recent-activity" id="activity-list"></div>
+
+            <div class="buttons">
+                <button onclick="saveCanvas()">Save Image</button>
+                <button class="secondary" onclick="clearCanvas()">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pixel-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Canvas settings
+        const GRID_SIZE = 32; // 32x32 pixel grid
+        let pixelSize = 10; // Display size of each pixel
+        const pixels = new Array(GRID_SIZE * GRID_SIZE).fill(null);
+        const artists = new Set();
+        let pixelCount = 0;
+
+        // Color palette
+        const COLORS = {
+            'red': '#ff6b6b',
+            'orange': '#ffa94d',
+            'yellow': '#ffd43b',
+            'green': '#51cf66',
+            'cyan': '#22b8cf',
+            'blue': '#339af0',
+            'purple': '#9775fa',
+            'pink': '#f783ac',
+            'white': '#ffffff',
+            'gray': '#868e96',
+            'black': '#212529',
+            'brown': '#a0522d',
+            'lime': '#a9e34b',
+            'teal': '#20c997',
+            'navy': '#1864ab',
+            'maroon': '#c92a2a'
+        };
+
+        // Chinese color names mapping
+        const COLOR_ALIASES = {
+            '红': 'red', '红色': 'red',
+            '橙': 'orange', '橙色': 'orange',
+            '黄': 'yellow', '黄色': 'yellow',
+            '绿': 'green', '绿色': 'green',
+            '青': 'cyan', '青色': 'cyan',
+            '蓝': 'blue', '蓝色': 'blue',
+            '紫': 'purple', '紫色': 'purple',
+            '粉': 'pink', '粉色': 'pink',
+            '白': 'white', '白色': 'white',
+            '灰': 'gray', '灰色': 'gray',
+            '黑': 'black', '黑色': 'black',
+            '棕': 'brown', '棕色': 'brown',
+            '褐': 'brown', '褐色': 'brown'
+        };
+
+        // Initialize color palette UI
+        function initPalette() {
+            const palette = document.getElementById('color-palette');
+            Object.entries(COLORS).forEach(([name, hex]) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.background = hex;
+                swatch.title = name;
+                palette.appendChild(swatch);
+            });
+        }
+        initPalette();
+
+        // Resize canvas display
+        function updateCanvasSize() {
+            canvas.style.width = (GRID_SIZE * pixelSize) + 'px';
+            canvas.style.height = (GRID_SIZE * pixelSize) + 'px';
+            document.getElementById('zoom-level').textContent = pixelSize + 'x';
+        }
+        updateCanvasSize();
+
+        // Draw the canvas
+        function render() {
+            // Clear
+            ctx.fillStyle = '#2d2d44';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = '#3d3d5c';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= GRID_SIZE; i++) {
+                const pos = i * (canvas.width / GRID_SIZE);
+                ctx.beginPath();
+                ctx.moveTo(pos, 0);
+                ctx.lineTo(pos, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, pos);
+                ctx.lineTo(canvas.width, pos);
+                ctx.stroke();
+            }
+
+            // Draw pixels
+            const cellSize = canvas.width / GRID_SIZE;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const pixel = pixels[y * GRID_SIZE + x];
+                    if (pixel) {
+                        ctx.fillStyle = pixel.color;
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+        }
+        render();
+
+        // Set a pixel
+        function setPixel(x, y, colorName, userName) {
+            if (x < 0 || x >= GRID_SIZE || y < 0 || y >= GRID_SIZE) return false;
+
+            // Resolve color
+            let color = COLORS[colorName.toLowerCase()];
+            if (!color) {
+                const alias = COLOR_ALIASES[colorName];
+                if (alias) color = COLORS[alias];
+            }
+            if (!color) return false;
+
+            const index = y * GRID_SIZE + x;
+            const isNew = !pixels[index];
+
+            pixels[index] = { color, user: userName, time: Date.now() };
+
+            if (isNew) pixelCount++;
+            artists.add(userName);
+
+            updateStats();
+            addActivity(userName, x, y, color);
+            render();
+            return true;
+        }
+
+        // Update stats display
+        function updateStats() {
+            document.getElementById('pixel-count').textContent = pixelCount;
+            document.getElementById('artist-count').textContent = artists.size;
+        }
+
+        // Add activity log
+        function addActivity(user, x, y, color) {
+            const list = document.getElementById('activity-list');
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            item.innerHTML = `
+                <div class="activity-color" style="background: ${color}"></div>
+                <div class="activity-text">
+                    <span class="activity-user">${user}</span> drew at (${x}, ${y})
+                </div>
+            `;
+            list.insertBefore(item, list.firstChild);
+
+            // Keep max 20 items
+            while (list.children.length > 20) {
+                list.removeChild(list.lastChild);
+            }
+        }
+
+        // Parse danmu command
+        function parseDanmuCommand(msg, userName) {
+            // Match patterns: #draw x y color, #d x y color
+            const patterns = [
+                /^#draw\s+(\d+)\s+(\d+)\s+(\S+)$/i,
+                /^#d\s+(\d+)\s+(\d+)\s+(\S+)$/i
+            ];
+
+            for (const pattern of patterns) {
+                const match = msg.match(pattern);
+                if (match) {
+                    const x = parseInt(match[1]);
+                    const y = parseInt(match[2]);
+                    const color = match[3];
+                    return setPixel(x, y, color, userName);
+                }
+            }
+            return false;
+        }
+
+        // Mouse coordinate display
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX / (canvas.width / GRID_SIZE));
+            const y = Math.floor((e.clientY - rect.top) * scaleY / (canvas.height / GRID_SIZE));
+
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+                const pixel = pixels[y * GRID_SIZE + x];
+                let text = `(${x}, ${y})`;
+                if (pixel) {
+                    text += ` - by ${pixel.user}`;
+                }
+                document.getElementById('coordinates').textContent = text;
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            document.getElementById('coordinates').textContent = 'Hover to see coordinates';
+        });
+
+        // Zoom controls
+        function zoomIn() {
+            pixelSize = Math.min(pixelSize + 2, 20);
+            updateCanvasSize();
+        }
+
+        function zoomOut() {
+            pixelSize = Math.max(pixelSize - 2, 4);
+            updateCanvasSize();
+        }
+
+        // Save canvas as image
+        function saveCanvas() {
+            // Create a clean canvas without grid for export
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = GRID_SIZE * 10;
+            exportCanvas.height = GRID_SIZE * 10;
+            const exportCtx = exportCanvas.getContext('2d');
+
+            // Background
+            exportCtx.fillStyle = '#2d2d44';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            // Draw pixels
+            const cellSize = 10;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const pixel = pixels[y * GRID_SIZE + x];
+                    if (pixel) {
+                        exportCtx.fillStyle = pixel.color;
+                        exportCtx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            // Download
+            const link = document.createElement('a');
+            link.download = `pixel-art-${Date.now()}.png`;
+            link.href = exportCanvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Clear canvas
+        function clearCanvas() {
+            if (confirm('Clear all pixels? This cannot be undone.')) {
+                pixels.fill(null);
+                pixelCount = 0;
+                artists.clear();
+                updateStats();
+                document.getElementById('activity-list').innerHTML = '';
+                render();
+            }
+        }
+
+        // JLiverTool API integration
+        function waitForApi(callback) {
+            if (window.jliverAPI) {
+                callback();
+            } else {
+                setTimeout(() => waitForApi(callback), 100);
+            }
+        }
+
+        waitForApi(function() {
+            console.log('Pixel Canvas: API connected');
+
+            jliverAPI.register('NewDanmu', (event) => {
+                const { uname, msg } = event.data;
+                parseDanmuCommand(msg, uname);
+            });
+        });
+    </script>
+</body>
+</html>

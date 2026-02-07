@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=JLiverTool
+Comment=Simple Bilibili Danmaku Tool
+Exec=jlivertool
+Icon=jlivertool
+Terminal=false
+Type=Application
+Categories=Utility;Network;
+Keywords=bilibili;danmaku;live;streaming;

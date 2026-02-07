@@ -1,0 +1,9 @@
+{
+    "id": "jlivertool.xinrea.constellation-map",
+    "name": "Constellation Map",
+    "author": "Xinrea",
+    "desc": "Visualize viewers as stars forming a galaxy",
+    "version": "1.0.0",
+    "url": "https://github.com/Xinrea/JLiverTool",
+    "index": "index.html"
+}

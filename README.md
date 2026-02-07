@@ -1,6 +1,5 @@
 # JLiverTool
 
-[![CodeFactor](https://www.codefactor.io/repository/github/xinrea/jlivertool/badge)](https://www.codefactor.io/repository/github/xinrea/jlivertool)
 [![GitHub release (latest by date)](https://img.shields.io/github/downloads/xinrea/jlivertool/total.svg)](https://github.com/Xinrea/JLiverTool/releases)
 
 ![screenshot](imgs/screenshot.png)
@@ -61,8 +60,39 @@
 
 大部分功能需要登录后才能使用，当登录账号与直播间号匹配时，直播间标题设置和开/关播按钮才可使用。
 
+## 安装说明
+
+### macOS
+
+由于应用未经 Apple 签名，首次运行时可能提示"文件已损坏"。请在终端中执行以下命令：
+
+```bash
+xattr -cr /Applications/JLiverTool.app
+```
+
+### Arch Linux
+
+下载 `PKGBUILD` 和 `jlivertool_*_x86_64.tar.gz` 到同一目录，然后执行：
+
+```bash
+makepkg -si
+```
+
 ## 开发说明
 
 ### 代码格式
 
 请使用 `prettier` 进行代码格式化，配置文件已经提供 `.prettierrc`。
+
+### Build
+
+```bash
+# Install cargo-packager
+cargo install cargo-packager --locked
+
+# Build release binary first
+cargo build --release
+
+# Create installers (run from project root)
+cargo packager --release
+```

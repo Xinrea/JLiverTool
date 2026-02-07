@@ -1,0 +1,65 @@
+[package]
+name = "jlivertool"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+build = "build.rs"
+
+[[bin]]
+name = "jlivertool"
+path = "src/main.rs"
+
+[dependencies]
+gpui = { workspace = true }
+gpui-component = { workspace = true }
+jlivertool-core = { path = "../jlivertool-core" }
+jlivertool-ui = { path = "../jlivertool-ui" }
+jlivertool-plugin = { path = "../jlivertool-plugin" }
+
+# Async runtime
+tokio = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Utilities
+parking_lot = { workspace = true }
+directories = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-text = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+winresource = "0.1"
+
+[package.metadata.packager]
+product-name = "JLiverTool"
+identifier = "com.xinrea.jlivertool"
+description = "Simple Bilibili Danmaku Tool"
+homepage = "https://github.com/Xinrea/JLiveTool"
+icons = ["../../icons/icon.icns", "../../icons/icon.ico", "../../icons/icon.png"]
+
+[package.metadata.packager.macos]
+minimum-system-version = "10.15"
+
+[package.metadata.packager.nsis]
+languages = ["English", "SimpChinese"]
+display-language-selector = true
+installer-icon = "../../icons/icon.ico"
+
+[package.metadata.packager.deb]
+depends = ["libvulkan1", "libxkbcommon0", "libwayland-client0", "libfontconfig1"]
+section = "utils"
+
+[package.metadata.packager.pacman]
+depends = ["vulkan-icd-loader", "libxkbcommon", "wayland", "fontconfig"]

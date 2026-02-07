@@ -5,76 +5,181 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>弹幕词云</title>
     <script src="wordcloud2.js"></script>
-  </head>
-  <body style="margin: 0; padding: 0; overflow: hidden">
-    <div style="height: 100vh; width: 100vw">
-      <canvas id="canvas"></canvas>
-    </div>
-    <div
-      style="
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        overflow: hidden;
+        background: #1a1a2e;
+      }
+      .container {
+        height: 100vh;
+        width: 100vw;
+      }
+      .controls {
         position: absolute;
         bottom: 16px;
         right: 16px;
         z-index: 9999;
-        opacity: 0.5;
-      "
-    >
-      <button onclick="update()">⟳</button>
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .controls button {
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        opacity: 0.6;
+        transition: opacity 0.2s;
+      }
+      .controls button:hover {
+        opacity: 1;
+      }
+      .status {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .status.connected {
+        color: #6bcb77;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="controls">
+      <span class="status" id="status">未连接</span>
+      <button onclick="clearWords()">清空</button>
+      <button onclick="update()">刷新</button>
     </div>
   </body>
   <script>
-    console.log('example plugin loaded')
+    console.log('Wordcloud plugin loaded');
 
-    const canvas = document.getElementById('canvas')
+    const canvas = document.getElementById('canvas');
+    const statusEl = document.getElementById('status');
 
-    let wordCounts = {}
+    let wordCounts = {};
+    let danmuCount = 0;
 
-    window.addEventListener('resize', resizeCanvas, false)
+    window.addEventListener('resize', resizeCanvas, false);
 
     function update() {
       let list = Object.entries(wordCounts).map(([word, count]) => [
         word,
         count,
-      ])
+      ]);
       // sort by count
-      list = list.sort((a, b) => b[1] - a[1])
+      list = list.sort((a, b) => b[1] - a[1]);
       // limit to 200 words
-      list = list.slice(0, 200)
+      list = list.slice(0, 200);
+
+      if (list.length === 0) {
+        return;
+      }
+
       WordCloud(canvas, {
         list: list,
-        fontFamily: 'System UI',
+        fontFamily: 'System UI, -apple-system, BlinkMacSystemFont, sans-serif',
         shrinkToFit: true,
         shape: 'square',
         shuffle: false,
         weightFactor: 10 * (window.devicePixelRatio || 1),
-      })
+        color: function() {
+          const colors = ['#00d4ff', '#ff6b6b', '#ffd93d', '#6bcb77', '#9d4edd'];
+          return colors[Math.floor(Math.random() * colors.length)];
+        },
+        backgroundColor: '#1a1a2e',
+      });
+    }
+
+    function clearWords() {
+      wordCounts = {};
+      danmuCount = 0;
+      // Clear canvas
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      updateStatus();
     }
 
     function resizeCanvas() {
-      // scale factor
-      const scale = window.devicePixelRatio || 1
-      canvas.width = window.innerWidth * scale
-      canvas.height = window.innerHeight * scale
-      canvas.style.width = window.innerWidth + 'px'
-      canvas.style.height = window.innerHeight + 'px'
+      const scale = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * scale;
+      canvas.height = window.innerHeight * scale;
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
     }
 
-    window.jliverAPI.register(2, (arg) => {
-      if (arg.emoji_content) {
-        return
+    function updateStatus() {
+      const connected = window.jliverAPI && window.jliverAPI.isConnected();
+      statusEl.textContent = connected
+        ? `已连接 | ${danmuCount} 条弹幕`
+        : '未连接';
+      statusEl.className = 'status' + (connected ? ' connected' : '');
+    }
+
+    // Wait for API to be available
+    function waitForApi(callback) {
+      if (window.jliverAPI) {
+        callback();
+      } else {
+        setTimeout(() => waitForApi(callback), 100);
       }
+    }
 
-      const segmenterFr = new Intl.Segmenter('zh', { granularity: 'word' })
+    waitForApi(function() {
+      console.log('JLiverTool API loaded');
+      updateStatus();
 
-      const iterator = segmenterFr.segment(arg.content)[Symbol.iterator]()
-      for (const { segment } of iterator) {
-        if (segment.length < 2) continue
-        wordCounts[segment] = (wordCounts[segment] || 0) + 1
-      }
-    })
+      // Check connection status periodically
+      setInterval(updateStatus, 1000);
 
+      // Register for new danmu events
+      window.jliverAPI.register('NewDanmu', (event) => {
+        const data = event.data;
+
+        // Skip if no message
+        if (!data.msg) {
+          return;
+        }
+
+        danmuCount++;
+
+        // Use Intl.Segmenter for Chinese word segmentation
+        try {
+          const segmenter = new Intl.Segmenter('zh', { granularity: 'word' });
+          const segments = segmenter.segment(data.msg);
+
+          for (const { segment, isWordLike } of segments) {
+            // Skip short segments and non-word-like segments
+            if (segment.length < 2 || !isWordLike) continue;
+            wordCounts[segment] = (wordCounts[segment] || 0) + 1;
+          }
+        } catch (e) {
+          // Fallback for browsers without Intl.Segmenter
+          const words = data.msg.split(/\s+/);
+          for (const word of words) {
+            if (word.length < 2) continue;
+            wordCounts[word] = (wordCounts[word] || 0) + 1;
+          }
+        }
+      });
+    });
+
+    // Initialize canvas size
+    resizeCanvas();
+
+    // Auto-update every 30 seconds
     setInterval(() => {
-      update()
-    }, 30 * 1000)
+      update();
+    }, 30 * 1000);
   </script>
 </html>

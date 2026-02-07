@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constellation Map 3D</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #eee;
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        #canvas-container { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; }
+        .stats-panel {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(10, 10, 30, 0.85);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+        .stats-panel h2 { font-size: 14px; color: #7eb8ff; margin-bottom: 8px; }
+        .stat-row { display: flex; justify-content: space-between; gap: 20px; margin: 4px 0; }
+        .stat-value { color: #fff; font-weight: bold; }
+        .tooltip {
+            position: absolute;
+            background: rgba(20, 20, 50, 0.95);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            max-width: 200px;
+            z-index: 100;
+        }
+        .tooltip.visible { opacity: 1; }
+        .tooltip .name { color: #7eb8ff; font-weight: bold; }
+        .tooltip .info { color: #aaa; margin-top: 4px; }
+        .legend {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(10, 10, 30, 0.85);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            z-index: 100;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .controls-hint {
+            position: absolute;
+            bottom: 12px;
+            right: 12px;
+            background: rgba(10, 10, 30, 0.85);
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            color: #888;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div class="stats-panel">
+            <h2>Constellation Map 3D</h2>
+            <div class="stat-row"><span>Stars:</span><span class="stat-value" id="star-count">0</span></div>
+            <div class="stat-row"><span>Connections:</span><span class="stat-value" id="connection-count">0</span></div>
+            <div class="stat-row"><span>Messages:</span><span class="stat-value" id="message-count">0</span></div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background: #7eb8ff;"></div><span>Viewer</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background: #ff6b9d;"></div><span>Gifter</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background: #ffd700;"></div><span>SuperChat</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background: #50fa7b;"></div><span>Guard</span></div>
+        </div>
+        <div class="controls-hint">Drag to rotate | Scroll to zoom</div>
+        <div class="tooltip" id="tooltip"><div class="name"></div><div class="info"></div></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Scene setup
+        const container = document.getElementById('canvas-container');
+        const tooltip = document.getElementById('tooltip');
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.z = 500;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+        container.appendChild(renderer.domElement);
+
+        // Data structures
+        const stars = new Map();
+        const starMeshes = new Map();
+        const connections = [];
+        const wordToUsers = new Map();
+        let messageCount = 0;
+
+        // Reusable objects to reduce GC
+        const _vec3A = new THREE.Vector3();
+        const _vec3B = new THREE.Vector3();
+        const _center = new THREE.Vector3(0, 0, 0);
+
+        // Stop words
+        const stopWords = new Set([
+            '的', '了', '是', '在', '我', '有', '和', '就', '不', '人', '都', '一', '一个',
+            '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好',
+            '自己', '这', '那', '啊', '吗', '呢', '吧', '哈', '嗯', '哦', '额', '呃',
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+            'is', 'are', 'was', 'were', 'be', 'have', 'has', 'had', 'do', 'does', 'did',
+            'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them'
+        ]);
+
+        const COLORS = {
+            viewer: 0x7eb8ff,
+            gifter: 0xff6b9d,
+            superchat: 0xffd700,
+            guard: 0x50fa7b
+        };
+
+        // Shared geometries (reuse for all stars)
+        const starGeometry = new THREE.SphereGeometry(1, 12, 12);
+        const glowGeometry = new THREE.SphereGeometry(1, 8, 8);
+
+        // Material cache
+        const materialCache = {
+            star: {},
+            glow: {}
+        };
+
+        function getStarMaterial(type) {
+            if (!materialCache.star[type]) {
+                materialCache.star[type] = new THREE.MeshBasicMaterial({ color: COLORS[type] });
+            }
+            return materialCache.star[type];
+        }
+
+        function getGlowMaterial(type) {
+            if (!materialCache.glow[type]) {
+                materialCache.glow[type] = new THREE.MeshBasicMaterial({
+                    color: COLORS[type],
+                    transparent: true,
+                    opacity: 0.3
+                });
+            }
+            return materialCache.glow[type];
+        }
+
+        // Background stars using instanced points
+        function createBackgroundStars() {
+            const positions = new Float32Array(1500 * 3);
+            for (let i = 0; i < 1500; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 2000;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 2000;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 2000;
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const material = new THREE.PointsMaterial({ color: 0x444466, size: 1, sizeAttenuation: true });
+            scene.add(new THREE.Points(geometry, material));
+        }
+        createBackgroundStars();
+
+        // DOM element cache
+        const statElements = {
+            stars: document.getElementById('star-count'),
+            connections: document.getElementById('connection-count'),
+            messages: document.getElementById('message-count')
+        };
+
+        let statsNeedUpdate = false;
+        function updateStats() {
+            statsNeedUpdate = true;
+        }
+
+        function flushStats() {
+            if (statsNeedUpdate) {
+                statElements.stars.textContent = stars.size;
+                statElements.connections.textContent = connections.length;
+                statElements.messages.textContent = messageCount;
+                statsNeedUpdate = false;
+            }
+        }
+
+        function addOrUpdateStar(uid, uname, type) {
+            if (stars.has(uid)) {
+                const star = stars.get(uid);
+                star.activity++;
+                star.lastActive = Date.now();
+
+                const priority = { viewer: 0, gifter: 1, superchat: 2, guard: 3 };
+                if (priority[type] > priority[star.type]) {
+                    star.type = type;
+                    const mesh = starMeshes.get(uid);
+                    if (mesh) {
+                        mesh.children[0].material = getStarMaterial(type);
+                        mesh.children[1].material = getGlowMaterial(type);
+                    }
+                }
+
+                const mesh = starMeshes.get(uid);
+                if (mesh) mesh.userData.pulseTime = Date.now();
+                return star;
+            }
+
+            const star = {
+                uid,
+                uname,
+                type,
+                activity: 1,
+                lastActive: Date.now(),
+                position: new THREE.Vector3(
+                    (Math.random() - 0.5) * 600,
+                    (Math.random() - 0.5) * 600,
+                    (Math.random() - 0.5) * 600
+                ),
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.05,
+                    (Math.random() - 0.5) * 0.05,
+                    (Math.random() - 0.5) * 0.05
+                ),
+                baseSize: 1.5 + Math.random() * 1
+            };
+            stars.set(uid, star);
+
+            const group = new THREE.Group();
+            const coreMesh = new THREE.Mesh(starGeometry, getStarMaterial(type));
+            coreMesh.scale.setScalar(star.baseSize);
+            group.add(coreMesh);
+
+            const glowMesh = new THREE.Mesh(glowGeometry, getGlowMaterial(type));
+            glowMesh.scale.setScalar(star.baseSize * 2.5);
+            group.add(glowMesh);
+
+            group.position.copy(star.position);
+            group.userData = { uid, pulseTime: Date.now() };
+
+            scene.add(group);
+            starMeshes.set(uid, group);
+            updateStats();
+            return star;
+        }
+
+        // Connection using simple line (more performant than tubes)
+        function addConnection(fromUid, toUid) {
+            if (fromUid === toUid || !stars.has(fromUid) || !stars.has(toUid)) return;
+
+            const existing = connections.find(c =>
+                (c.from === fromUid && c.to === toUid) || (c.from === toUid && c.to === fromUid)
+            );
+
+            if (existing) {
+                existing.strength = Math.min(existing.strength + 0.3, 1);
+                existing.timestamp = Date.now();
+                existing.line.material.opacity = 0.5 + existing.strength * 0.5;
+            } else {
+                const fromStar = stars.get(fromUid);
+                const toStar = stars.get(toUid);
+
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(6);
+                positions[0] = fromStar.position.x;
+                positions[1] = fromStar.position.y;
+                positions[2] = fromStar.position.z;
+                positions[3] = toStar.position.x;
+                positions[4] = toStar.position.y;
+                positions[5] = toStar.position.z;
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+                const material = new THREE.LineBasicMaterial({
+                    color: 0x6496ff,
+                    transparent: true,
+                    opacity: 0.7,
+                    linewidth: 2
+                });
+
+                const line = new THREE.Line(geometry, material);
+                scene.add(line);
+
+                connections.push({ from: fromUid, to: toUid, line, strength: 0.3, timestamp: Date.now() });
+                updateStats();
+            }
+        }
+
+        function updatePhysics() {
+            const now = Date.now();
+            const starsArray = Array.from(stars.values());
+            const starCount = starsArray.length;
+
+            for (let i = 0; i < starCount; i++) {
+                const star = starsArray[i];
+
+                // Star repulsion (only check nearby stars for performance)
+                for (let j = i + 1; j < starCount; j++) {
+                    const other = starsArray[j];
+                    _vec3B.copy(star.position).sub(other.position);
+                    const d = _vec3B.length();
+                    if (d < 40 && d > 0) {
+                        const force = (40 - d) / 40 * 0.015;
+                        _vec3B.normalize().multiplyScalar(force);
+                        star.velocity.add(_vec3B);
+                        other.velocity.sub(_vec3B);
+                    }
+                }
+
+                // Apply velocity
+                star.position.add(star.velocity);
+                star.velocity.multiplyScalar(0.98);
+
+                // Update mesh
+                const mesh = starMeshes.get(star.uid);
+                if (mesh) {
+                    mesh.position.copy(star.position);
+                    const pulseAge = (now - mesh.userData.pulseTime) / 1000;
+                    const pulse = pulseAge < 0.5 ? 1 + (0.5 - pulseAge) * 0.5 : 1;
+                    const sizeMult = 1 + Math.min(star.activity, 20) * 0.05;
+                    const scale = star.baseSize * sizeMult * pulse;
+                    mesh.children[0].scale.setScalar(scale);
+                    mesh.children[1].scale.setScalar(scale * 2.5);
+                }
+            }
+
+            // Update connections
+            for (let i = connections.length - 1; i >= 0; i--) {
+                const conn = connections[i];
+                const fromStar = stars.get(conn.from);
+                const toStar = stars.get(conn.to);
+
+                if (!fromStar || !toStar) {
+                    scene.remove(conn.line);
+                    conn.line.geometry.dispose();
+                    conn.line.material.dispose();
+                    connections.splice(i, 1);
+                    continue;
+                }
+
+                // Update line positions
+                const positions = conn.line.geometry.attributes.position.array;
+                positions[0] = fromStar.position.x;
+                positions[1] = fromStar.position.y;
+                positions[2] = fromStar.position.z;
+                positions[3] = toStar.position.x;
+                positions[4] = toStar.position.y;
+                positions[5] = toStar.position.z;
+                conn.line.geometry.attributes.position.needsUpdate = true;
+
+                // Fade after 5 seconds
+                const age = (now - conn.timestamp) / 1000;
+                if (age > 5) {
+                    conn.strength -= 0.005;
+                    conn.line.material.opacity = Math.max(0, 0.3 + conn.strength * 0.5);
+                    if (conn.strength <= 0) {
+                        scene.remove(conn.line);
+                        conn.line.geometry.dispose();
+                        conn.line.material.dispose();
+                        connections.splice(i, 1);
+                        updateStats();
+                    }
+                }
+            }
+        }
+
+        // Camera controls
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+        let spherical = { theta: 0, phi: Math.PI / 2 };
+        let cameraDistance = 500;
+
+        function updateCameraPosition() {
+            camera.position.x = cameraDistance * Math.sin(spherical.phi) * Math.cos(spherical.theta);
+            camera.position.y = cameraDistance * Math.cos(spherical.phi);
+            camera.position.z = cameraDistance * Math.sin(spherical.phi) * Math.sin(spherical.theta);
+            camera.lookAt(_center);
+        }
+
+        renderer.domElement.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        renderer.domElement.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                spherical.theta -= (e.clientX - prevMouse.x) * 0.005;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi - (e.clientY - prevMouse.y) * 0.005));
+                updateCameraPosition();
+                prevMouse = { x: e.clientX, y: e.clientY };
+            }
+            checkHover(e);
+        });
+
+        renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+        renderer.domElement.addEventListener('mouseleave', () => {
+            isDragging = false;
+            tooltip.classList.remove('visible');
+        });
+
+        renderer.domElement.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            cameraDistance = Math.max(100, Math.min(1000, cameraDistance + e.deltaY * 0.5));
+            updateCameraPosition();
+        }, { passive: false });
+
+        // Raycaster with throttling
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let lastHoverCheck = 0;
+
+        function checkHover(e) {
+            const now = Date.now();
+            if (isDragging || now - lastHoverCheck < 50) {
+                if (isDragging) tooltip.classList.remove('visible');
+                return;
+            }
+            lastHoverCheck = now;
+
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const meshArray = Array.from(starMeshes.values());
+            const intersects = raycaster.intersectObjects(meshArray, true);
+
+            if (intersects.length > 0) {
+                let obj = intersects[0].object;
+                while (obj.parent && !obj.userData.uid) obj = obj.parent;
+                const star = stars.get(obj.userData.uid);
+                if (star) {
+                    tooltip.querySelector('.name').textContent = star.uname;
+                    tooltip.querySelector('.info').textContent = `Messages: ${star.activity} | Type: ${star.type}`;
+                    tooltip.style.left = (e.clientX + 15) + 'px';
+                    tooltip.style.top = (e.clientY + 15) + 'px';
+                    tooltip.classList.add('visible');
+                    return;
+                }
+            }
+            tooltip.classList.remove('visible');
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation with frame limiting
+        let lastInteraction = Date.now();
+        let lastFrame = 0;
+        const targetFPS = 60;
+        const frameInterval = 1000 / targetFPS;
+
+        renderer.domElement.addEventListener('mousedown', () => lastInteraction = Date.now());
+        renderer.domElement.addEventListener('wheel', () => lastInteraction = Date.now());
+
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+
+            // Frame rate limiting
+            if (timestamp - lastFrame < frameInterval) return;
+            lastFrame = timestamp;
+
+            updatePhysics();
+            flushStats();
+
+            // Auto rotate when idle
+            if (Date.now() - lastInteraction > 5000) {
+                spherical.theta += 0.001;
+                updateCameraPosition();
+            }
+
+            renderer.render(scene, camera);
+        }
+        requestAnimationFrame(animate);
+
+        // Word extraction with caching
+        const wordCache = new Map();
+        const WORD_CACHE_MAX = 1000;
+
+        function extractWords(message) {
+            if (wordCache.has(message)) return wordCache.get(message);
+
+            const cleaned = message.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9\s]/g, ' ');
+            const words = cleaned.split(/\s+/).filter(w => w.length >= 2 && !stopWords.has(w) && !/^\d+$/.test(w));
+
+            if (wordCache.size >= WORD_CACHE_MAX) {
+                const firstKey = wordCache.keys().next().value;
+                wordCache.delete(firstKey);
+            }
+            wordCache.set(message, words);
+            return words;
+        }
+
+        // Recent active users cache
+        let recentUsersCache = null;
+        let recentUsersCacheTime = 0;
+
+        function getRecentActiveUsers(limit = 5) {
+            const now = Date.now();
+            if (recentUsersCache && now - recentUsersCacheTime < 500) return recentUsersCache;
+
+            const activeThreshold = 30000;
+            const sorted = Array.from(stars.values())
+                .filter(s => (now - s.lastActive) < activeThreshold)
+                .sort((a, b) => b.lastActive - a.lastActive)
+                .slice(0, limit);
+
+            recentUsersCache = new Set(sorted.map(s => s.uid));
+            recentUsersCacheTime = now;
+            return recentUsersCache;
+        }
+
+        function processMessage(uid, message) {
+            const words = extractWords(message);
+            const recentUsers = getRecentActiveUsers(5);
+
+            for (const word of words) {
+                if (!wordToUsers.has(word)) wordToUsers.set(word, new Set());
+                const usersWithWord = wordToUsers.get(word);
+
+                for (const otherUid of usersWithWord) {
+                    if (otherUid !== uid && recentUsers.has(otherUid)) {
+                        addConnection(uid, otherUid);
+                    }
+                }
+                usersWithWord.add(uid);
+            }
+        }
+
+        // Cleanup old word associations periodically
+        setInterval(() => {
+            const now = Date.now();
+            const activeThreshold = 60000;
+            for (const [word, users] of wordToUsers) {
+                for (const uid of users) {
+                    const star = stars.get(uid);
+                    if (!star || now - star.lastActive > activeThreshold) {
+                        users.delete(uid);
+                    }
+                }
+                if (users.size === 0) wordToUsers.delete(word);
+            }
+        }, 30000);
+
+        // JLiverTool API
+        function waitForApi(callback) {
+            if (window.jliverAPI) callback();
+            else setTimeout(() => waitForApi(callback), 100);
+        }
+
+        waitForApi(() => {
+            console.log('Constellation Map 3D: API connected');
+
+            jliverAPI.register('NewDanmu', (event) => {
+                const { uid, uname, msg } = event.data;
+                messageCount++;
+                addOrUpdateStar(uid, uname, 'viewer');
+                processMessage(uid, msg);
+                updateStats();
+            });
+
+            jliverAPI.register('NewGift', (event) => {
+                const { uid, uname } = event.data;
+                const star = addOrUpdateStar(uid, uname, 'gifter');
+                star.baseSize = Math.max(star.baseSize, 1.5 * 2.5); // 2.5x base size
+            });
+
+            jliverAPI.register('NewSuperChat', (event) => {
+                const { uid, uname } = event.data;
+                const star = addOrUpdateStar(uid, uname, 'superchat');
+                star.baseSize = Math.max(star.baseSize, 1.5 * 5); // 5x base size
+            });
+
+            jliverAPI.register('NewGuard', (event) => {
+                const { uid, uname } = event.data;
+                const star = addOrUpdateStar(uid, uname, 'guard');
+                star.baseSize = Math.max(star.baseSize, 1.5 * 10); // 10x base size
+            });
+
+            jliverAPI.register('NewInteract', (event) => {
+                const { uid, uname } = event.data;
+                addOrUpdateStar(uid, uname, 'viewer');
+            });
+        });
+    </script>
+</body>
+</html>

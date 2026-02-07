@@ -1,0 +1,22 @@
+[package]
+name = "jlivertool-plugin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+tokio-tungstenite = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+log = { workspace = true }
+open = { workspace = true }
+chrono = { workspace = true }
+reqwest = { workspace = true }
+jlivertool-core = { path = "../jlivertool-core" }
+
+# HTTP server for plugin serving
+axum = "0.8"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+mime_guess = "2"

@@ -1,0 +1,77 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "3.0.0"
+edition = "2021"
+authors = ["JLiverTool Contributors"]
+license = "MIT"
+repository = "https://github.com/your-repo/jlivertool"
+
+[workspace.dependencies]
+# GPUI Framework
+gpui = "0.2.2"
+gpui-component = "0.5.0"
+# Pin core-text to fix core_graphics version conflict
+core-text = "=21.0.0"
+
+# URL encoding
+urlencoding = "2"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "cookies", "gzip", "brotli"] }
+
+# WebSocket
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Compression
+flate2 = "1"
+brotli = "7"
+
+# Crypto
+md-5 = "0.10"
+base64 = "0.22"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+
+# Error handling
+anyhow = "1"
+thiserror = "2"
+
+# Utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+directories = "6"
+parking_lot = "0.12"
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# Async traits
+async-trait = "0.1"
+
+# Logging
+log = "0.4"
+
+# Webview
+wry = "0.50"
+tao = "0.32"
+
+# Open URLs
+open = "5"
+
+[profile.release]
+lto = true
+codegen-units = 1
