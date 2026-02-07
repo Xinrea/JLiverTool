@@ -9,6 +9,7 @@ use gpui::*;
 use gpui_component::{h_flex, v_flex, webview::WebView, wry};
 use raw_window_handle::HasWindowHandle;
 use std::path::PathBuf;
+use std::time::Duration;
 
 /// Plugin window view state
 pub struct PluginWindowView {
@@ -18,6 +19,7 @@ pub struct PluginWindowView {
     ws_port: u16,
     webview: Option<Entity<WebView>>,
     webview_initialized: bool,
+    window_handle: Option<AnyWindowHandle>,
 }
 
 impl PluginWindowView {
@@ -37,19 +39,14 @@ impl PluginWindowView {
             ws_port,
             webview: None,
             webview_initialized: false,
+            window_handle: None,
         }
     }
 
-    fn create_webview_deferred(
-        &mut self,
-        plugin_path: PathBuf,
-        ws_port: u16,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
+    fn create_webview(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         // Build the URL with WebSocket port parameter
-        let index_path = plugin_path.join("index.html");
-        let url = format!("file://{}?ws_port={}", index_path.display(), ws_port);
+        let index_path = self.plugin_path.join("index.html");
+        let url = format!("file://{}?ws_port={}", index_path.display(), self.ws_port);
 
         // Get the window handle for wry
         let window_handle = match window.window_handle() {
@@ -103,15 +100,27 @@ impl PluginWindowView {
 
 impl Render for PluginWindowView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Store window handle for deferred webview creation
+        if self.window_handle.is_none() {
+            self.window_handle = Some(cx.window_handle());
+        }
+
         // Defer webview creation to avoid reentrancy issues on Windows
         // The webview2 creation pumps the message loop which can cause RefCell borrow conflicts
         if !self.webview_initialized {
             self.webview_initialized = true;
-            let plugin_path = self.plugin_path.clone();
-            let ws_port = self.ws_port;
-            cx.defer(move |view, window, cx| {
-                view.create_webview_deferred(plugin_path, ws_port, window, cx);
-            });
+            if let Some(window_handle) = self.window_handle {
+                cx.spawn(async move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
+                    // Small delay to ensure render is complete and borrow is released
+                    Timer::after(Duration::from_millis(10)).await;
+                    let _ = cx.update_window(window_handle, |_, window, cx| {
+                        let _ = this.update(cx, |view, cx| {
+                            view.create_webview(window, cx);
+                        });
+                    });
+                })
+                .detach();
+            }
         }
 
         let entity = cx.entity().clone();
