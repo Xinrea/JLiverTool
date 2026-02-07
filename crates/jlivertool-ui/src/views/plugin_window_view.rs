@@ -102,7 +102,7 @@ impl Render for PluginWindowView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         // Store window handle for deferred webview creation
         if self.window_handle.is_none() {
-            self.window_handle = Some(cx.window_handle());
+            self.window_handle = Some(window.window_handle());
         }
 
         // Defer webview creation to avoid reentrancy issues on Windows
