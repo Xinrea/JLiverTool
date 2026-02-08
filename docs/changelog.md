@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2026-02-08
+
+### 🐛 Bug Fixes
+
+- Room title edit
+
+### 📚 Documentation
+
+- Update
+
 ## [3.0.0] - 2026-02-07
 
 ### 🚀 Features
