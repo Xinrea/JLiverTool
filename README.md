@@ -2,63 +2,55 @@
 
 [![GitHub release (latest by date)](https://img.shields.io/github/downloads/xinrea/jlivertool/total.svg)](https://github.com/Xinrea/JLiverTool/releases)
 
-![screenshot](imgs/screenshot.png)
+> [!NOTE]
+> 本项目自 3.0.0 版本开始，使用 Rust 重构，并使用 GPUI 框架；旧 Electron 版本请参考 [2.4.4](https://github.com/Xinrea/JLiverTool/releases/tag/2.4.4) 版本。
 
 ## 使用说明
 
 ### 1. 主界面（弹幕界面）
 
-![mainwindow-titlebar](imgs/mainwindow.png)
+<table>
+  <tr>
+    <td>
+      <img src="docs/public/mainwindow.png" alt="screenshot" width="500">
+    </td>
+    <td>
+      <img src="docs/public/command.png" alt="screenshot" width="500">
+    </td>
+  </tr>
+</table>
 
-右侧设置区域，功能从左到右分别为：
+主界面分为三个大的部分：顶部菜单栏、弹幕列表、底部状态栏。
+顶部菜单栏从左到右分别为：
 
-- 粉丝牌显示
-- 进入房间信息显示
-- 窗口置顶
-- 窗口最小化
-- 其他设置（唤起其它窗口等）
+- 置顶
+- 礼物窗口
+- 醒目留言窗口
+- 统计窗口
+- 观众列表窗口
+- 设置窗口
 
-底部状态栏显示当前的直播间标题，且右侧为弹幕输入框（如果登录）和直播间设置链接。
+底部状态栏显示当前的直播间标题，且提供了弹幕命令输入。输入普通内容后点击发送按钮即可发送弹幕。如果输入特殊命令，则会执行特殊功能。
+目前支持的指令有：
 
-![command-input](imgs/command.png)
+- `/title <new title>` - 修改直播间标题
+- `/bye` - 关闭直播
 
-弹幕输入框除了发送弹幕外，还可以执行以下特殊指令：
+### 2. 礼物窗口
 
-- `/title 新标题` 设置直播间标题
-- `/bye` 下播
+![giftwindow](docs/public/giftwindow.png)
 
-双击弹幕可查看该用户本次直播发言记录。
-
-### 2. 礼物界面
-
-![giftwindow](imgs/giftwindow.png)
-
-同样的，功能按钮位于标题栏中，从左到右分别为：
-
-- 清空（清空所有记录）
-- 免费礼物显示
-- 关闭
-
-> 所有的付费礼物均会在程序运行期间**自动保存**，程序启动时将会把保存的礼物加载入列表。
-> 移除礼物记录，可以点击清空按钮，清除所有礼物记录；或者**双击**某条礼物记录，进行移除。
+礼物窗口用于单独显示礼物和舰长记录。
 
 ### 3. 醒目留言界面
 
-![superchatwindow](imgs/superchatwindow.png)
-
-同样的，功能按钮位于标题栏中，从左到右分别为：
-
-- 清空（清空所有记录）
-- 关闭
-
-> 所有的醒目留言均会在程序运行期间**自动保存**，程序启动时将会把保存的醒目留言加载入列表。
-> 移除醒目留言，可以点击清空按钮，清除所有醒目留言；或者**双击**某条醒目留言，进行移除。
+![superchatwindow](docs/public/superchatwindow.png)
 
 ### 4. 设置界面
 
-![设置窗口](imgs/settingwindow.png)
+![设置窗口](docs/public/settings.png)
 
-大部分功能需要登录后才能使用，当登录账号与直播间号匹配时，直播间标题设置和开/关播按钮才可使用。
+当登录账号与直播间号匹配时，直播间标题设置和开/关播按钮才可使用。
 
 ## 安装说明
 
@@ -80,9 +72,11 @@ makepkg -si
 
 ## 开发说明
 
-### 代码格式
+### Run
 
-请使用 `prettier` 进行代码格式化，配置文件已经提供 `.prettierrc`。
+```bash
+cargo run
+```
 
 ### Build
 

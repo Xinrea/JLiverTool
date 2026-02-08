@@ -2,6 +2,84 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-02-07
+
+### 🚀 Features
+
+- Refactor rust (#47)
+
+### ⚙️ Miscellaneous Tasks
+
+- Update package
+
+## [2.4.4] - 2026-01-12
+
+### 🐛 Bug Fixes
+
+- Add dynamic emoji map
+
+### 📚 Documentation
+
+- Update
+
+## [2.4.3] - 2025-09-01
+
+### 🚀 Features
+
+- Copy rtmp info
+
+### 🐛 Bug Fixes
+
+- Start/end live
+
+## [2.4.2] - 2025-06-27
+
+### 🐛 Bug Fixes
+
+- Code -352 for GetDanmuInfo api
+
+## [2.4.1] - 2025-05-26
+
+### 🐛 Bug Fixes
+
+- Add wbi sign for danmu api
+
+## [2.4.0] - 2025-05-25
+
+### 🚀 Features
+
+- Optimize with requestAnimationFrame
+- Support aliyun tts
+- Support tts custom endpoint
+- Support aliyun tts sdk
+
+## [2.3.0] - 2025-04-23
+
+### 🚀 Features
+
+- Add landing page
+- Basic plugin manager
+- Implement example plugin
+- Plugin management
+- More events for plugin
+- Fix stall when cookies expire
+
+### 🐛 Bug Fixes
+
+- Plugin list update
+- Wrong guard entry message
+
+### 📚 Documentation
+
+- Update
+- Update
+- Update
+
+### ⚙️ Miscellaneous Tasks
+
+- Update dependencies
+- Deploy pages
+
 ## [2.2.1] - 2024-12-21
 
 ### 🚀 Features

@@ -3,8 +3,8 @@
 layout: home
 
 hero:
-  name: 'JLiverTool'
-  text: 'B 站直播弹幕工具'
+  name: "JLiverTool"
+  text: "B 站直播弹幕工具"
   tagline: 简单易用的 B 站开源直播弹幕工具
   image:
     src: /logo.png
@@ -43,6 +43,24 @@ features:
 
 ## 软件截图
 
-![screenshot](/screenshot.png)
-
-![screenshot2](/screenshot2.png)
+<table>
+  <tr>
+    <td>
+      <img src="/mainwindow.png" alt="screenshot" width="300" style="border-radius: 8px;">
+    </td>
+    <td>
+      <img src="/command.png" alt="screenshot" width="300" style="border-radius: 8px;">
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <img src="/giftwindow.png" alt="screenshot" width="300" style="border-radius: 8px;">
+    </td>
+    <td>
+      <img src="/superchatwindow.png" alt="screenshot" width="300" style="border-radius: 8px;">
+    </td>
+    <td>
+      <img src="/statisticswindow.png" alt="screenshot" width="300" style="border-radius: 8px;">
+    </td>
+  </tr>
+</table>
