@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.package]
-version = "3.0.0"
+version = "3.0.2"
 edition = "2021"
 authors = ["JLiverTool Contributors"]
 license = "MIT"
@@ -71,6 +71,9 @@ tao = "0.32"
 
 # Open URLs
 open = "5"
+
+# Notifications
+notify-rust = "4"
 
 [profile.release]
 lto = true

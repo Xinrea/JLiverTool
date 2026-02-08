@@ -12,13 +12,14 @@ use jlivertool_core::config::ConfigStore;
 use jlivertool_core::database::Database;
 use jlivertool_core::events::Event;
 use jlivertool_core::messages::{
-    DanmuMessage, EntryEffectMessage, GiftMessage, GuardMessage, InteractMessage,
-    OnlineRankCountMessage, RoomChangeMessage, SuperChatMessage,
+    CutOffMessage, DanmuMessage, EntryEffectMessage, GiftMessage, GuardMessage, InteractMessage,
+    OnlineRankCountMessage, RoomChangeMessage, SuperChatMessage, WarningMessage,
 };
 use jlivertool_core::tts::{TtsEnabled, TtsManager, TtsMessage};
 use jlivertool_core::types::RoomId;
 use jlivertool_plugin::PluginManager;
 use jlivertool_ui::{run_app_with_tray, PluginInfo, UiCommand};
+use notify_rust::Notification;
 use parking_lot::RwLock;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -1499,6 +1500,34 @@ fn handle_message(
         }
         "PREPARING" => {
             let _ = event_tx.send(Event::LiveEnd);
+        }
+        "WARNING" => {
+            if let Some(warning) = WarningMessage::from_raw(body) {
+                warn!("Received warning: {}", warning.msg);
+                // Show system notification
+                if let Err(e) = Notification::new()
+                    .summary("直播警告")
+                    .body(&warning.msg)
+                    .show()
+                {
+                    error!("Failed to show warning notification: {}", e);
+                }
+                let _ = event_tx.send(Event::Warning(warning));
+            }
+        }
+        "CUT_OFF" => {
+            if let Some(cutoff) = CutOffMessage::from_raw(body) {
+                info!("Received cutoff: {}", cutoff.msg);
+                // Show system notification
+                if let Err(e) = Notification::new()
+                    .summary("直播切断")
+                    .body(&cutoff.msg)
+                    .show()
+                {
+                    error!("Failed to show cutoff notification: {}", e);
+                }
+                let _ = event_tx.send(Event::CutOff(cutoff));
+            }
         }
         _ => {}
     }

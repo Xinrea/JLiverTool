@@ -572,3 +572,37 @@ impl OnlineRankCountMessage {
         Some(Self { count })
     }
 }
+
+/// Warning message from Bilibili (live stream warning)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WarningMessage {
+    pub msg: String,
+}
+
+impl WarningMessage {
+    pub fn from_raw(body: &Value) -> Option<Self> {
+        let msg = body
+            .get("msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        Some(Self { msg })
+    }
+}
+
+/// Cut off message from Bilibili (live stream cut off)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CutOffMessage {
+    pub msg: String,
+}
+
+impl CutOffMessage {
+    pub fn from_raw(body: &Value) -> Option<Self> {
+        let msg = body
+            .get("msg")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        Some(Self { msg })
+    }
+}

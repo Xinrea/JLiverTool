@@ -48,6 +48,9 @@ rusqlite = { workspace = true }
 # Async traits
 async-trait = { workspace = true }
 
+# Notifications
+notify-rust = { workspace = true }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc = "0.2"
 cocoa = "0.26"

@@ -4,8 +4,8 @@
 
 use crate::bilibili::api::{GuardListItem, OnlineGoldRankItem, UserInfoData};
 use crate::messages::{
-    DanmuMessage, EntryEffectMessage, GiftMessage, GuardMessage, InteractMessage,
-    RoomChangeMessage, SuperChatMessage,
+    CutOffMessage, DanmuMessage, EntryEffectMessage, GiftMessage, GuardMessage, InteractMessage,
+    RoomChangeMessage, SuperChatMessage, WarningMessage,
 };
 use crate::types::{DetailInfo, RoomId};
 use parking_lot::RwLock;
@@ -157,6 +157,12 @@ pub enum Event {
         release_url: String,
         error: Option<String>,
     },
+
+    /// Live stream warning received
+    Warning(WarningMessage),
+
+    /// Live stream cut off
+    CutOff(CutOffMessage),
 }
 
 /// Plugin info for events (simplified version)
@@ -285,6 +291,8 @@ impl EventBus {
             Event::PluginImportResult { .. } => "plugin_import_result",
             Event::DataCleared => "data_cleared",
             Event::UpdateCheckResult { .. } => "update_check_result",
+            Event::Warning(_) => "warning",
+            Event::CutOff(_) => "cut_off",
         }
     }
 }
