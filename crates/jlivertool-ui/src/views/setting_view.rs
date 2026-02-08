@@ -1131,33 +1131,23 @@ impl SettingView {
 
         let input_state = state.read(cx).input.clone();
 
-        // Create title input state for room owners
+        // Create title input state using keyed state (same pattern as room input)
         struct TitleInputWrapper {
             input: Entity<gpui_component::input::InputState>,
         }
 
-        let title_state = window.use_keyed_state(
-            SharedString::from("room-title-input-state"),
-            cx,
-            |window, cx| {
+        let title_state =
+            window.use_keyed_state(SharedString::from("room-title-input-state"), cx, |window, cx| {
                 let input = cx.new(|cx| {
                     gpui_component::input::InputState::new(window, cx)
                         .placeholder("输入直播间标题...")
                         .default_value(current_title.clone())
                 });
+
                 TitleInputWrapper { input }
-            },
-        );
+            });
 
         let title_input_state = title_state.read(cx).input.clone();
-
-        // Sync title input with current title when room changes
-        let current_input_text = title_input_state.read(cx).text().to_string();
-        if current_input_text != current_title {
-            title_input_state.update(cx, |state, cx| {
-                state.set_value(&current_title, window, cx);
-            });
-        }
 
         self.render_section_card(
             v_flex()
@@ -1220,66 +1210,66 @@ impl SettingView {
                                 .child("房间号无效，请检查输入"),
                         )
                     })
-                    // Room title editing for room owners
-                    .when(is_owner, |this| {
-                        this.child(
-                            div()
-                                .mt_4()
-                                .pt_4()
-                                .border_t_1()
-                                .border_color(Colors::bg_hover())
-                                .child(
-                                    v_flex()
-                                        .w_full()
-                                        .gap_2()
-                                        .child(
-                                            div()
-                                                .text_size(px(13.0))
-                                                .text_color(Colors::text_primary())
-                                                .child("直播间标题"),
-                                        )
-                                        .child(
-                                            div()
-                                                .text_size(px(11.0))
-                                                .text_color(Colors::text_muted())
-                                                .child("修改直播间标题（仅房主可用）"),
-                                        )
-                                        .child(
-                                            h_flex()
-                                                .w_full()
-                                                .gap_2()
-                                                .items_center()
-                                                .child(div().flex_1().child(
-                                                    gpui_component::input::Input::new(&title_input_state).cleanable(true),
-                                                ))
-                                                .child({
-                                                    let title_input_state = title_input_state.clone();
-                                                    let room_id = current_room_id;
-                                                    let callback = on_room_title_change.clone();
-                                                    div()
-                                                        .id("update-title-btn")
-                                                        .px_4()
-                                                        .py(px(7.0))
-                                                        .rounded_md()
-                                                        .cursor_pointer()
-                                                        .bg(Colors::accent())
-                                                        .hover(|s| s.opacity(0.8))
-                                                        .text_size(px(13.0))
-                                                        .text_color(Colors::button_text())
-                                                        .child("更新")
-                                                        .on_click(move |_event, window, cx| {
-                                                            let title = title_input_state.read(cx).text().to_string();
-                                                            if let Some(room_id) = room_id {
-                                                                if let Some(ref cb) = callback {
-                                                                    cb(room_id, title, window, cx);
-                                                                }
+                    // Room title editing for room owners - rendered outside .when() to fix input focus issues
+                    .child(
+                        div()
+                            .mt_4()
+                            .pt_4()
+                            .border_t_1()
+                            .border_color(Colors::bg_hover())
+                            // Use visibility instead of conditional rendering to preserve input focus
+                            .when(!is_owner, |this| this.hidden())
+                            .child(
+                                v_flex()
+                                    .w_full()
+                                    .gap_2()
+                                    .child(
+                                        div()
+                                            .text_size(px(13.0))
+                                            .text_color(Colors::text_primary())
+                                            .child("直播间标题"),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_size(px(11.0))
+                                            .text_color(Colors::text_muted())
+                                            .child("修改直播间标题（仅房主可用）"),
+                                    )
+                                    .child(
+                                        h_flex()
+                                            .w_full()
+                                            .gap_2()
+                                            .items_center()
+                                            .child(div().flex_1().child(
+                                                gpui_component::input::Input::new(&title_input_state).cleanable(true),
+                                            ))
+                                            .child({
+                                                let title_input_state = title_input_state.clone();
+                                                let room_id = current_room_id;
+                                                let callback = on_room_title_change.clone();
+                                                div()
+                                                    .id("update-title-btn")
+                                                    .px_4()
+                                                    .py(px(7.0))
+                                                    .rounded_md()
+                                                    .cursor_pointer()
+                                                    .bg(Colors::accent())
+                                                    .hover(|s| s.opacity(0.8))
+                                                    .text_size(px(13.0))
+                                                    .text_color(Colors::button_text())
+                                                    .child("更新")
+                                                    .on_click(move |_event, window, cx| {
+                                                        let title = title_input_state.read(cx).text().to_string();
+                                                        if let Some(room_id) = room_id {
+                                                            if let Some(ref cb) = callback {
+                                                                cb(room_id, title, window, cx);
                                                             }
-                                                        })
-                                                }),
-                                        ),
-                                ),
-                        )
-                    }),
+                                                        }
+                                                    })
+                                            }),
+                                    ),
+                            ),
+                    ),
             ),
         )
     }
