@@ -427,6 +427,17 @@ impl MainView {
                                 return;
                             }
 
+                            // Handle debug commands (debug builds only)
+                            #[cfg(debug_assertions)]
+                            if let Some(args) = text.strip_prefix("/debug ") {
+                                this.handle_debug_command(args);
+                                pending_clear.set(true);
+                                show_popup.set(false);
+                                selected_idx.set(0);
+                                cx.notify();
+                                return;
+                            }
+
                             if let Some(room_id) = this.room.as_ref().map(|r| r.real_id()) {
                                 if let Some(title) = text.strip_prefix("/title ") {
                                     let title = title.trim().to_string();
@@ -752,8 +763,8 @@ impl MainView {
         let scroll_handle = self.scroll_handle.clone();
         let selected_user = self.selected_user.clone();
 
-        let danmu_list = Rc::clone(&self.danmu_list_snapshot);
-        let item_count = danmu_list.len();
+        let render_rows = Rc::clone(&self.render_rows);
+        let item_count = render_rows.len();
 
         h_flex()
             .id("danmu-container")
@@ -765,12 +776,10 @@ impl MainView {
                     move |range, _window, _cx| {
                         range
                             .map(|ix| {
-                                let msg = danmu_list[ix].clone();
+                                let row = render_rows[ix].clone();
                                 let selected_user = selected_user.clone();
-                                // Return element directly instead of creating an entity
-                                // This allows tooltip state to be preserved
                                 DanmuListItemView::new(
-                                    msg,
+                                    row,
                                     ix,
                                     font_size,
                                     lite_mode,
@@ -831,6 +840,11 @@ impl Render for MainView {
                 height: current_bounds.3,
             });
         }
+
+        // Update render rows (incremental if width unchanged, full rebuild if changed)
+        let window_width = f32::from(bounds.size.width);
+        self.update_render_rows(window_width);
+        self.apply_pending_scroll();
 
         {
             let mut selected = self.selected_user.borrow_mut();

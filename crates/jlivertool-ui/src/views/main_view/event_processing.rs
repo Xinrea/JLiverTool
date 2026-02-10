@@ -73,13 +73,13 @@ impl MainView {
                     if !danmu.is_generated {
                         let should_auto_scroll = self.is_at_bottom();
                         self.danmu_list.push_back(DisplayMessage::Danmu(danmu));
-                        while self.danmu_list.len() > MAX_DANMU_COUNT {
-                            self.danmu_list.pop_front();
-                        }
-                        list_modified = true;
                         if should_auto_scroll {
+                            while self.danmu_list.len() > MAX_DANMU_COUNT {
+                                self.danmu_list.pop_front();
+                            }
                             self.scroll_to_bottom();
                         }
+                        list_modified = true;
                     }
                 }
                 Event::NewInteract(interact) => {
@@ -87,13 +87,13 @@ impl MainView {
                         let should_auto_scroll = self.is_at_bottom();
                         self.danmu_list
                             .push_back(DisplayMessage::Interact(interact));
-                        while self.danmu_list.len() > MAX_DANMU_COUNT {
-                            self.danmu_list.pop_front();
-                        }
-                        list_modified = true;
                         if should_auto_scroll {
+                            while self.danmu_list.len() > MAX_DANMU_COUNT {
+                                self.danmu_list.pop_front();
+                            }
                             self.scroll_to_bottom();
                         }
+                        list_modified = true;
                     }
                 }
                 Event::NewEntryEffect(entry) => {
@@ -108,26 +108,26 @@ impl MainView {
                         let should_auto_scroll = self.is_at_bottom();
                         self.danmu_list
                             .push_back(DisplayMessage::EntryEffect(entry));
-                        while self.danmu_list.len() > MAX_DANMU_COUNT {
-                            self.danmu_list.pop_front();
-                        }
-                        list_modified = true;
                         if should_auto_scroll {
+                            while self.danmu_list.len() > MAX_DANMU_COUNT {
+                                self.danmu_list.pop_front();
+                            }
                             self.scroll_to_bottom();
                         }
+                        list_modified = true;
                     }
                 }
                 Event::NewGift(gift) => {
                     let should_auto_scroll = self.is_at_bottom();
                     self.danmu_list
                         .push_back(DisplayMessage::Gift(gift.clone()));
-                    while self.danmu_list.len() > MAX_DANMU_COUNT {
-                        self.danmu_list.pop_front();
-                    }
-                    list_modified = true;
                     if should_auto_scroll {
+                        while self.danmu_list.len() > MAX_DANMU_COUNT {
+                            self.danmu_list.pop_front();
+                        }
                         self.scroll_to_bottom();
                     }
+                    list_modified = true;
                     self.gift_view.update(cx, |view, cx| {
                         view.add_gift(gift, cx);
                     });
@@ -136,13 +136,13 @@ impl MainView {
                     let should_auto_scroll = self.is_at_bottom();
                     self.danmu_list
                         .push_back(DisplayMessage::Guard(guard.clone()));
-                    while self.danmu_list.len() > MAX_DANMU_COUNT {
-                        self.danmu_list.pop_front();
-                    }
-                    list_modified = true;
                     if should_auto_scroll {
+                        while self.danmu_list.len() > MAX_DANMU_COUNT {
+                            self.danmu_list.pop_front();
+                        }
                         self.scroll_to_bottom();
                     }
+                    list_modified = true;
                     self.gift_view.update(cx, |view, cx| {
                         view.add_guard(guard, cx);
                     });
@@ -151,13 +151,13 @@ impl MainView {
                     let should_auto_scroll = self.is_at_bottom();
                     self.danmu_list
                         .push_back(DisplayMessage::SuperChat(sc.clone()));
-                    while self.danmu_list.len() > MAX_DANMU_COUNT {
-                        self.danmu_list.pop_front();
-                    }
-                    list_modified = true;
                     if should_auto_scroll {
+                        while self.danmu_list.len() > MAX_DANMU_COUNT {
+                            self.danmu_list.pop_front();
+                        }
                         self.scroll_to_bottom();
                     }
+                    list_modified = true;
                     self.superchat_view.update(cx, |view, cx| {
                         view.add_superchat(sc, cx);
                     });
@@ -255,6 +255,9 @@ impl MainView {
                     self.guard_effect = guard_effect;
                     self.level_effect = level_effect;
                     self.always_on_top = always_on_top;
+                    // Force rebuild of render rows
+                    self.last_render_width = 0.0;
+                    self.render_rows_source_count = 0;
                     self.gift_view
                         .update(cx, |v, cx| v.set_opacity(opacity, cx));
                     self.superchat_view
@@ -369,7 +372,9 @@ impl MainView {
             }
         }
         if list_modified {
-            self.update_snapshot();
+            // Render rows will be updated in render() via update_render_rows()
+            self.render_rows_source_count = 0;
+            self.render_rows = std::rc::Rc::new(Vec::new());
         }
     }
 }

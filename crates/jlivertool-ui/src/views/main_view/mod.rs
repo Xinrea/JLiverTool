@@ -13,7 +13,8 @@ mod event_processing;
 mod render;
 mod user_info_card;
 
-pub use content_rendering::{render_content_with_links, DisplayMessage};
+pub use content_rendering::{render_content_with_links, DisplayMessage, RenderRow};
+use content_rendering::{estimate_danmu_prefix_width, estimate_text_width, split_content_to_lines};
 use danmu_list_item::DanmuListItemView;
 use user_info_card::{SelectedUserState, UserInfoCard};
 
@@ -44,6 +45,8 @@ const MAX_DANMU_COUNT: usize = 200;
 pub const AVAILABLE_COMMANDS: &[(&str, &str)] = &[
     ("/title", "修改直播间标题"),
     ("/bye", "关闭直播"),
+    #[cfg(debug_assertions)]
+    ("/debug", "调试: sc/gift/guard/danmu"),
 ];
 
 /// Main window view state
@@ -61,8 +64,14 @@ pub struct MainView {
     online_count: u64,
     connected: bool,
     danmu_list: VecDeque<DisplayMessage>,
-    /// Snapshot of danmu_list for efficient rendering (updated only when list changes)
-    danmu_list_snapshot: Rc<Vec<DisplayMessage>>,
+    /// Flattened render rows for the uniform_list (1 source message → 1-2 rows)
+    render_rows: Rc<Vec<RenderRow>>,
+    /// Last window width used to compute render_rows (for change detection)
+    last_render_width: f32,
+    /// Number of source danmu_list items processed into render_rows (for incremental append)
+    render_rows_source_count: usize,
+    /// Deferred scroll-to-bottom (applied after render_rows are rebuilt)
+    pending_scroll_to_bottom: bool,
     // Settings view entity
     setting_view: Entity<SettingView>,
     // Gift view entity
@@ -261,6 +270,10 @@ impl MainView {
                         view.guard_effect = guard_effect;
                         view.level_effect = level_effect;
 
+                        // Force rebuild of render rows on layout-affecting changes
+                        view.last_render_width = 0.0;
+                        view.render_rows_source_count = 0;
+
                         // Remove interact messages if interact_display was disabled
                         if old_interact_display && !interact_display {
                             view.danmu_list
@@ -306,6 +319,7 @@ impl MainView {
                     // Update local font size
                     let _ = entity.update(cx, |view, cx| {
                         view.font_size = font_size;
+                        view.last_render_width = 0.0; // Force rebuild of render rows
                         cx.notify();
                     });
                 }
@@ -442,7 +456,10 @@ impl MainView {
             online_count: 0,
             connected: false,
             danmu_list: VecDeque::with_capacity(MAX_DANMU_COUNT),
-            danmu_list_snapshot: Rc::new(Vec::new()),
+            render_rows: Rc::new(Vec::new()),
+            last_render_width: 0.0,
+            render_rows_source_count: 0,
+            pending_scroll_to_bottom: true,
             setting_view,
             gift_view,
             superchat_view,
@@ -603,7 +620,7 @@ impl MainView {
 
     /// Check if scroll is at or near the bottom
     fn is_at_bottom(&self) -> bool {
-        if self.danmu_list.len() <= 1 {
+        if self.render_rows.len() <= 1 {
             return true;
         }
 
@@ -615,16 +632,283 @@ impl MainView {
         offset.y <= -max_offset.height + threshold
     }
 
-    /// Scroll to the bottom of the danmu list
+    /// Scroll to the bottom of the danmu list (deferred until render_rows are rebuilt)
     fn scroll_to_bottom(&mut self) {
-        let last_index = self.danmu_list.len().saturating_sub(1);
-        self.scroll_handle
-            .scroll_to_item(last_index, ScrollStrategy::Bottom);
+        self.pending_scroll_to_bottom = true;
     }
 
-    /// Update the danmu list snapshot for efficient rendering
-    fn update_snapshot(&mut self) {
-        self.danmu_list_snapshot = Rc::new(self.danmu_list.iter().cloned().collect());
+    /// Apply pending scroll-to-bottom after render_rows have been rebuilt
+    fn apply_pending_scroll(&mut self) {
+        if self.pending_scroll_to_bottom && !self.render_rows.is_empty() {
+            self.pending_scroll_to_bottom = false;
+            let last_index = self.render_rows.len().saturating_sub(1);
+            self.scroll_handle
+                .scroll_to_item(last_index, ScrollStrategy::Bottom);
+        }
+    }
+
+    /// Handle debug commands (only available in debug builds)
+    #[cfg(debug_assertions)]
+    pub(super) fn handle_debug_command(&mut self, args: &str) {
+        use jlivertool_core::messages::{GiftInfo, GiftMessage, GuardMessage, SuperChatMessage};
+        use jlivertool_core::types::{MedalInfo, Sender};
+
+        let now = chrono::Utc::now().timestamp();
+        let debug_id = format!("debug-{}", now);
+        let fake_sender = Sender {
+            uid: 12345678,
+            uname: "测试用户".to_string(),
+            face: String::new(),
+            medal_info: MedalInfo {
+                anchor_roomid: 0,
+                anchor_uname: String::new(),
+                guard_level: 0,
+                medal_color: 0x6154c1,
+                medal_color_border: 0x6154c1,
+                medal_color_start: 0x6154c1,
+                medal_color_end: 0x6154c1,
+                medal_level: 20,
+                medal_name: "测试".to_string(),
+                is_lighted: true,
+            },
+        };
+
+        let parts: Vec<&str> = args.splitn(2, ' ').collect();
+        let sub_cmd = parts.first().copied().unwrap_or("");
+        let content = parts.get(1).copied().unwrap_or("测试内容");
+
+        match sub_cmd {
+            "sc" => {
+                let sc = SuperChatMessage {
+                    id: debug_id.clone(),
+                    room: 0,
+                    sender: fake_sender,
+                    message: content.to_string(),
+                    price: 30,
+                    timestamp: now,
+                    start_time: now,
+                    end_time: now + 60,
+                    background_color: "#EDF5FF".to_string(),
+                    background_bottom_color: "#2A60B2".to_string(),
+                    archived: false,
+                };
+                self.danmu_list.push_back(DisplayMessage::SuperChat(sc));
+            }
+            "gift" => {
+                let gift = GiftMessage {
+                    id: debug_id.clone(),
+                    room: 0,
+                    gift_info: GiftInfo {
+                        id: 1,
+                        name: content.to_string(),
+                        price: 1000,
+                        coin_type: "gold".to_string(),
+                        img_basic: String::new(),
+                        img_dynamic: String::new(),
+                        gif: String::new(),
+                        webp: String::new(),
+                    },
+                    sender: fake_sender,
+                    action: "投喂".to_string(),
+                    num: 1,
+                    timestamp: now,
+                    archived: false,
+                };
+                self.danmu_list.push_back(DisplayMessage::Gift(gift));
+            }
+            "guard" => {
+                let guard = GuardMessage {
+                    id: debug_id.clone(),
+                    room: 0,
+                    sender: fake_sender,
+                    num: 1,
+                    unit: "月".to_string(),
+                    guard_level: 3,
+                    price: 198000,
+                    timestamp: now,
+                    archived: false,
+                };
+                self.danmu_list.push_back(DisplayMessage::Guard(guard));
+            }
+            "danmu" | _ => {
+                let danmu = jlivertool_core::messages::DanmuMessage {
+                    sender: fake_sender,
+                    content: content.to_string(),
+                    is_generated: false,
+                    is_special: false,
+                    emoji_content: None,
+                    side_index: -1,
+                    reply_uname: None,
+                };
+                self.danmu_list.push_back(DisplayMessage::Danmu(danmu));
+            }
+        }
+
+        while self.danmu_list.len() > MAX_DANMU_COUNT {
+            self.danmu_list.pop_front();
+        }
+        // Reset render rows so they get rebuilt on next render
+        self.render_rows_source_count = 0;
+        self.render_rows = Rc::new(Vec::new());
+        self.scroll_to_bottom();
+    }
+
+    /// Update render rows: full rebuild if width changed, incremental append otherwise.
+    pub(super) fn update_render_rows(&mut self, window_width: f32) {
+        if (window_width - self.last_render_width).abs() > 1.0 || self.last_render_width == 0.0 {
+            self.rebuild_render_rows(window_width);
+        } else {
+            self.append_new_render_rows(window_width);
+        }
+    }
+
+    /// Fully rebuild render_rows from danmu_list for the given window width.
+    fn rebuild_render_rows(&mut self, window_width: f32) {
+        let mut rows = Vec::new();
+        let available_width = window_width - 14.0; // scrollbar buffer
+        for msg in self.danmu_list.iter() {
+            Self::append_message_rows(
+                &mut rows,
+                msg,
+                available_width,
+                self.font_size,
+                self.lite_mode,
+                self.medal_display,
+            );
+        }
+        self.render_rows = Rc::new(rows);
+        self.last_render_width = window_width;
+        self.render_rows_source_count = self.danmu_list.len();
+    }
+
+    /// Incrementally append new messages to render_rows.
+    fn append_new_render_rows(&mut self, window_width: f32) {
+        let current_source_len = self.danmu_list.len();
+
+        // If items were removed from front (MAX_DANMU_COUNT), full rebuild needed
+        if current_source_len < self.render_rows_source_count {
+            self.rebuild_render_rows(window_width);
+            return;
+        }
+
+        // Nothing new to add
+        if current_source_len == self.render_rows_source_count {
+            return;
+        }
+
+        let available_width = window_width - 14.0;
+        let mut rows = Rc::try_unwrap(std::mem::replace(&mut self.render_rows, Rc::new(Vec::new())))
+            .unwrap_or_else(|rc| (*rc).clone());
+
+        let new_start = self.render_rows_source_count;
+        for i in new_start..current_source_len {
+            let msg = &self.danmu_list[i];
+            Self::append_message_rows(
+                &mut rows,
+                msg,
+                available_width,
+                self.font_size,
+                self.lite_mode,
+                self.medal_display,
+            );
+        }
+
+        self.render_rows = Rc::new(rows);
+        self.render_rows_source_count = current_source_len;
+    }
+
+    /// Convert a single DisplayMessage into one or more RenderRows and append them.
+    fn append_message_rows(
+        rows: &mut Vec<RenderRow>,
+        msg: &DisplayMessage,
+        available_width: f32,
+        font_size: f32,
+        lite_mode: bool,
+        medal_display: bool,
+    ) {
+        match msg {
+            DisplayMessage::Danmu(danmu) => {
+                // Skip wrapping for emoji danmu
+                if danmu.emoji_content.is_some() {
+                    rows.push(RenderRow::Full(msg.clone()));
+                    return;
+                }
+
+                let prefix_width =
+                    estimate_danmu_prefix_width(danmu, font_size, lite_mode, medal_display);
+                let first_line_content_width = available_width - prefix_width;
+                // Continuation line has only padding, no prefix
+                let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
+                let continuation_content_width = available_width - padding;
+
+                let content_width = estimate_text_width(&danmu.content, font_size);
+                if content_width <= first_line_content_width || first_line_content_width <= 0.0 {
+                    rows.push(RenderRow::Full(msg.clone()));
+                } else {
+                    let lines = split_content_to_lines(
+                        &danmu.content,
+                        font_size,
+                        first_line_content_width,
+                        continuation_content_width,
+                    );
+
+                    if lines.len() <= 1 {
+                        rows.push(RenderRow::Full(msg.clone()));
+                    } else {
+                        rows.push(RenderRow::DanmuFirstLine {
+                            danmu: danmu.clone(),
+                            content_slice: lines[0].clone(),
+                        });
+                        for (i, line) in lines[1..].iter().enumerate() {
+                            rows.push(RenderRow::DanmuContinuation {
+                                danmu: danmu.clone(),
+                                content_slice: line.clone(),
+                                continuation_index: i,
+                            });
+                        }
+                    }
+                }
+            }
+            DisplayMessage::SuperChat(sc) => {
+                // Always split superchat: header (avatar + price + username) + content rows
+                rows.push(RenderRow::SuperChatHeader { sc: sc.clone() });
+
+                if !sc.message.is_empty() {
+                    let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
+                    // Account for border_l_4 (4px)
+                    let content_line_width = available_width - padding - 4.0;
+                    let content_width = estimate_text_width(&sc.message, font_size * 0.9);
+
+                    if content_width <= content_line_width || content_line_width <= 0.0 {
+                        rows.push(RenderRow::SuperChatContent {
+                            sc: sc.clone(),
+                            content_slice: sc.message.clone(),
+                            continuation_index: 0,
+                            is_last: true,
+                        });
+                    } else {
+                        let lines = split_content_to_lines(
+                            &sc.message,
+                            font_size * 0.9,
+                            content_line_width,
+                            content_line_width,
+                        );
+                        let last_idx = lines.len().saturating_sub(1);
+                        for (i, line) in lines.iter().enumerate() {
+                            rows.push(RenderRow::SuperChatContent {
+                                sc: sc.clone(),
+                                content_slice: line.clone(),
+                                continuation_index: i,
+                                is_last: i == last_idx,
+                            });
+                        }
+                    }
+                }
+            }
+            _ => {
+                rows.push(RenderRow::Full(msg.clone()));
+            }
+        }
     }
 
     /// Open settings window

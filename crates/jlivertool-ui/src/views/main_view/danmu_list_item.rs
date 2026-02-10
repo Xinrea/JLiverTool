@@ -3,19 +3,18 @@
 //! This module contains the unified view for rendering different types of
 //! messages in the danmu list (danmu, interact, entry effect, gift, guard, superchat).
 
-use super::content_rendering::{guard_icon_url, guard_level_name, render_content_with_links, DisplayMessage};
+use super::content_rendering::{guard_icon_url, guard_level_name, render_content_with_links, DisplayMessage, RenderRow};
 use super::user_info_card::{SelectedUser, SelectedUserState};
 use crate::theme::Colors;
 use gpui::*;
 use gpui_component::h_flex;
-use gpui_component::tooltip::Tooltip;
 use jlivertool_core::messages::{
     DanmuMessage, EntryEffectMessage, GiftMessage, GuardMessage, InteractMessage, SuperChatMessage,
 };
 
 /// Unified view for rendering any display message type
 pub struct DanmuListItemView {
-    message: DisplayMessage,
+    row: RenderRow,
     index: usize,
     font_size: f32,
     lite_mode: bool,
@@ -26,7 +25,7 @@ pub struct DanmuListItemView {
 
 impl DanmuListItemView {
     pub fn new(
-        message: DisplayMessage,
+        row: RenderRow,
         index: usize,
         font_size: f32,
         lite_mode: bool,
@@ -35,7 +34,7 @@ impl DanmuListItemView {
         selected_user: SelectedUserState,
     ) -> Self {
         Self {
-            message,
+            row,
             index,
             font_size,
             lite_mode,
@@ -492,7 +491,6 @@ impl DanmuListItemView {
         let font_size = self.font_size;
         let lite_mode = self.lite_mode;
         let row_height = self.row_height();
-        let item_index = self.index;
 
         // Golden color #EDB83F for superchat
         let sc_color = hsla(42.0 / 360.0, 0.85, 0.59, 1.0);
@@ -518,12 +516,7 @@ impl DanmuListItemView {
             el = el.px_2();
         }
 
-        // Clone message for tooltip
-        let message_for_tooltip = sc.message.clone();
-        let show_tooltip = sc.message.len() >= 15;
-
         let message_el = div()
-            .id(SharedString::from(format!("sc-msg-{}", item_index)))
             .flex_1()
             .text_size(px(font_size * 0.9))
             .text_color(Colors::text_secondary())
@@ -531,20 +524,6 @@ impl DanmuListItemView {
             .whitespace_nowrap()
             .text_ellipsis()
             .child(sc.message.clone());
-
-        let message_el = if show_tooltip {
-            message_el.tooltip(move |window, cx| {
-                let content = message_for_tooltip.clone();
-                Tooltip::element(move |_, _| {
-                    div()
-                        .max_w(px(300.0))
-                        .child(content.clone())
-                })
-                .build(window, cx)
-            })
-        } else {
-            message_el
-        };
 
         el = el
             // Avatar circle with user initial
@@ -602,13 +581,345 @@ impl DanmuListItemView {
     /// This is used by uniform_list to avoid creating entities which would
     /// reset tooltip state on each render.
     pub fn render_element(&self) -> Div {
-        match &self.message {
-            DisplayMessage::Danmu(danmu) => self.render_danmu(danmu),
-            DisplayMessage::Interact(interact) => self.render_interact(interact),
-            DisplayMessage::EntryEffect(entry) => self.render_entry_effect(entry),
-            DisplayMessage::Gift(gift) => self.render_gift(gift),
-            DisplayMessage::Guard(guard) => self.render_guard(guard),
-            DisplayMessage::SuperChat(sc) => self.render_superchat(sc),
+        match &self.row {
+            RenderRow::Full(msg) => match msg {
+                DisplayMessage::Danmu(danmu) => self.render_danmu(danmu),
+                DisplayMessage::Interact(interact) => self.render_interact(interact),
+                DisplayMessage::EntryEffect(entry) => self.render_entry_effect(entry),
+                DisplayMessage::Gift(gift) => self.render_gift(gift),
+                DisplayMessage::Guard(guard) => self.render_guard(guard),
+                DisplayMessage::SuperChat(sc) => self.render_superchat(sc),
+            },
+            RenderRow::DanmuFirstLine { danmu, content_slice } => {
+                self.render_danmu_first_line(danmu, content_slice)
+            }
+            RenderRow::DanmuContinuation { danmu, content_slice, continuation_index } => {
+                self.render_danmu_continuation(danmu, content_slice, *continuation_index)
+            }
+            RenderRow::SuperChatHeader { sc } => {
+                self.render_superchat_header(sc)
+            }
+            RenderRow::SuperChatContent { sc, content_slice, continuation_index, is_last } => {
+                self.render_superchat_content(sc, content_slice, *continuation_index, *is_last)
+            }
         }
+    }
+
+    /// Render the first line of a wrapped danmu (medal + username + partial content)
+    fn render_danmu_first_line(&self, danmu: &DanmuMessage, content_slice: &str) -> Div {
+        let font_size = self.font_size;
+        let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
+        let row_height = self.row_height();
+        let sender = &danmu.sender;
+        let medal = &sender.medal_info;
+        let show_medal = self.medal_display && !medal.medal_name.is_empty() && medal.is_lighted;
+
+        let mut el = h_flex()
+            .w_full()
+            .h(px(row_height))
+            .gap_1()
+            .items_center()
+            .rounded_sm()
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
+            .overflow_hidden();
+
+        if lite_mode {
+            el = el.px_1();
+        } else {
+            el = el.px_2();
+        }
+
+        // Medal badge (same as render_danmu)
+        if show_medal && !lite_mode {
+            let (medal_bg, medal_border) = Colors::medal_colors(medal.medal_level);
+            let guard_level = medal.guard_level;
+            let medal_height = (font_size * 1.2).clamp(14.0, 20.0);
+            let medal_font_size = (font_size * 0.75).clamp(8.0, 12.0);
+
+            let mut medal_name_el = h_flex()
+                .h_full()
+                .px(px(3.0))
+                .gap(px(2.0))
+                .items_center()
+                .bg(medal_bg);
+
+            if let Some(icon_url) = guard_icon_url(guard_level) {
+                medal_name_el = medal_name_el.child(
+                    img(icon_url)
+                        .size(px(medal_height - 2.0))
+                        .object_fit(ObjectFit::Contain),
+                );
+            }
+
+            medal_name_el = medal_name_el.child(
+                div()
+                    .text_size(px(medal_font_size))
+                    .text_color(gpui::white())
+                    .child(medal.medal_name.clone()),
+            );
+
+            el = el.child(
+                h_flex()
+                    .flex_shrink_0()
+                    .h(px(medal_height))
+                    .rounded_sm()
+                    .border_1()
+                    .border_color(medal_border)
+                    .overflow_hidden()
+                    .child(medal_name_el)
+                    .child(
+                        div()
+                            .h_full()
+                            .px(px(3.0))
+                            .min_w(px(medal_height))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .bg(gpui::white())
+                            .text_size(px(medal_font_size))
+                            .text_color(medal_bg.opacity(1.0))
+                            .child(medal.medal_level.to_string()),
+                    ),
+            );
+        }
+
+        // Username
+        let username_color = if danmu.is_special {
+            Colors::warning()
+        } else {
+            Colors::accent()
+        };
+
+        let item_index = self.index;
+        let selected_user = self.selected_user.clone();
+        let sender_clone = sender.clone();
+
+        if lite_mode {
+            let selected_user_lite = selected_user.clone();
+            let sender_lite = sender_clone.clone();
+            el = el
+                .child(
+                    div()
+                        .id(SharedString::from(format!("user-{}", item_index)))
+                        .text_size(px(font_size))
+                        .text_color(username_color)
+                        .cursor_pointer()
+                        .child(sender.uname.clone())
+                        .on_mouse_down(MouseButton::Left, move |_, _, cx| {
+                            *selected_user_lite.borrow_mut() = Some(SelectedUser {
+                                sender: sender_lite.clone(),
+                                fetched_info: None,
+                                fetch_requested: false,
+                            });
+                            cx.refresh_windows();
+                        }),
+                )
+                .child(
+                    div()
+                        .text_size(px(font_size))
+                        .text_color(Colors::text_muted())
+                        .child(":"),
+                );
+        } else {
+            el = el.child(
+                div()
+                    .id(SharedString::from(format!("user-{}", item_index)))
+                    .text_size(px(font_size))
+                    .text_color(username_color)
+                    .cursor_pointer()
+                    .child(format!("{}:", sender.uname))
+                    .on_mouse_down(MouseButton::Left, move |_, _, cx| {
+                        *selected_user.borrow_mut() = Some(SelectedUser {
+                            sender: sender_clone.clone(),
+                            fetched_info: None,
+                            fetch_requested: false,
+                        });
+                        cx.refresh_windows();
+                    }),
+            );
+        }
+
+        // Reply indicator
+        if let Some(reply) = &danmu.reply_uname {
+            if !lite_mode {
+                el = el.child(
+                    div()
+                        .text_size(px(font_size))
+                        .text_color(Colors::text_muted())
+                        .child(format!("@{}", reply)),
+                );
+            }
+        }
+
+        // First line content (no ellipsis, no tooltip — content is pre-split)
+        el = el.child(
+            div()
+                .text_size(px(font_size))
+                .text_color(Colors::text_primary())
+                .overflow_hidden()
+                .child(content_slice.to_string()),
+        );
+
+        el
+    }
+
+    /// Render a continuation line of a wrapped danmu (indented remaining content)
+    fn render_danmu_continuation(
+        &self,
+        _danmu: &DanmuMessage,
+        content_slice: &str,
+        _continuation_index: usize,
+    ) -> Div {
+        let font_size = self.font_size;
+        let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
+        let row_height = self.row_height();
+        let item_index = self.index;
+
+        let mut el = h_flex()
+            .w_full()
+            .h(px(row_height))
+            .items_center()
+            .rounded_sm()
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
+            .overflow_hidden();
+
+        if lite_mode {
+            el = el.px_1();
+        } else {
+            el = el.px_2();
+        }
+
+        // Continuation content with ellipsis for overflow
+        el = el.child(
+            div()
+                .id(SharedString::from(format!("cont-{}", item_index)))
+                .flex_1()
+                .text_size(px(font_size))
+                .text_color(Colors::text_primary())
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(content_slice.to_string()),
+        );
+
+        el
+    }
+
+    /// Render superchat header row: avatar + price + username
+    fn render_superchat_header(&self, sc: &SuperChatMessage) -> Div {
+        let font_size = self.font_size;
+        let lite_mode = self.lite_mode;
+        let row_height = self.row_height();
+
+        let sc_color = hsla(42.0 / 360.0, 0.85, 0.59, 1.0);
+        let avatar_char = sc.sender.uname.chars().next().unwrap_or('U').to_string();
+
+        let mut el = h_flex()
+            .w_full()
+            .h(px(row_height))
+            .gap_2()
+            .items_center()
+            .rounded_t(px(4.0))
+            .bg(sc_color.opacity(0.15))
+            .border_l_4()
+            .border_t_1()
+            .border_color(sc_color)
+            .overflow_hidden();
+
+        if lite_mode {
+            el = el.px_1();
+        } else {
+            el = el.px_2();
+        }
+
+        el = el
+            // Avatar circle with user initial
+            .child(
+                div()
+                    .flex_shrink_0()
+                    .size(px(row_height * 0.7))
+                    .rounded_full()
+                    .bg(sc_color)
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .text_size(px(font_size * 0.7))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(gpui::white())
+                    .child(avatar_char),
+            )
+            // Price badge
+            .child(
+                div()
+                    .flex_shrink_0()
+                    .px(px(6.0))
+                    .py(px(2.0))
+                    .rounded(px(10.0))
+                    .bg(sc_color)
+                    .text_size(px(font_size * 0.75))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(gpui::white())
+                    .child(format!("¥{}", sc.price)),
+            )
+            // Username
+            .child(
+                div()
+                    .flex_shrink_0()
+                    .text_size(px(font_size * 0.9))
+                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_color(Colors::text_primary())
+                    .child(sc.sender.uname.clone()),
+            );
+
+        el
+    }
+
+    /// Render superchat content row: message text with SC styling
+    fn render_superchat_content(
+        &self,
+        _sc: &SuperChatMessage,
+        content_slice: &str,
+        _continuation_index: usize,
+        is_last: bool,
+    ) -> Div {
+        let font_size = self.font_size;
+        let lite_mode = self.lite_mode;
+        let row_height = self.row_height();
+        let item_index = self.index;
+
+        let sc_color = hsla(42.0 / 360.0, 0.85, 0.59, 1.0);
+
+        let mut el = h_flex()
+            .w_full()
+            .h(px(row_height))
+            .items_center()
+            .bg(sc_color.opacity(0.15))
+            .border_l_4()
+            .border_color(sc_color)
+            .overflow_hidden();
+
+        if is_last {
+            el = el.rounded_b(px(4.0)).border_b_1();
+        }
+
+        if lite_mode {
+            el = el.px_1();
+        } else {
+            el = el.px_2();
+        }
+
+        el = el.child(
+            div()
+                .id(SharedString::from(format!("sc-cont-{}", item_index)))
+                .flex_1()
+                .text_size(px(font_size * 0.9))
+                .text_color(Colors::text_secondary())
+                .overflow_hidden()
+                .text_ellipsis()
+                .child(content_slice.to_string()),
+        );
+
+        el
     }
 }
