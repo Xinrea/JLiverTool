@@ -80,7 +80,10 @@ pub enum UiCommand {
     /// Import plugin from GitHub URL
     ImportPlugin(String),
     /// Remove a plugin by ID and path
-    RemovePlugin { plugin_id: String, plugin_path: std::path::PathBuf },
+    RemovePlugin {
+        plugin_id: String,
+        plugin_path: std::path::PathBuf,
+    },
     /// Update advanced settings (max danmu count, log level)
     UpdateAdvancedSettings { max_danmu: usize, log_level: String },
     /// Clear all data (danmu, gifts, superchats)
@@ -115,7 +118,15 @@ pub fn run_app(
     config: Option<Arc<RwLock<ConfigStore>>>,
     has_events: Arc<AtomicBool>,
 ) {
-    run_app_with_plugins(event_rx, command_tx, database, config, has_events, Vec::new(), None);
+    run_app_with_plugins(
+        event_rx,
+        command_tx,
+        database,
+        config,
+        has_events,
+        Vec::new(),
+        None,
+    );
 }
 
 /// Run the GPUI application with plugin info
@@ -149,8 +160,14 @@ pub fn run_app_with_plugins(
         // Create main window bounds - use saved or default
         let bounds = if main_window_config.width > 0 && main_window_config.height > 0 {
             Bounds::new(
-                point(px(main_window_config.x as f32), px(main_window_config.y as f32)),
-                size(px(main_window_config.width as f32), px(main_window_config.height as f32)),
+                point(
+                    px(main_window_config.x as f32),
+                    px(main_window_config.y as f32),
+                ),
+                size(
+                    px(main_window_config.width as f32),
+                    px(main_window_config.height as f32),
+                ),
             )
         } else {
             Bounds::centered(None, size(px(450.0), px(800.0)), cx)
@@ -166,7 +183,7 @@ pub fn run_app_with_plugins(
                 }),
                 window_background: WindowBackgroundAppearance::Transparent,
                 // Minimum window size
-                window_min_size: Some(size(px(350.0), px(400.0))),
+                window_min_size: Some(size(px(350.0), px(200.0))),
                 ..Default::default()
             },
             |window, cx| {
@@ -248,62 +265,69 @@ pub fn run_app_with_tray(
         // Create main window bounds - use saved or default
         let bounds = if main_window_config.width > 0 && main_window_config.height > 0 {
             Bounds::new(
-                point(px(main_window_config.x as f32), px(main_window_config.y as f32)),
-                size(px(main_window_config.width as f32), px(main_window_config.height as f32)),
+                point(
+                    px(main_window_config.x as f32),
+                    px(main_window_config.y as f32),
+                ),
+                size(
+                    px(main_window_config.width as f32),
+                    px(main_window_config.height as f32),
+                ),
             )
         } else {
             Bounds::centered(None, size(px(450.0), px(800.0)), cx)
         };
 
-        let window_handle = cx.open_window(
-            WindowOptions {
-                window_bounds: Some(WindowBounds::Windowed(bounds)),
-                titlebar: Some(TitlebarOptions {
-                    title: Some("JLiverTool".into()),
-                    appears_transparent: true,
+        let window_handle = cx
+            .open_window(
+                WindowOptions {
+                    window_bounds: Some(WindowBounds::Windowed(bounds)),
+                    titlebar: Some(TitlebarOptions {
+                        title: Some("JLiverTool".into()),
+                        appears_transparent: true,
+                        ..Default::default()
+                    }),
+                    window_background: WindowBackgroundAppearance::Transparent,
+                    // Minimum window size
+                    window_min_size: Some(size(px(350.0), px(200.0))),
                     ..Default::default()
-                }),
-                window_background: WindowBackgroundAppearance::Transparent,
-                // Minimum window size
-                window_min_size: Some(size(px(350.0), px(400.0))),
-                ..Default::default()
-            },
-            |window, cx| {
-                // Create MainView
-                let main_view = cx.new(|cx| {
-                    let mut view = MainView::new(event_rx, command_tx.clone(), has_events, cx);
-                    if let Some(db) = database {
-                        view.set_database(db);
-                    }
-                    if let Some(cfg) = config {
-                        view.set_config(cfg);
-                    }
-                    // Set plugins if any
-                    if !plugins.is_empty() {
-                        view.set_plugins(plugins, cx);
-                    }
-                    // Set WebSocket port for plugin communication
-                    if let Some(port) = ws_port {
-                        view.set_ws_port(port, cx);
-                    }
-                    // Set HTTP port for plugin serving
-                    if let Some(port) = http_port {
-                        view.set_http_port(port, cx);
-                    }
-                    // Set tray manager
-                    if let Some(ref tray) = tray_manager {
-                        view.set_tray_manager(tray.clone());
-                    }
-                    // Set shared pending_open_settings flag
-                    view.set_pending_open_settings_flag(pending_open_settings.clone());
-                    view
-                });
+                },
+                |window, cx| {
+                    // Create MainView
+                    let main_view = cx.new(|cx| {
+                        let mut view = MainView::new(event_rx, command_tx.clone(), has_events, cx);
+                        if let Some(db) = database {
+                            view.set_database(db);
+                        }
+                        if let Some(cfg) = config {
+                            view.set_config(cfg);
+                        }
+                        // Set plugins if any
+                        if !plugins.is_empty() {
+                            view.set_plugins(plugins, cx);
+                        }
+                        // Set WebSocket port for plugin communication
+                        if let Some(port) = ws_port {
+                            view.set_ws_port(port, cx);
+                        }
+                        // Set HTTP port for plugin serving
+                        if let Some(port) = http_port {
+                            view.set_http_port(port, cx);
+                        }
+                        // Set tray manager
+                        if let Some(ref tray) = tray_manager {
+                            view.set_tray_manager(tray.clone());
+                        }
+                        // Set shared pending_open_settings flag
+                        view.set_pending_open_settings_flag(pending_open_settings.clone());
+                        view
+                    });
 
-                // Wrap with Root to support gpui-component Input
-                cx.new(|cx| Root::new(main_view, window, cx))
-            },
-        )
-        .unwrap();
+                    // Wrap with Root to support gpui-component Input
+                    cx.new(|cx| Root::new(main_view, window, cx))
+                },
+            )
+            .unwrap();
 
         // Convert to AnyWindowHandle for use in async context
         let window_handle: AnyWindowHandle = window_handle.into();
@@ -347,10 +371,8 @@ pub fn run_app_with_tray(
                                 });
                             }
                             TrayCommand::StartLive(room_id, area_v2) => {
-                                let _ = command_tx_clone.send(UiCommand::StartLive {
-                                    room_id,
-                                    area_v2,
-                                });
+                                let _ = command_tx_clone
+                                    .send(UiCommand::StartLive { room_id, area_v2 });
                             }
                             TrayCommand::StopLive(room_id) => {
                                 let _ = command_tx_clone.send(UiCommand::StopLive { room_id });
