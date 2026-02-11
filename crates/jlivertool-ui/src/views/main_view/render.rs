@@ -562,7 +562,7 @@ impl MainView {
                         }),
                     )),
             )
-            .child(
+            .when(!self.lite_mode, |el| el.child(
                 div()
                     .relative()
                     .w_full()
@@ -748,7 +748,7 @@ impl MainView {
                                 ),
                         )
                     }),
-            )
+            ))
     }
 
     pub(super) fn render_danmu_list(
@@ -805,6 +805,23 @@ impl Render for MainView {
 
         if let Some(always_on_top) = self.pending_always_on_top.take() {
             crate::platform::set_window_always_on_top(window, always_on_top);
+        }
+
+        // Check if tray toggled click-through mode
+        if self.pending_click_through.swap(false, std::sync::atomic::Ordering::Relaxed) {
+            // Read the actual state from tray manager
+            let click_through = self
+                .tray_manager
+                .as_ref()
+                .map(|t| t.lock().click_through_enabled())
+                .unwrap_or(false);
+            self.click_through = click_through;
+            // Apply to all secondary windows
+            for handle in [self.gift_window, self.superchat_window].into_iter().flatten() {
+                let _ = cx.update_window(handle, |_, win, _cx| {
+                    crate::platform::set_window_click_through(win, click_through);
+                });
+            }
         }
 
         // Check if tray requested to open settings

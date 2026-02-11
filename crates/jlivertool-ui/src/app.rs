@@ -262,6 +262,10 @@ pub fn run_app_with_tray(
         let pending_open_settings = Arc::new(std::sync::atomic::AtomicBool::new(false));
         let pending_open_settings_for_spawn = pending_open_settings.clone();
 
+        // Create shared flag for click-through toggle from tray
+        let pending_click_through = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let pending_click_through_for_spawn = pending_click_through.clone();
+
         // Create main window bounds - use saved or default
         let bounds = if main_window_config.width > 0 && main_window_config.height > 0 {
             Bounds::new(
@@ -320,6 +324,8 @@ pub fn run_app_with_tray(
                         }
                         // Set shared pending_open_settings flag
                         view.set_pending_open_settings_flag(pending_open_settings.clone());
+                        // Set shared pending_click_through flag
+                        view.set_pending_click_through_flag(pending_click_through.clone());
                         view
                     });
 
@@ -376,6 +382,16 @@ pub fn run_app_with_tray(
                             }
                             TrayCommand::StopLive(room_id) => {
                                 let _ = command_tx_clone.send(UiCommand::StopLive { room_id });
+                            }
+                            TrayCommand::ToggleClickThrough => {
+                                let click_through = tray_mgr.lock().toggle_click_through();
+                                pending_click_through_for_spawn.store(true, std::sync::atomic::Ordering::Relaxed);
+                                let _ = cx.update(|cx| {
+                                    let _ = cx.update_window(window_handle, |_, window, _cx| {
+                                        crate::platform::set_window_click_through(window, click_through);
+                                    });
+                                    cx.refresh_windows();
+                                });
                             }
                             TrayCommand::Quit => {
                                 let _ = cx.update(|cx| {

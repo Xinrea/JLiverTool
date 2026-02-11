@@ -100,6 +100,10 @@ pub struct MainView {
     always_on_top: bool,
     // Flag to apply always_on_top on next render
     pending_always_on_top: Option<bool>,
+    // Click-through mode
+    click_through: bool,
+    // Pending click-through change from tray (Arc for thread-safe sharing)
+    pending_click_through: Arc<AtomicBool>,
     // Scroll handle for danmu list
     scroll_handle: UniformListScrollHandle,
     // Window handles for single-instance windows
@@ -476,6 +480,8 @@ impl MainView {
             level_effect: false,
             always_on_top: false,
             pending_always_on_top: None,
+            click_through: false,
+            pending_click_through: Arc::new(AtomicBool::new(false)),
             scroll_handle: UniformListScrollHandle::new(),
             settings_window: None,
             gift_window: None,
@@ -587,6 +593,11 @@ impl MainView {
         self.pending_open_settings = flag;
     }
 
+    /// Set the pending_click_through flag (shared with tray command handler)
+    pub fn set_pending_click_through_flag(&mut self, flag: Arc<AtomicBool>) {
+        self.pending_click_through = flag;
+    }
+
     /// Get the pending_open_settings flag for tray command handling
     pub fn pending_open_settings_flag(&self) -> Arc<AtomicBool> {
         self.pending_open_settings.clone()
@@ -610,6 +621,7 @@ impl MainView {
                 is_room_owner,
                 connected: self.connected,
                 window_visible: true, // We don't track this in MainView currently
+                click_through: false, // Managed by TrayManager directly
             };
             tray.lock().update_state(state);
 
@@ -1074,6 +1086,7 @@ impl MainView {
 
         let gift_view = self.gift_view.clone();
         let always_on_top = self.always_on_top;
+        let click_through = self.click_through;
         let command_tx = self.command_tx.clone();
 
         if let Ok(handle) = cx.open_window(
@@ -1091,6 +1104,9 @@ impl MainView {
             |new_window, cx| {
                 if always_on_top {
                     crate::platform::set_window_always_on_top(new_window, true);
+                }
+                if click_through {
+                    crate::platform::set_window_click_through(new_window, true);
                 }
                 let tracker =
                     cx.new(|_| WindowBoundsTracker::new(gift_view, WindowType::Gift, command_tx));
@@ -1135,6 +1151,7 @@ impl MainView {
 
         let superchat_view = self.superchat_view.clone();
         let always_on_top = self.always_on_top;
+        let click_through = self.click_through;
         let command_tx = self.command_tx.clone();
 
         if let Ok(handle) = cx.open_window(
@@ -1152,6 +1169,9 @@ impl MainView {
             |new_window, cx| {
                 if always_on_top {
                     crate::platform::set_window_always_on_top(new_window, true);
+                }
+                if click_through {
+                    crate::platform::set_window_click_through(new_window, true);
                 }
                 let tracker = cx.new(|_| {
                     WindowBoundsTracker::new(superchat_view, WindowType::SuperChat, command_tx)

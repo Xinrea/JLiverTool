@@ -24,6 +24,8 @@ pub enum TrayCommand {
     StartLive(u64, u64),
     /// Stop live streaming (room_id)
     StopLive(u64),
+    /// Toggle click-through mode
+    ToggleClickThrough,
     /// Quit the application
     Quit,
 }
@@ -39,6 +41,7 @@ pub struct TrayState {
     pub is_room_owner: bool,
     pub connected: bool,
     pub window_visible: bool,
+    pub click_through: bool,
 }
 
 /// Manages the system tray icon and menu
@@ -87,7 +90,10 @@ impl TrayManager {
 
     /// Update the tray state and refresh the menu
     pub fn update_state(&mut self, state: TrayState) {
+        // Preserve click_through state since it's managed by TrayManager
+        let click_through = self.state.click_through;
         self.state = state.clone();
+        self.state.click_through = click_through;
 
         // Update menu items based on state
         self.update_menu();
@@ -114,6 +120,14 @@ impl TrayManager {
             "显示窗口"
         };
         self.menu_ids.show_hide.set_text(show_hide_text);
+
+        // Update click-through text
+        let click_through_text = if self.state.click_through {
+            "关闭鼠标穿透"
+        } else {
+            "开启鼠标穿透"
+        };
+        self.menu_ids.click_through.set_text(click_through_text);
 
         // Update room info
         let room_info = if let Some(room_id) = self.state.room_id {
@@ -173,6 +187,8 @@ impl TrayManager {
                 Some(TrayCommand::ToggleWindow)
             } else if event.id == self.menu_ids.settings.id() {
                 Some(TrayCommand::OpenSettings)
+            } else if event.id == self.menu_ids.click_through.id() {
+                Some(TrayCommand::ToggleClickThrough)
             } else if event.id == self.menu_ids.start_live.id() {
                 self.state.room_id.map(|room_id| {
                     TrayCommand::StartLive(room_id, self.state.area_id)
@@ -198,5 +214,17 @@ impl TrayManager {
     /// Get a clone of the command sender
     pub fn command_sender(&self) -> mpsc::Sender<TrayCommand> {
         self.command_tx.clone()
+    }
+
+    /// Toggle click-through state and update menu
+    pub fn toggle_click_through(&mut self) -> bool {
+        self.state.click_through = !self.state.click_through;
+        self.update_menu();
+        self.state.click_through
+    }
+
+    /// Get current click-through state
+    pub fn click_through_enabled(&self) -> bool {
+        self.state.click_through
     }
 }

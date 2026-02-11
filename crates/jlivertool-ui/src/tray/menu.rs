@@ -6,6 +6,7 @@ use muda::{Menu, MenuItem, PredefinedMenuItem};
 /// Menu item IDs for event handling
 pub struct MenuIds {
     pub show_hide: MenuItem,
+    pub click_through: MenuItem,
     pub room_info: MenuItem,
     pub live_status: MenuItem,
     pub start_live: MenuItem,
@@ -26,6 +27,15 @@ pub fn build_menu(state: &TrayState) -> Result<(Menu, MenuIds), Box<dyn std::err
     };
     let show_hide = MenuItem::new(show_hide_text, true, None);
     menu.append(&show_hide)?;
+
+    // Click-through toggle
+    let click_through_text = if state.click_through {
+        "关闭鼠标穿透"
+    } else {
+        "开启鼠标穿透"
+    };
+    let click_through = MenuItem::new(click_through_text, true, None);
+    menu.append(&click_through)?;
 
     menu.append(&PredefinedMenuItem::separator())?;
 
@@ -77,6 +87,7 @@ pub fn build_menu(state: &TrayState) -> Result<(Menu, MenuIds), Box<dyn std::err
 
     let menu_ids = MenuIds {
         show_hide,
+        click_through,
         room_info,
         live_status,
         start_live,

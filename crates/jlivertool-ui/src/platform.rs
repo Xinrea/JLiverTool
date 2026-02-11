@@ -144,6 +144,42 @@ mod macos {
             visible == YES
         }
     }
+    /// Set window click-through (ignores mouse events)
+    pub fn set_window_click_through(window: &Window, click_through: bool) {
+        use objc::runtime::Object;
+        use objc::{msg_send, sel, sel_impl};
+
+        let handle = match HasWindowHandle::window_handle(window) {
+            Ok(h) => h,
+            Err(e) => {
+                tracing::warn!("Failed to get window handle: {:?}", e);
+                return;
+            }
+        };
+
+        let raw_window_handle::RawWindowHandle::AppKit(appkit_handle) = handle.as_raw() else {
+            tracing::warn!("Not an AppKit window handle");
+            return;
+        };
+
+        let ns_view = appkit_handle.ns_view.as_ptr() as *mut Object;
+
+        unsafe {
+            let ns_window: *mut Object = msg_send![ns_view, window];
+            if ns_window.is_null() {
+                tracing::warn!("Failed to get NSWindow from NSView");
+                return;
+            }
+
+            let ignore: objc::runtime::BOOL = if click_through {
+                objc::runtime::YES
+            } else {
+                objc::runtime::NO
+            };
+            let _: () = msg_send![ns_window, setIgnoresMouseEvents: ignore];
+            tracing::info!("Set window click-through: {}", click_through);
+        }
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -253,6 +289,39 @@ mod windows_impl {
 
         unsafe { IsWindowVisible(hwnd).as_bool() }
     }
+
+    /// Set window click-through (ignores mouse events)
+    pub fn set_window_click_through(window: &Window, click_through: bool) {
+        use windows::Win32::UI::WindowsAndMessaging::{
+            GetWindowLongW, SetWindowLongW, GWL_EXSTYLE, WS_EX_TRANSPARENT, WS_EX_LAYERED,
+        };
+
+        let handle = match HasWindowHandle::window_handle(window) {
+            Ok(h) => h,
+            Err(e) => {
+                tracing::warn!("Failed to get window handle: {:?}", e);
+                return;
+            }
+        };
+
+        let raw_window_handle::RawWindowHandle::Win32(win32_handle) = handle.as_raw() else {
+            tracing::warn!("Not a Win32 window handle");
+            return;
+        };
+
+        let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
+
+        unsafe {
+            let ex_style = GetWindowLongW(hwnd, GWL_EXSTYLE);
+            let new_style = if click_through {
+                ex_style | WS_EX_TRANSPARENT.0 as i32 | WS_EX_LAYERED.0 as i32
+            } else {
+                ex_style & !(WS_EX_TRANSPARENT.0 as i32)
+            };
+            SetWindowLongW(hwnd, GWL_EXSTYLE, new_style);
+            tracing::info!("Set window click-through: {}", click_through);
+        }
+    }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
@@ -278,13 +347,18 @@ mod other {
     pub fn is_window_visible(_window: &Window) -> bool {
         true
     }
+
+    /// Set window click-through (no-op on unsupported platforms)
+    pub fn set_window_click_through(_window: &Window, _click_through: bool) {
+        tracing::warn!("Click-through is not supported on this platform");
+    }
 }
 
 #[cfg(target_os = "macos")]
-pub use macos::{hide_window, is_window_visible, set_window_always_on_top, show_window};
+pub use macos::{hide_window, is_window_visible, set_window_always_on_top, set_window_click_through, show_window};
 
 #[cfg(target_os = "windows")]
-pub use windows_impl::{hide_window, is_window_visible, set_window_always_on_top, show_window};
+pub use windows_impl::{hide_window, is_window_visible, set_window_always_on_top, set_window_click_through, show_window};
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub use other::{hide_window, is_window_visible, set_window_always_on_top, show_window};
+pub use other::{hide_window, is_window_visible, set_window_always_on_top, set_window_click_through, show_window};
