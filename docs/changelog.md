@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.4] - 2026-02-11
+
+### 🚀 Features
+
+- Click through
+
+## [3.0.3] - 2026-02-10
+
+### 🚀 Features
+
+- Danmu item wrap
+
+### ⚙️ Miscellaneous Tasks
+
+- Decrease the minimal height of main window
+
+## [3.0.2] - 2026-02-08
+
+### 🚀 Features
+
+- Cutoff and warning message
+
+### 📚 Documentation
+
+- Update
+
 ## [3.0.1] - 2026-02-08
 
 ### 🐛 Bug Fixes
