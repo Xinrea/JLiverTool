@@ -212,7 +212,14 @@ impl DanmuListItemView {
                 let mut hasher = std::collections::hash_map::DefaultHasher::new();
                 emoji.url.hash(&mut hasher);
                 let url_hash = hasher.finish();
-
+                if danmu.is_mirror {
+                    el = el.child(
+                        div()
+                            .text_size(px(font_size * 0.8))
+                            .text_color(Colors::text_muted())
+                            .child("[跨房]"),
+                    );
+                }
                 el = el.child(
                     img(emoji.url.clone())
                         .id(SharedString::from(format!("emoji-{}-{:x}", item_index, url_hash)))
@@ -222,6 +229,15 @@ impl DanmuListItemView {
                 );
             } else {
                 // Fallback to text content if emoji URL is empty
+                // Add mirror indicator if it's a mirror danmu
+                if danmu.is_mirror {
+                    el = el.child(
+                        div()
+                            .text_size(px(font_size * 0.8))
+                            .text_color(Colors::text_muted())
+                            .child("[跨房]"),
+                    );
+                }
                 el = el.child(
                     render_content_with_links(&danmu.content, font_size, Colors::text_primary(), item_index)
                         .flex_1(),
@@ -229,6 +245,15 @@ impl DanmuListItemView {
             }
         } else {
             // Regular text content with BV link support and tooltip for long content
+            // Add mirror indicator if it's a mirror danmu
+            if danmu.is_mirror {
+                el = el.child(
+                    div()
+                        .text_size(px(font_size * 0.8))
+                        .text_color(Colors::text_muted())
+                        .child("[跨房]"),
+                );
+            }
             el = el.child(
                 render_content_with_links(&danmu.content, font_size, Colors::text_primary(), item_index)
                     .flex_1(),

@@ -748,6 +748,7 @@ impl MainView {
                     content: content.to_string(),
                     is_generated: false,
                     is_special: false,
+                    is_mirror: false,
                     emoji_content: None,
                     side_index: -1,
                     reply_uname: None,

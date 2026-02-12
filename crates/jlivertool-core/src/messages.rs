@@ -42,6 +42,8 @@ pub struct DanmuMessage {
     pub is_generated: bool,
     #[serde(default)]
     pub is_special: bool,
+    #[serde(default)]
+    pub is_mirror: bool,
     pub emoji_content: Option<EmojiContent>,
     #[serde(default = "default_side_index")]
     pub side_index: i32,
@@ -165,6 +167,7 @@ impl DanmuMessage {
             content,
             is_generated,
             is_special,
+            is_mirror: false,
             emoji_content,
             side_index,
             reply_uname,
