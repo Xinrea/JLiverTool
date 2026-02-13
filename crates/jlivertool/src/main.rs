@@ -1409,7 +1409,22 @@ fn handle_message(
 
     match base_cmd {
         "DANMU_MSG" => {
-            if let Some(danmu) = DanmuMessage::from_raw(body, None) {
+            if let Some(mut danmu) = DanmuMessage::from_raw(body, None) {
+                danmu.is_mirror = false;
+                // Store in database (only non-generated messages)
+                if !danmu.is_generated {
+                    if let Err(e) = database.insert_danmu(room_id, &danmu) {
+                        warn!("Failed to store danmu: {}", e);
+                    }
+                }
+                // TTS for danmu
+                tts_manager.speak(TtsMessage::danmu(&danmu.sender.uname, &danmu.content));
+                let _ = event_tx.send(Event::NewDanmu(danmu));
+            }
+        }
+        "DANMU_MSG_MIRROR" => {
+            if let Some(mut danmu) = DanmuMessage::from_raw(body, None) {
+                danmu.is_mirror = true;
                 // Store in database (only non-generated messages)
                 if !danmu.is_generated {
                     if let Err(e) = database.insert_danmu(room_id, &danmu) {
