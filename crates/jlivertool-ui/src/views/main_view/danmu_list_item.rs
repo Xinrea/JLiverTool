@@ -777,13 +777,10 @@ impl DanmuListItemView {
             }
         }
 
-        // First line content (no ellipsis, no tooltip — content is pre-split)
+        // First line content with BV link support (no ellipsis, no tooltip — content is pre-split)
         el = el.child(
-            div()
-                .text_size(px(font_size))
-                .text_color(Colors::text_primary())
-                .overflow_hidden()
-                .child(content_slice.to_string()),
+            render_content_with_links(content_slice, font_size, Colors::text_primary(), item_index)
+                .overflow_hidden(),
         );
 
         el
@@ -816,16 +813,12 @@ impl DanmuListItemView {
             el = el.px_2();
         }
 
-        // Continuation content with ellipsis for overflow
+        // Continuation content with BV link support
         el = el.child(
-            div()
+            render_content_with_links(content_slice, font_size, Colors::text_primary(), item_index)
                 .id(SharedString::from(format!("cont-{}", item_index)))
                 .flex_1()
-                .text_size(px(font_size))
-                .text_color(Colors::text_primary())
-                .overflow_hidden()
-                .text_ellipsis()
-                .child(content_slice.to_string()),
+                .overflow_hidden(),
         );
 
         el
@@ -935,14 +928,10 @@ impl DanmuListItemView {
         }
 
         el = el.child(
-            div()
+            render_content_with_links(content_slice, font_size * 0.9, Colors::text_secondary(), item_index)
                 .id(SharedString::from(format!("sc-cont-{}", item_index)))
                 .flex_1()
-                .text_size(px(font_size * 0.9))
-                .text_color(Colors::text_secondary())
-                .overflow_hidden()
-                .text_ellipsis()
-                .child(content_slice.to_string()),
+                .overflow_hidden(),
         );
 
         el

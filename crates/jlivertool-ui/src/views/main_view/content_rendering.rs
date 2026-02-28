@@ -210,6 +210,7 @@ pub fn estimate_danmu_prefix_width(
 
 /// Split content into lines that fit within the given pixel widths.
 /// First line uses `first_line_width`, subsequent lines use `continuation_width`.
+/// BV video IDs are kept intact and not split across lines.
 pub fn split_content_to_lines(
     content: &str,
     font_size: f32,
@@ -220,27 +221,81 @@ pub fn split_content_to_lines(
         return vec![String::new()];
     }
 
+    // Find all BV IDs in the content
+    let bv_matches: Vec<_> = BV_REGEX.find_iter(content).collect();
+
     let mut lines = Vec::new();
     let mut remaining = content;
     let mut is_first = true;
 
     while !remaining.is_empty() {
         let available = if is_first { first_line_width } else { continuation_width };
+        // Add safety margin (10% of available width or at least 8px) to prevent overflow
+        let safety_margin = (available * 0.1).max(8.0);
+        let safe_width = (available - safety_margin).max(font_size);
+
         let mut current_width = 0.0f32;
         let mut split_pos = 0;
+        let mut last_safe_split = 0; // Last position before a BV ID
+
+        let remaining_start = content.len() - remaining.len();
 
         for (byte_idx, ch) in remaining.char_indices() {
+            let absolute_pos = remaining_start + byte_idx;
+
+            // Check if we're at the start of a BV ID
+            let at_bv_start = bv_matches.iter().any(|m| m.start() == absolute_pos);
+
+            if at_bv_start {
+                // Find the matching BV ID
+                if let Some(bv_match) = bv_matches.iter().find(|m| m.start() == absolute_pos) {
+                    let bv_text = bv_match.as_str();
+                    let bv_width = estimate_text_width(bv_text, font_size);
+
+                    // Check if the entire BV ID fits in the remaining space
+                    if current_width + bv_width > safe_width {
+                        // BV ID doesn't fit, break before it
+                        if split_pos > 0 {
+                            break;
+                        } else {
+                            // Current line is empty, force include the BV ID
+                            current_width += bv_width;
+                            split_pos = byte_idx + bv_text.len();
+                            last_safe_split = split_pos;
+                            continue;
+                        }
+                    } else {
+                        // BV ID fits, add its width and skip to the end of it
+                        current_width += bv_width;
+                        split_pos = byte_idx + bv_text.len();
+                        last_safe_split = split_pos;
+                        continue;
+                    }
+                }
+            }
+
+            // Use slightly larger width estimates to be more conservative
             let char_width = if ch.is_ascii() {
-                font_size * 0.55
+                font_size * 0.6  // Increased from 0.55
             } else {
-                font_size
+                font_size * 1.1  // Increased from 1.0
             };
 
-            if current_width + char_width > available && split_pos > 0 {
+            if current_width + char_width > safe_width && split_pos > 0 {
                 break;
             }
             current_width += char_width;
             split_pos = byte_idx + ch.len_utf8();
+
+            // Update last_safe_split only if we're not inside a BV ID
+            let inside_bv = bv_matches.iter().any(|m| {
+                let rel_start = m.start().saturating_sub(remaining_start);
+                let rel_end = m.end().saturating_sub(remaining_start);
+                byte_idx >= rel_start && byte_idx < rel_end
+            });
+            if !inside_bv {
+                last_safe_split = split_pos;
+            }
         }
 
         // Force at least one character per line
