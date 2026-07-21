@@ -1,10 +1,13 @@
 //! Message types for danmaku, gifts, superchat, etc.
 
+use crate::protobuf::{decode_message, PbMessage};
 use crate::types::{EmojiContent, MedalInfo, MergeUserInfo, Sender};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::LazyLock;
+use tracing::warn;
 
 /// Dynamic emoji map: maps emoji text to WebP URL for animated emojis
 static DYNAMIC_EMOJI_MAP: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
@@ -205,11 +208,34 @@ pub struct GiftMessage {
 impl GiftMessage {
     /// Parse a gift message from raw WebSocket body
     pub fn from_raw(body: &Value, room_id: u64) -> Option<Self> {
-        let data = body.get("data")?;
+        let Some(data) = body.get("data") else {
+            warn!(
+                "GiftMessage parse failed: missing `data` field, body={}",
+                body
+            );
+            return None;
+        };
+
+        let Some(uid) = data.get("uid").and_then(|v| v.as_u64()) else {
+            warn!(
+                "GiftMessage parse failed: invalid/missing `uid` (got {:?}), data={}",
+                data.get("uid"),
+                data
+            );
+            return None;
+        };
+        let Some(uname) = data.get("uname").and_then(|v| v.as_str()) else {
+            warn!(
+                "GiftMessage parse failed: invalid/missing `uname` (got {:?}), data={}",
+                data.get("uname"),
+                data
+            );
+            return None;
+        };
 
         let mut sender = Sender {
-            uid: data.get("uid")?.as_u64()?,
-            uname: data.get("uname")?.as_str()?.to_string(),
+            uid,
+            uname: uname.to_string(),
             face: data
                 .get("face")
                 .and_then(|v| v.as_str())
@@ -247,8 +273,30 @@ impl GiftMessage {
             };
         }
 
-        let gift_id = data.get("giftId")?.as_u64()?;
-        let gift_name = data.get("giftName")?.as_str()?.to_string();
+        let Some(gift_id) = data.get("giftId").and_then(|v| v.as_u64()) else {
+            warn!(
+                "GiftMessage parse failed: invalid/missing `giftId` \
+                 (giftId={:?}, gift_id={:?}), data keys={:?}, data={}",
+                data.get("giftId"),
+                data.get("gift_id"),
+                data.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>()),
+                data
+            );
+            return None;
+        };
+
+        let Some(gift_name) = data.get("giftName").and_then(|v| v.as_str()) else {
+            warn!(
+                "GiftMessage parse failed: invalid/missing `giftName` \
+                 (giftName={:?}, gift_name={:?}), data keys={:?}, data={}",
+                data.get("giftName"),
+                data.get("gift_name"),
+                data.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>()),
+                data
+            );
+            return None;
+        };
+
         let price = data.get("price").and_then(|v| v.as_u64()).unwrap_or(0);
         let coin_type = data
             .get("coin_type")
@@ -258,7 +306,7 @@ impl GiftMessage {
 
         let gift_info = GiftInfo {
             id: gift_id,
-            name: gift_name,
+            name: gift_name.to_string(),
             price,
             coin_type,
             img_basic: String::new(),
@@ -288,6 +336,189 @@ impl GiftMessage {
             timestamp,
             archived: false,
         })
+    }
+
+    /// Parse SEND_GIFT_V2 (base64 protobuf in `data.pb`).
+    ///
+    /// Schema based on community reverse of `bilibili.live.gift.v1.SendGiftBroadcast`
+    /// (see sjh8130/bili_danmaku `SEND_GIFT_V2.proto`).
+    ///
+    /// One WS packet may contain multiple gift items (`gift_list`); this returns one
+    /// `GiftMessage` per item.
+    pub fn from_raw_v2(body: &Value, room_id: u64) -> Vec<Self> {
+        let Some(data) = body.get("data") else {
+            warn!("SEND_GIFT_V2 parse failed: missing `data`, body={}", body);
+            return Vec::new();
+        };
+
+        // Observed as `data.pb`; some docs mention `data.data.pb`.
+        let pb_b64 = data
+            .get("pb")
+            .and_then(|v| v.as_str())
+            .or_else(|| data.pointer("/data/pb").and_then(|v| v.as_str()));
+
+        let Some(pb_b64) = pb_b64 else {
+            warn!(
+                "SEND_GIFT_V2 parse failed: missing `pb`, data keys={:?}, data={}",
+                data.as_object().map(|o| o.keys().cloned().collect::<Vec<_>>()),
+                data
+            );
+            return Vec::new();
+        };
+
+        let pb_bytes = match BASE64.decode(pb_b64) {
+            Ok(b) => b,
+            Err(e) => {
+                warn!("SEND_GIFT_V2 base64 decode failed: {}", e);
+                return Vec::new();
+            }
+        };
+
+        let root = match decode_message(&pb_bytes) {
+            Ok(m) => m,
+            Err(e) => {
+                warn!("SEND_GIFT_V2 protobuf decode failed: {}", e);
+                return Vec::new();
+            }
+        };
+
+        Self::from_pb_root(&root, room_id)
+    }
+
+    fn from_pb_root(root: &PbMessage, room_id: u64) -> Vec<Self> {
+        let Some(uid) = root.get_u64(1) else {
+            warn!("SEND_GIFT_V2 missing uid (field 1)");
+            return Vec::new();
+        };
+        let Some(uname) = root.get_str(2).map(str::to_string) else {
+            warn!("SEND_GIFT_V2 missing uname (field 2)");
+            return Vec::new();
+        };
+        let face = root.get_str(3).unwrap_or("").to_string();
+
+        let mut sender = Sender {
+            uid,
+            uname,
+            face,
+            ..Default::default()
+        };
+
+        // MedalInfo (field 8)
+        if let Some(medal) = root.get_message(8) {
+            sender.medal_info = MedalInfo {
+                medal_level: medal.get_u64(5).unwrap_or(0) as u8,
+                medal_name: medal.get_str(6).unwrap_or("").to_string(),
+                anchor_uname: medal.get_str(3).unwrap_or("").to_string(),
+                anchor_roomid: medal.get_u64(4).unwrap_or(0),
+                guard_level: medal.get_u64(12).unwrap_or(0) as u8,
+                ..Default::default()
+            };
+        }
+
+        // GiftItem list (field 10, repeated)
+        let gift_items = root.get_messages(10);
+        if gift_items.is_empty() {
+            warn!("SEND_GIFT_V2 missing gift_list (field 10)");
+            return Vec::new();
+        }
+
+        gift_items
+            .into_iter()
+            .filter_map(|item| Self::from_pb_gift_item(&item, room_id, &sender))
+            .collect()
+    }
+
+    fn from_pb_gift_item(item: &PbMessage, room_id: u64, sender: &Sender) -> Option<Self> {
+        let gift_id = item.get_u64(1).or_else(|| {
+            warn!("SEND_GIFT_V2 gift item missing gift_id (field 1)");
+            None
+        })?;
+        let gift_name = item.get_str(2).map(str::to_string).or_else(|| {
+            warn!("SEND_GIFT_V2 gift item missing gift_name (field 2)");
+            None
+        })?;
+
+        let num = item.get_u64(3).unwrap_or(1) as u32;
+        let price = item.get_u64(5).unwrap_or(0);
+        let coin_type = item
+            .get_str(8)
+            .unwrap_or("gold")
+            .to_string();
+        let action = item
+            .get_str(18)
+            .unwrap_or("投喂")
+            .to_string();
+        let timestamp = item
+            .get_i64(10)
+            .unwrap_or_else(|| chrono::Utc::now().timestamp());
+
+        // GiftMaterialSnapShot (field 35) for images when present
+        let (img_basic, webp, gif) = item
+            .get_message(35)
+            .map(|snap| {
+                (
+                    snap.get_str(1).unwrap_or("").to_string(),
+                    snap.get_str(2).unwrap_or("").to_string(),
+                    snap.get_str(5).unwrap_or("").to_string(),
+                )
+            })
+            .unwrap_or_default();
+
+        Some(Self {
+            id: uuid::Uuid::new_v4().to_string(),
+            room: room_id,
+            gift_info: GiftInfo {
+                id: gift_id,
+                name: gift_name,
+                price,
+                coin_type,
+                img_basic,
+                img_dynamic: String::new(),
+                gif,
+                webp,
+            },
+            sender: sender.clone(),
+            action,
+            num,
+            timestamp,
+            archived: false,
+        })
+    }
+}
+
+#[cfg(test)]
+mod gift_v2_tests {
+    use super::*;
+    use serde_json::json;
+
+    // Captured SEND_GIFT_V2 pb (Xinrea / 人气票)
+    const SAMPLE_PB: &str = "CMqAHRIGWGlucmVhGkpodHRwczovL2kxLmhkc2xiLmNvbS9iZnMvZmFjZS80NDMxMmNmNWExODQwNWE5NzUyNzQyZjRlODdmYThlNmFiODE1YzAyLmpwZyIHIzAwRDFGMSgDQicIy5WyHSgqMgbovbToiq84i8L9B0CLwv0HSISh/wdQ/9GfA1gBYANSjAUIxIkCEgnkurrmsJTnpagYASABKGQwZDhkQgRnb2xkShM0Nzk3MDQ2ODc4OTcxNjYzMzYwULuu/tIGWAFiOWJhdGNoOmdpZnQ6Y29tYm9faWQ6NDc1MjEwOjYxNjM5MzcxOjMzOTg4OjE3ODQ2NDk1MzEuODExOWgKcGR4BYUBAACAP4gBAZIBBuaKleWWgsABhoSoDuoBGAoR6L205LyKSm9pX0NoYW5uZWwQy5WyHYoC6QEIy5WyHRLhAQoR6L205LyKSm9pX0NoYW5uZWwSSmh0dHBzOi8vaTAuaGRzbGIuY29tL2Jmcy9mYWNlLzZjOGIzMTMwYWE5YmVkMGU0NjI1YWEwOWEzY2U1M2Q4NWVhMTJmM2UuanBnMl8KEei9tOS8ikpvaV9DaGFubmVsEkpodHRwczovL2kwLmhkc2xiLmNvbS9iZnMvZmFjZS82YzhiMzEzMGFhOWJlZDBlNDYyNWFhMDlhM2NlNTNkODVlYTEyZjNlLmpwZzofCAcSG2JpbGliaWxpIOebtOaSremrmOiDveS4u+aSrZICAJoC5QEKSmh0dHBzOi8vczEuaGRzbGIuY29tL2Jmcy9saXZlLzcxNjRjOTU1ZWMwZWQ3NTM3NDkxZDE4OWI4MjFjYzY4ZjFiZWEyMGQucG5nEktodHRwczovL2kwLmhkc2xiLmNvbS9iZnMvbGl2ZS81YTIwMTIwOTRiYjg3NWEwNGVhN2QwMzZlZGRlM2U5YzAwMTI3ZWMyLndlYnAqSmh0dHBzOi8vaTAuaGRzbGIuY29tL2Jmcy9saXZlL2E5ZjVkMWY5MDM1ODJjZmYxOGY5NDAxNGY1MWFmYWYwMTJmMGUyZjkuZ2lmqgIAWAFqAggpeu8CCMqAHRK3AQoGWGlucmVhEkpodHRwczovL2kxLmhkc2xiLmNvbS9iZnMvZmFjZS80NDMxMmNmNWExODQwNWE5NzUyNzQyZjRlODdmYThlNmFiODE1YzAyLmpwZzJUCgZYaW5yZWESSmh0dHBzOi8vaTEuaGRzbGIuY29tL2Jmcy9mYWNlLzQ0MzEyY2Y1YTE4NDA1YTk3NTI3NDJmNGU4N2ZhOGU2YWI4MTVjMDIuanBnOgsg////////////ARquAQoG6L206IqvECoYi8L9ByCEof8HKP/RnwMwi8L9B0gBUMuVsh1YA2Dm+yNqSmh0dHBzOi8vaTAuaGRzbGIuY29tL2Jmcy9saXZlLzQ4MzYwYzhmM2I3ZGU4MDMxZTg2ZmYxZWY0YTJkZmMwZWMyYTYxYzIucG5negkjQTc3M0YxOTmCAQkjQTc3M0YxOTmKAQcjRDQ3QUZGkgEHI0ZGRkZGRpoBCSNBNzczRjFFNg==";
+
+    #[test]
+    fn parse_send_gift_v2_sample() {
+        let body = json!({
+            "cmd": "SEND_GIFT_V2",
+            "data": { "dmscore": 1190, "pb": SAMPLE_PB }
+        });
+        let gifts = GiftMessage::from_raw_v2(&body, 12345);
+        assert_eq!(gifts.len(), 1);
+        let g = &gifts[0];
+        assert_eq!(g.room, 12345);
+        assert_eq!(g.sender.uid, 475210);
+        assert_eq!(g.sender.uname, "Xinrea");
+        assert_eq!(g.gift_info.id, 33988);
+        assert_eq!(g.gift_info.name, "人气票");
+        assert_eq!(g.gift_info.price, 100);
+        assert_eq!(g.gift_info.coin_type, "gold");
+        assert_eq!(g.num, 1);
+        assert_eq!(g.action, "投喂");
+        assert_eq!(g.timestamp, 1784649531);
+        assert_eq!(g.sender.medal_info.medal_name, "轴芯");
+        assert_eq!(g.sender.medal_info.medal_level, 42);
+        assert!(
+            !g.gift_info.img_basic.is_empty() || !g.gift_info.webp.is_empty(),
+            "expected gift image urls from snapshot"
+        );
     }
 }
 

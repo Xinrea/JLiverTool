@@ -1438,17 +1438,19 @@ fn handle_message(
         }
         "SEND_GIFT" => {
             if let Some(gift) = GiftMessage::from_raw(body, room_id) {
-                // Store in database
-                if let Err(e) = database.insert_gift(&gift) {
-                    warn!("Failed to store gift: {}", e);
+                emit_gift(gift, event_tx, database, tts_manager);
+            } else {
+                warn!("Failed to parse SEND_GIFT into GiftMessage, body={}", body);
+            }
+        }
+        "SEND_GIFT_V2" => {
+            let gifts = GiftMessage::from_raw_v2(body, room_id);
+            if gifts.is_empty() {
+                warn!("Failed to parse SEND_GIFT_V2 into GiftMessage, body={}", body);
+            } else {
+                for gift in gifts {
+                    emit_gift(gift, event_tx, database, tts_manager);
                 }
-                // TTS for gift
-                tts_manager.speak(TtsMessage::gift(
-                    &gift.sender.uname,
-                    &gift.gift_info.name,
-                    gift.num,
-                ));
-                let _ = event_tx.send(Event::NewGift(gift));
             }
         }
         "USER_TOAST_MSG" => {
@@ -1544,6 +1546,40 @@ fn handle_message(
                 let _ = event_tx.send(Event::CutOff(cutoff));
             }
         }
-        _ => {}
+        // Gift-related cmds we currently ignore — log to detect protocol shifts.
+        "COMBO_SEND" | "POPULARITY_RED_POCKET_NEW" | "POPULARITY_RED_POCKET_WINNER_LIST" => {
+            info!("Unhandled gift-related WS cmd={}: {}", cmd, body);
+        }
+        _ => {
+            if base_cmd.contains("GIFT") || base_cmd.contains("COMBO") {
+                info!("Unhandled gift-like WS cmd={}: {}", cmd, body);
+            }
+        }
     }
+}
+
+fn emit_gift(
+    gift: GiftMessage,
+    event_tx: &EventSender,
+    database: &Arc<Database>,
+    tts_manager: &Arc<TtsManager>,
+) {
+    info!(
+        "New gift: {} {} {} x{} ({}, price={})",
+        gift.sender.uname,
+        gift.action,
+        gift.gift_info.name,
+        gift.num,
+        gift.gift_info.coin_type,
+        gift.gift_info.price
+    );
+    if let Err(e) = database.insert_gift(&gift) {
+        warn!("Failed to store gift: {}", e);
+    }
+    tts_manager.speak(TtsMessage::gift(
+        &gift.sender.uname,
+        &gift.gift_info.name,
+        gift.num,
+    ));
+    let _ = event_tx.send(Event::NewGift(gift));
 }

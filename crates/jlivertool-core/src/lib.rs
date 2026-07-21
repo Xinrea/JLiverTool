@@ -14,6 +14,7 @@ pub mod config;
 pub mod database;
 pub mod events;
 pub mod messages;
+pub mod protobuf;
 pub mod tts;
 pub mod types;
 pub mod update;
