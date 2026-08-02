@@ -7,14 +7,17 @@
 //! - Ver 2: Deflate compressed
 //! - Ver 3: Brotli compressed
 
+use crate::bilibili::api::DanmuHost;
 use anyhow::{anyhow, Result};
 use futures::{SinkExt, StreamExt};
 use serde_json::Value;
 use std::cell::RefCell;
 use std::io::Read;
 use std::sync::Arc;
+use std::time::Instant;
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
-use tokio::time::{interval, Duration};
+use tokio::time::{interval, timeout, Duration};
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 
@@ -30,6 +33,8 @@ pub struct WsInfo {
     pub room_id: u64,
     pub uid: u64,
     pub token: String,
+    /// Client buvid3 used in auth packet (`buvid` field).
+    pub buvid: String,
 }
 
 /// WebSocket message operation codes
@@ -337,6 +342,7 @@ impl BiliWebSocket {
             "uid": self.ws_info.uid,
             "roomid": self.ws_info.room_id,
             "protover": 3,
+            "buvid": self.ws_info.buvid,
             "type": 2,
             "platform": "web",
             "key": self.ws_info.token,
@@ -345,12 +351,26 @@ impl BiliWebSocket {
         let auth_msg = BiliWsMessage::new(MessageOp::Auth, &auth_info.to_string());
         write.send(Message::Binary(auth_msg.into_bytes())).await?;
 
-        // Start heartbeat task
+        // Start heartbeat task (Bilibili expects ~30s; idle timeout ~70s)
         let heartbeat_running = self.is_running.clone();
         let mut heartbeat_write = write;
 
         let heartbeat_handle = tokio::spawn(async move {
-            let mut heartbeat_interval = interval(Duration::from_secs(10));
+            let mut heartbeat_interval = interval(Duration::from_secs(30));
+            // Don't wait a full period before the first heartbeat.
+            heartbeat_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+            heartbeat_interval.reset();
+
+            // Immediate first heartbeat after auth, then every 30s.
+            let heartbeat_msg = BiliWsMessage::new(MessageOp::KeepAlive, "");
+            if heartbeat_write
+                .send(Message::Binary(heartbeat_msg.into_bytes()))
+                .await
+                .is_err()
+            {
+                let _ = heartbeat_write;
+                return;
+            }
 
             while heartbeat_running.load(std::sync::atomic::Ordering::SeqCst) {
                 heartbeat_interval.tick().await;
@@ -365,7 +385,7 @@ impl BiliWebSocket {
                 }
             }
 
-            heartbeat_write
+            let _ = heartbeat_write;
         });
 
         // Process incoming messages
@@ -456,7 +476,7 @@ impl ManagedBiliWebSocket {
             ws_info,
             event_tx,
             is_running: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            reconnect_delay: Duration::from_secs(5),
+            reconnect_delay: Duration::from_secs(3),
         };
 
         (client, event_rx)
@@ -501,5 +521,88 @@ impl ManagedBiliWebSocket {
     pub fn stop(&self) {
         self.is_running
             .store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// Probe TCP connect latency to a danmu host's WSS port.
+async fn probe_host_latency(host: &DanmuHost, probe_timeout: Duration) -> Option<Duration> {
+    let addr = format!("{}:{}", host.host, host.wss_port);
+    let start = Instant::now();
+    match timeout(probe_timeout, TcpStream::connect(&addr)).await {
+        Ok(Ok(_stream)) => Some(start.elapsed()),
+        Ok(Err(e)) => {
+            debug!("Danmu host probe failed for {}: {}", addr, e);
+            None
+        }
+        Err(_) => {
+            debug!("Danmu host probe timed out for {}", addr);
+            None
+        }
+    }
+}
+
+/// Select the lowest-latency host from `host_list` by parallel TCP probes.
+///
+/// Falls back to the first host if every probe fails.
+pub async fn select_best_danmu_host(hosts: &[DanmuHost]) -> Option<DanmuHost> {
+    if hosts.is_empty() {
+        return None;
+    }
+    if hosts.len() == 1 {
+        return Some(hosts[0].clone());
+    }
+
+    const PROBE_TIMEOUT: Duration = Duration::from_millis(1500);
+
+    let probes = hosts.iter().map(|host| {
+        let host = host.clone();
+        async move {
+            let latency = probe_host_latency(&host, PROBE_TIMEOUT).await;
+            (host, latency)
+        }
+    });
+
+    let results = futures::future::join_all(probes).await;
+
+    let mut best: Option<(DanmuHost, Duration)> = None;
+    for (host, latency) in &results {
+        match latency {
+            Some(latency) => {
+                info!(
+                    "Danmu host probe {} ({}ms)",
+                    format!("{}:{}", host.host, host.wss_port),
+                    latency.as_millis()
+                );
+                if best
+                    .as_ref()
+                    .map(|(_, best_latency)| *latency < *best_latency)
+                    .unwrap_or(true)
+                {
+                    best = Some((host.clone(), *latency));
+                }
+            }
+            None => {
+                warn!(
+                    "Danmu host probe unreachable: {}:{}",
+                    host.host, host.wss_port
+                );
+            }
+        }
+    }
+
+    if let Some((host, latency)) = best {
+        info!(
+            "Selected danmu host {}:{} ({}ms)",
+            host.host,
+            host.wss_port,
+            latency.as_millis()
+        );
+        Some(host)
+    } else {
+        warn!(
+            "All danmu host probes failed, falling back to {}",
+            format!("{}:{}", hosts[0].host, hosts[0].wss_port)
+        );
+        Some(hosts[0].clone())
     }
 }

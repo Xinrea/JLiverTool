@@ -7,7 +7,7 @@
 
 use anyhow::Result;
 use jlivertool_core::bilibili::api::{BiliApi, QrCodeStatus};
-use jlivertool_core::bilibili::ws::{BiliWebSocket, WsEvent, WsInfo};
+use jlivertool_core::bilibili::ws::{select_best_danmu_host, BiliWebSocket, WsEvent, WsInfo};
 use jlivertool_core::config::ConfigStore;
 use jlivertool_core::database::Database;
 use jlivertool_core::events::Event;
@@ -285,11 +285,18 @@ fn main() -> Result<()> {
     }
     info!("TTS manager initialized");
 
-    // Set cookies if available
+    // Set cookies if available (ensure buvid3 for live WS auth)
     {
-        let config_read = config.read();
-        if let Some(cookies) = config_read.get_cookies() {
-            api.write().set_cookies(Some(cookies));
+        // Drop the read guard before taking a write lock (if-let temporaries live
+        // for the whole block and would otherwise deadlock on parking_lot::RwLock).
+        let mut cookies = config.read().get_cookies();
+        if let Some(cookies) = cookies.as_mut() {
+            if cookies.ensure_buvid3() {
+                if let Err(e) = config.write().set_cookies(Some(cookies.clone())) {
+                    warn!("Failed to persist generated buvid3: {}", e);
+                }
+            }
+            api.write().set_cookies(Some(cookies.clone()));
         }
     }
 
@@ -1150,8 +1157,9 @@ async fn poll_qr_login(
 
                 match status {
                     QrCodeStatus::Success => {
-                        if let Some(cookies) = cookies_opt {
+                        if let Some(mut cookies) = cookies_opt {
                             info!("QR login successful!");
+                            cookies.ensure_buvid3();
 
                             // Save cookies
                             if let Err(e) = config.write().set_cookies(Some(cookies.clone())) {
@@ -1271,30 +1279,35 @@ async fn run_backend(
             Err(e) => {
                 error!("Failed to get danmu info: {}", e);
                 // Wait and retry
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                 continue;
             }
         };
 
-        // Select best host
-        let host = match danmu_info.host_list.first() {
-            Some(h) => h,
-            None => {
-                error!("No WebSocket host available");
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                continue;
-            }
+        // Pick the lowest-latency host via parallel TCP probes
+        let Some(host) = select_best_danmu_host(&danmu_info.host_list).await else {
+            error!("No WebSocket host available");
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            continue;
         };
+
+        let cookies = config.read().get_cookies();
+        let uid = cookies
+            .as_ref()
+            .and_then(|c| c.user_id())
+            .unwrap_or(0);
+        let buvid = cookies
+            .as_ref()
+            .map(|c| c.buvid3.clone())
+            .filter(|b| !b.is_empty())
+            .unwrap_or_else(jlivertool_core::types::Cookies::generate_buvid3);
 
         let ws_info = WsInfo {
             server: format!("wss://{}:{}/sub", host.host, host.wss_port),
             room_id: current_room.real_id(),
-            uid: config
-                .read()
-                .get_cookies()
-                .map(|c| c.dede_user_id.parse().unwrap_or(0))
-                .unwrap_or(0),
+            uid,
             token: danmu_info.token,
+            buvid,
         };
 
         // Create WebSocket connection
@@ -1390,8 +1403,8 @@ async fn run_backend(
             current_room = room;
         } else if should_reconnect {
             // Wait before reconnecting
-            info!("Reconnecting in 5 seconds...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            info!("Reconnecting in 3 seconds...");
+            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
         }
     }
 }

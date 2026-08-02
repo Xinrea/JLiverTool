@@ -16,9 +16,36 @@ pub struct Cookies {
     pub bili_jct: String,
     #[serde(default)]
     pub gourl: String,
+    /// Client identity used by live WS auth (`buvid` field).
+    #[serde(default, rename = "buvid3")]
+    pub buvid3: String,
 }
 
 impl Cookies {
+    /// Generate a fake buvid3 matching Bilibili client format.
+    pub fn generate_buvid3() -> String {
+        let hex = uuid::Uuid::new_v4().simple().to_string().to_uppercase();
+        format!(
+            "{}-{}-{}-{}-{}infoc",
+            &hex[0..8],
+            &hex[8..12],
+            &hex[12..16],
+            &hex[16..20],
+            &hex[20..32]
+        )
+    }
+
+    /// Ensure `buvid3` is present; generate one if missing.
+    /// Returns true if a new value was generated.
+    pub fn ensure_buvid3(&mut self) -> bool {
+        if self.buvid3.is_empty() {
+            self.buvid3 = Self::generate_buvid3();
+            true
+        } else {
+            false
+        }
+    }
+
     /// Parse cookies from URL query string (used after QR login)
     pub fn from_query_string(query: &str) -> Self {
         let mut cookies = Cookies::default();
@@ -34,11 +61,13 @@ impl Cookies {
                     "SESSDATA" => cookies.sessdata = decoded,
                     "bili_jct" => cookies.bili_jct = decoded,
                     "gourl" => cookies.gourl = decoded,
+                    "buvid3" => cookies.buvid3 = decoded,
                     _ => {}
                 }
             }
         }
 
+        cookies.ensure_buvid3();
         cookies
     }
 
@@ -54,14 +83,18 @@ impl Cookies {
             self.sessdata.clone()
         };
 
-        format!(
+        let mut cookie = format!(
             "SESSDATA={}; DedeUserID={}; DedeUserID_ckMd5={}; bili_jct={}; Expires={}",
             sessdata,
             self.dede_user_id,
             self.dede_user_id_ck_md5,
             self.bili_jct,
             self.expires
-        )
+        );
+        if !self.buvid3.is_empty() {
+            cookie.push_str(&format!("; buvid3={}", self.buvid3));
+        }
+        cookie
     }
 
     pub fn is_valid(&self) -> bool {

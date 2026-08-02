@@ -96,7 +96,7 @@ pub struct DanmuInfoData {
     pub host_list: Vec<DanmuHost>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DanmuHost {
     pub host: String,
     pub port: u16,
