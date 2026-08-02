@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/*"]
 
 [workspace.package]
-version = "3.0.10"
+version = "3.0.11"
 edition = "2021"
 authors = ["JLiverTool Contributors"]
 license = "MIT"
