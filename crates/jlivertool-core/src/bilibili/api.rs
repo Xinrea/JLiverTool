@@ -3,7 +3,7 @@
 use crate::bilibili::wbi::WbiSigner;
 use crate::types::{Cookies, RoomId};
 use anyhow::{anyhow, Result};
-use reqwest::{header, Client};
+use reqwest::{header, redirect, Client, Url};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -12,6 +12,7 @@ use std::time::Duration;
 /// Base URLs
 const LIVE_API_BASE: &str = "https://api.live.bilibili.com";
 const WEB_API_BASE: &str = "https://api.bilibili.com";
+const QR_LOGIN_MAX_REDIRECTS: usize = 5;
 
 /// Common API response wrapper
 #[derive(Debug, Deserialize)]
@@ -622,14 +623,11 @@ impl BiliApi {
         if let Some(data) = resp.data {
             match data.code {
                 0 => {
-                    // Success - parse cookies from URL
-                    if let Some(url) = data.url {
-                        if let Some(query) = url.split('?').nth(1) {
-                            let cookies = Cookies::from_query_string(query);
-                            return Ok((QrCodeStatus::Success, Some(cookies)));
-                        }
-                    }
-                    Ok((QrCodeStatus::Error, None))
+                    let login_url = data
+                        .url
+                        .ok_or_else(|| anyhow!("QR login response did not contain a login URL"))?;
+                    let cookies = self.resolve_qr_login(&login_url).await?;
+                    Ok((QrCodeStatus::Success, Some(cookies)))
                 }
                 86101 => Ok((QrCodeStatus::NeedScan, None)),
                 86090 => Ok((QrCodeStatus::NeedConfirm, None)),
@@ -639,6 +637,65 @@ impl BiliApi {
         } else {
             Ok((QrCodeStatus::Error, None))
         }
+    }
+
+    /// Exchange the ticket URL returned by QR polling for account cookies.
+    async fn resolve_qr_login(&self, login_url: &str) -> Result<Cookies> {
+        let client = Client::builder()
+            .redirect(redirect::Policy::none())
+            .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            .build()?;
+        let mut current_url =
+            Url::parse(login_url).map_err(|e| anyhow!("QR login returned an invalid URL: {e}"))?;
+        let mut cookie_values = HashMap::new();
+
+        for redirect_count in 0..=QR_LOGIN_MAX_REDIRECTS {
+            if current_url.scheme() != "https" {
+                return Err(anyhow!("QR login redirected to a non-HTTPS URL"));
+            }
+
+            let cookie_header = cookie_values
+                .iter()
+                .map(|(name, value)| format!("{name}={value}"))
+                .collect::<Vec<_>>()
+                .join("; ");
+            let mut request = client
+                .get(current_url.clone())
+                .header(header::REFERER, "https://passport.bilibili.com/");
+            if !cookie_header.is_empty() {
+                request = request.header(header::COOKIE, cookie_header);
+            }
+
+            let response = request.send().await?;
+            for set_cookie in response.headers().get_all(header::SET_COOKIE) {
+                let set_cookie = set_cookie
+                    .to_str()
+                    .map_err(|_| anyhow!("QR login returned an invalid Set-Cookie header"))?;
+                if let Some((name, value)) = parse_set_cookie(set_cookie) {
+                    cookie_values.insert(name.to_string(), value.to_string());
+                }
+            }
+
+            if let Some(cookies) = login_cookies_from_map(&cookie_values) {
+                return Ok(cookies);
+            }
+
+            let location = response.headers().get(header::LOCATION).cloned();
+            drop(response);
+            let Some(location) = location else {
+                return Err(anyhow!(
+                    "QR login succeeded but did not return complete account cookies"
+                ));
+            };
+            if redirect_count == QR_LOGIN_MAX_REDIRECTS {
+                return Err(anyhow!("QR login redirected too many times"));
+            }
+            current_url = current_url
+                .join(location.to_str()?)
+                .map_err(|e| anyhow!("QR login returned an invalid redirect URL: {e}"))?;
+        }
+
+        Err(anyhow!("QR login redirected too many times"))
     }
 
     /// Logout
@@ -654,6 +711,61 @@ impl BiliApi {
         let url = "https://passport.bilibili.com/login/exit/v2";
         let _: ApiResponse<serde_json::Value> = self.post_form(url, &form).await?;
         Ok(())
+    }
+}
+
+fn parse_set_cookie(header: &str) -> Option<(&str, &str)> {
+    let cookie = header.split(';').next()?;
+    let (name, value) = cookie.split_once('=')?;
+    let name = name.trim();
+    if name.is_empty() {
+        None
+    } else {
+        Some((name, value.trim()))
+    }
+}
+
+fn login_cookies_from_map(values: &HashMap<String, String>) -> Option<Cookies> {
+    let dede_user_id = values.get("DedeUserID")?.clone();
+    let sessdata = values.get("SESSDATA")?.clone();
+    let bili_jct = values.get("bili_jct")?.clone();
+
+    Some(Cookies {
+        dede_user_id,
+        dede_user_id_ck_md5: values.get("DedeUserID__ckMd5").cloned().unwrap_or_default(),
+        sessdata,
+        bili_jct,
+        sid: values.get("sid").cloned().unwrap_or_default(),
+        ..Cookies::default()
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{login_cookies_from_map, parse_set_cookie};
+    use std::collections::HashMap;
+
+    #[test]
+    fn parses_set_cookie_without_attributes() {
+        assert_eq!(
+            parse_set_cookie("SESSDATA=value%2Cwith%2Ccommas; Path=/; HttpOnly"),
+            Some(("SESSDATA", "value%2Cwith%2Ccommas"))
+        );
+    }
+
+    #[test]
+    fn requires_complete_login_cookies() {
+        let mut values = HashMap::from([
+            ("DedeUserID".to_string(), "123".to_string()),
+            ("SESSDATA".to_string(), "session".to_string()),
+        ]);
+        assert!(login_cookies_from_map(&values).is_none());
+
+        values.insert("bili_jct".to_string(), "csrf".to_string());
+        let cookies = login_cookies_from_map(&values).expect("complete login cookies");
+        assert_eq!(cookies.dede_user_id, "123");
+        assert_eq!(cookies.sessdata, "session");
+        assert_eq!(cookies.bili_jct, "csrf");
     }
 }
 

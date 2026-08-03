@@ -15,6 +15,8 @@ pub struct Cookies {
     pub sessdata: String,
     pub bili_jct: String,
     #[serde(default)]
+    pub sid: String,
+    #[serde(default)]
     pub gourl: String,
     /// Client identity used by live WS auth (`buvid` field).
     #[serde(default, rename = "buvid3")]
@@ -46,51 +48,22 @@ impl Cookies {
         }
     }
 
-    /// Parse cookies from URL query string (used after QR login)
-    pub fn from_query_string(query: &str) -> Self {
-        let mut cookies = Cookies::default();
-
-        for pair in query.split('&') {
-            let mut parts = pair.splitn(2, '=');
-            if let (Some(key), Some(value)) = (parts.next(), parts.next()) {
-                let decoded = urlencoding::decode(value).unwrap_or_default().to_string();
-                match key {
-                    "DedeUserID" => cookies.dede_user_id = decoded,
-                    "DedeUserID__ckMd5" => cookies.dede_user_id_ck_md5 = decoded,
-                    "Expires" => cookies.expires = decoded,
-                    "SESSDATA" => cookies.sessdata = decoded,
-                    "bili_jct" => cookies.bili_jct = decoded,
-                    "gourl" => cookies.gourl = decoded,
-                    "buvid3" => cookies.buvid3 = decoded,
-                    _ => {}
-                }
-            }
-        }
-
-        cookies.ensure_buvid3();
-        cookies
-    }
-
     /// Convert cookies to HTTP Cookie header string
     pub fn to_cookie_string(&self) -> String {
         if self.sessdata.is_empty() {
             return String::new();
         }
 
-        let sessdata = if self.sessdata.contains('%') {
-            urlencoding::encode(&self.sessdata).to_string()
-        } else {
-            self.sessdata.clone()
-        };
-
         let mut cookie = format!(
-            "SESSDATA={}; DedeUserID={}; DedeUserID_ckMd5={}; bili_jct={}; Expires={}",
-            sessdata,
+            "SESSDATA={}; DedeUserID={}; DedeUserID__ckMd5={}; bili_jct={}",
+            self.sessdata,
             self.dede_user_id,
             self.dede_user_id_ck_md5,
-            self.bili_jct,
-            self.expires
+            self.bili_jct
         );
+        if !self.sid.is_empty() {
+            cookie.push_str(&format!("; sid={}", self.sid));
+        }
         if !self.buvid3.is_empty() {
             cookie.push_str(&format!("; buvid3={}", self.buvid3));
         }
@@ -98,12 +71,34 @@ impl Cookies {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.sessdata.is_empty() && !self.bili_jct.is_empty()
+        !self.dede_user_id.is_empty() && !self.sessdata.is_empty() && !self.bili_jct.is_empty()
     }
 
     /// Get user ID as u64
     pub fn user_id(&self) -> Option<u64> {
         self.dede_user_id.parse().ok()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cookies;
+
+    #[test]
+    fn preserves_ticket_login_cookie_values() {
+        let cookies = Cookies {
+            dede_user_id: "123".to_string(),
+            dede_user_id_ck_md5: "md5".to_string(),
+            sessdata: "value%2Cwith%2Ccommas".to_string(),
+            bili_jct: "csrf".to_string(),
+            sid: "sid-value".to_string(),
+            ..Cookies::default()
+        };
+
+        assert_eq!(
+            cookies.to_cookie_string(),
+            "SESSDATA=value%2Cwith%2Ccommas; DedeUserID=123; DedeUserID__ckMd5=md5; bili_jct=csrf; sid=sid-value"
+        );
     }
 }
 
