@@ -9,6 +9,7 @@ use gpui_component::calendar::Date;
 use gpui_component::chart::LineChart;
 use gpui_component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_component::h_flex;
+use gpui_component::scroll::Scrollbar;
 use gpui_component::select::{Select, SelectEvent, SelectState};
 use gpui_component::v_flex;
 use gpui_component::Sizable;
@@ -224,6 +225,7 @@ pub struct StatisticsView {
     stats: TimeBasedStats,
     time_series: Vec<TimeSeriesPoint>,
     opacity: f32,
+    chart_scroll_handle: ScrollHandle,
     // Custom time range mode
     use_custom_range: bool,
     custom_start_picker: Option<Entity<DatePickerState>>,
@@ -270,6 +272,7 @@ impl StatisticsView {
             stats: TimeBasedStats::default(),
             time_series: Vec::new(),
             opacity: 1.0,
+            chart_scroll_handle: ScrollHandle::new(),
             use_custom_range: false,
             custom_start_picker: None,
             custom_end_picker: None,
@@ -993,6 +996,7 @@ impl Render for StatisticsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
         let use_custom_range = self.use_custom_range;
+        let chart_scroll_handle = self.chart_scroll_handle.clone();
 
         // Pre-render custom range inputs if in custom mode
         let custom_range_inputs = if use_custom_range {
@@ -1041,7 +1045,25 @@ impl Render for StatisticsView {
                     // Summary stats
                     .child(self.render_summary())
                     // Charts
-                    .child(self.render_charts()),
+                    .child(
+                        h_flex()
+                            .flex_1()
+                            .min_h_0()
+                            .w_full()
+                            .overflow_hidden()
+                            .child(
+                                div()
+                                    .id("statistics-charts-scroll")
+                                    .flex_1()
+                                    .h_full()
+                                    .min_h_0()
+                                    .pr_2()
+                                    .overflow_y_scroll()
+                                    .track_scroll(&chart_scroll_handle)
+                                    .child(self.render_charts()),
+                            )
+                            .child(Scrollbar::vertical(&chart_scroll_handle)),
+                    ),
             )
     }
 }
