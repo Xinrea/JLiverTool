@@ -1,5 +1,6 @@
 use super::DashboardDanmuView;
 use super::panel::DashboardPanel;
+use crate::app::UiCommand;
 use crate::theme::Colors;
 use crate::views::{AudienceView, GiftView, StatisticsView, SuperChatView};
 use gpui::*;
@@ -7,6 +8,7 @@ use gpui_component::dock::{DockArea, DockAreaState, DockEvent, DockItem, registe
 use gpui_component::v_flex;
 use jlivertool_core::config::ConfigStore;
 use std::sync::Arc;
+use std::sync::mpsc;
 use std::time::Duration;
 
 const LAYOUT_VERSION: usize = 2;
@@ -65,6 +67,7 @@ impl DashboardViews {
 
 pub(crate) struct DashboardView {
     dock_area: Entity<DockArea>,
+    command_tx: mpsc::Sender<UiCommand>,
     _layout_subscription: Subscription,
     _layout_save_task: Task<()>,
 }
@@ -73,6 +76,7 @@ impl DashboardView {
     pub(crate) fn new(
         views: DashboardViews,
         config: ConfigStore,
+        command_tx: mpsc::Sender<UiCommand>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
@@ -96,18 +100,16 @@ impl DashboardView {
             Self::apply_default_layout(&dock_area, views, window, cx);
         }
 
-        let config_for_layout = config.clone();
+        let command_tx_for_layout = command_tx.clone();
         let layout_subscription =
             cx.subscribe(&dock_area, move |this, dock_area, event: &DockEvent, cx| {
                 if matches!(event, DockEvent::LayoutChanged) {
                     let state = dock_area.read(cx).dump(cx);
                     if let Ok(value) = serde_json::to_value(state) {
-                        let config = config_for_layout.clone();
+                        let command_tx = command_tx_for_layout.clone();
                         this._layout_save_task = cx.background_executor().spawn(async move {
                             Timer::after(Duration::from_millis(400)).await;
-                            if let Err(error) = config.set_dashboard_layout(value) {
-                                tracing::warn!("Failed to save dashboard layout: {error}");
-                            }
+                            let _ = command_tx.send(UiCommand::SaveDashboardLayout(value));
                         });
                     }
                 }
@@ -115,8 +117,16 @@ impl DashboardView {
 
         Self {
             dock_area,
+            command_tx,
             _layout_subscription: layout_subscription,
             _layout_save_task: Task::ready(()),
+        }
+    }
+
+    pub(crate) fn save_layout(&self, cx: &App) {
+        let state = self.dock_area.read(cx).dump(cx);
+        if let Ok(value) = serde_json::to_value(state) {
+            let _ = self.command_tx.send(UiCommand::SaveDashboardLayout(value));
         }
     }
 

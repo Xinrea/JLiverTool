@@ -852,6 +852,11 @@ async fn handle_commands(
                     error!("Failed to save window bounds: {}", e);
                 }
             }
+            UiCommand::SaveDashboardLayout(layout) => {
+                if let Err(e) = config.write().set_dashboard_layout(layout) {
+                    error!("Failed to save dashboard layout: {}", e);
+                }
+            }
             UiCommand::UpdateTtsEnabled {
                 danmu,
                 gift,

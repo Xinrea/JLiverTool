@@ -1022,6 +1022,9 @@ impl MainView {
         );
 
         if self.dashboard_view.is_some() {
+            if let Some(dashboard) = &self.dashboard_view {
+                dashboard.read(cx).save_layout(cx);
+            }
             if !window.is_maximized() {
                 self.dashboard_window_size = Some((current_bounds.2, current_bounds.3));
                 let _ = self.command_tx.send(UiCommand::SaveWindowBounds {
@@ -1128,6 +1131,7 @@ impl MainView {
                     audience_view,
                 ),
                 config,
+                self.command_tx.clone(),
                 window,
                 cx,
             )
