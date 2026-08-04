@@ -158,7 +158,7 @@ pub(crate) fn build_render_rows<'a>(
 }
 
 /// Convert one display message into one or more fixed-height render rows.
-pub(super) fn append_message_rows(
+pub(crate) fn append_message_rows(
     rows: &mut Vec<RenderRow>,
     message: &DisplayMessage,
     available_width: f32,

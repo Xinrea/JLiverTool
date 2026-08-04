@@ -14,8 +14,7 @@ mod render;
 mod user_info_card;
 
 pub use content_rendering::{render_content_with_links, DisplayMessage, RenderRow};
-pub(crate) use content_rendering::build_render_rows;
-use content_rendering::append_message_rows;
+pub(crate) use content_rendering::{append_message_rows, build_render_rows};
 pub(crate) use danmu_list_item::DanmuListItemView;
 pub(crate) use user_info_card::SelectedUserState;
 use user_info_card::UserInfoCard;
@@ -657,6 +656,36 @@ impl MainView {
         offset.y <= -max_offset.height + threshold
     }
 
+    fn active_danmu_is_at_bottom(&self, cx: &App) -> bool {
+        if self.dashboard_view.is_some() {
+            self.dashboard_danmu_view.read(cx).is_at_bottom()
+        } else {
+            self.is_at_bottom()
+        }
+    }
+
+    fn push_display_message(&mut self, message: DisplayMessage, cx: &mut Context<Self>) {
+        let dashboard_active = self.dashboard_view.is_some();
+        let should_auto_scroll = self.active_danmu_is_at_bottom(cx);
+        let dashboard_message = dashboard_active.then(|| message.clone());
+
+        self.danmu_list.push_back(message);
+        let mut removed_from_front = 0;
+        if should_auto_scroll {
+            while self.danmu_list.len() > MAX_DANMU_COUNT {
+                self.danmu_list.pop_front();
+                removed_from_front += 1;
+            }
+            self.scroll_to_bottom();
+        }
+
+        if let Some(message) = dashboard_message {
+            self.dashboard_danmu_view.update(cx, |view, cx| {
+                view.push_message(message, removed_from_front, cx);
+            });
+        }
+    }
+
     /// Scroll to the bottom of the danmu list (deferred until render_rows are rebuilt)
     fn scroll_to_bottom(&mut self) {
         self.pending_scroll_to_bottom = true;
@@ -702,7 +731,7 @@ impl MainView {
         let sub_cmd = parts.first().copied().unwrap_or("");
         let content = parts.get(1).copied().unwrap_or("测试内容");
 
-        match sub_cmd {
+        let message = match sub_cmd {
             "sc" => {
                 let sc = SuperChatMessage {
                     id: debug_id.clone(),
@@ -717,7 +746,7 @@ impl MainView {
                     background_bottom_color: "#2A60B2".to_string(),
                     archived: false,
                 };
-                self.danmu_list.push_back(DisplayMessage::SuperChat(sc));
+                DisplayMessage::SuperChat(sc)
             }
             "gift" => {
                 let gift = GiftMessage {
@@ -739,7 +768,7 @@ impl MainView {
                     timestamp: now,
                     archived: false,
                 };
-                self.danmu_list.push_back(DisplayMessage::Gift(gift));
+                DisplayMessage::Gift(gift)
             }
             "guard" => {
                 let guard = GuardMessage {
@@ -753,7 +782,7 @@ impl MainView {
                     timestamp: now,
                     archived: false,
                 };
-                self.danmu_list.push_back(DisplayMessage::Guard(guard));
+                DisplayMessage::Guard(guard)
             }
             "danmu" | _ => {
                 let danmu = jlivertool_core::messages::DanmuMessage {
@@ -766,18 +795,14 @@ impl MainView {
                     side_index: -1,
                     reply_uname: None,
                 };
-                self.danmu_list.push_back(DisplayMessage::Danmu(danmu));
+                DisplayMessage::Danmu(danmu)
             }
-        }
+        };
 
-        while self.danmu_list.len() > MAX_DANMU_COUNT {
-            self.danmu_list.pop_front();
-        }
+        self.push_display_message(message, cx);
         // Reset render rows so they get rebuilt on next render
         self.render_rows_source_count = 0;
         self.render_rows = Rc::new(Vec::new());
-        self.scroll_to_bottom();
-        self.sync_dashboard_danmu(cx);
     }
 
     /// Update render rows: full rebuild if width changed, incremental append otherwise.
@@ -979,7 +1004,7 @@ impl MainView {
     fn sync_dashboard_danmu_now(&mut self, cx: &mut Context<Self>) {
         let messages = &self.danmu_list;
         self.dashboard_danmu_view.update(cx, |view, cx| {
-            view.set_messages(messages, cx);
+            view.replace_messages(messages, cx);
         });
     }
 

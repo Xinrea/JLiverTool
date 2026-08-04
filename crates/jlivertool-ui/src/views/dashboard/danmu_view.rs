@@ -1,6 +1,6 @@
 use crate::theme::Colors;
 use crate::views::main_view::{
-    DanmuListItemView, DisplayMessage, RenderRow, SelectedUserState, build_render_rows,
+    DanmuListItemView, DisplayMessage, RenderRow, SelectedUserState, append_message_rows,
 };
 use gpui::*;
 use gpui_component::h_flex;
@@ -9,7 +9,10 @@ use std::collections::VecDeque;
 use std::rc::Rc;
 
 pub(crate) struct DashboardDanmuView {
-    messages: Rc<Vec<DisplayMessage>>,
+    messages: VecDeque<DisplayMessage>,
+    /// Number of rendered rows produced by each entry in `messages`.
+    /// This keeps front eviction incremental even when one message wraps.
+    row_counts: VecDeque<usize>,
     rows: Rc<Vec<RenderRow>>,
     scroll_handle: UniformListScrollHandle,
     pending_scroll_to_bottom: bool,
@@ -24,7 +27,8 @@ pub(crate) struct DashboardDanmuView {
 impl DashboardDanmuView {
     pub(crate) fn new(selected_user: SelectedUserState) -> Self {
         Self {
-            messages: Rc::new(Vec::new()),
+            messages: VecDeque::new(),
+            row_counts: VecDeque::new(),
             rows: Rc::new(Vec::new()),
             scroll_handle: UniformListScrollHandle::new(),
             pending_scroll_to_bottom: true,
@@ -37,13 +41,51 @@ impl DashboardDanmuView {
         }
     }
 
-    pub(crate) fn set_messages(
+    pub(crate) fn replace_messages(
         &mut self,
         messages: &VecDeque<DisplayMessage>,
         cx: &mut Context<Self>,
     ) {
-        self.messages = Rc::new(messages.iter().cloned().collect());
-        self.rebuild_rows();
+        let should_auto_scroll = self.is_at_bottom();
+        self.messages = messages.clone();
+        self.rebuild_rows(should_auto_scroll);
+        cx.notify();
+    }
+
+    pub(crate) fn push_message(
+        &mut self,
+        message: DisplayMessage,
+        removed_from_front: usize,
+        cx: &mut Context<Self>,
+    ) {
+        let should_auto_scroll = self.is_at_bottom();
+        let mut rows = Rc::try_unwrap(std::mem::replace(&mut self.rows, Rc::new(Vec::new())))
+            .unwrap_or_else(|rows| (*rows).clone());
+
+        let mut rows_to_remove = 0;
+        for _ in 0..removed_from_front.min(self.messages.len()) {
+            self.messages.pop_front();
+            rows_to_remove += self.row_counts.pop_front().unwrap_or(0);
+        }
+        rows.drain(..rows_to_remove.min(rows.len()));
+
+        let previous_row_count = rows.len();
+        if self.content_width <= 0.0 {
+            rows.push(RenderRow::Full(message.clone()));
+        } else {
+            append_message_rows(
+                &mut rows,
+                &message,
+                self.content_width - 14.0,
+                self.font_size,
+                self.lite_mode,
+                self.medal_display,
+            );
+        }
+        self.row_counts.push_back(rows.len() - previous_row_count);
+        self.messages.push_back(message);
+        self.rows = Rc::new(rows);
+        self.pending_scroll_to_bottom = should_auto_scroll;
         cx.notify();
     }
 
@@ -55,18 +97,22 @@ impl DashboardDanmuView {
         opacity: f32,
         cx: &mut Context<Self>,
     ) {
-        if (self.font_size - font_size).abs() <= f32::EPSILON
-            && self.lite_mode == lite_mode
-            && self.medal_display == medal_display
-            && (self.opacity - opacity).abs() <= f32::EPSILON
-        {
+        let layout_changed = (self.font_size - font_size).abs() > f32::EPSILON
+            || self.lite_mode != lite_mode
+            || self.medal_display != medal_display;
+        let opacity_changed = (self.opacity - opacity).abs() > f32::EPSILON;
+        if !layout_changed && !opacity_changed {
             return;
         }
+
+        let should_auto_scroll = layout_changed && self.is_at_bottom();
         self.font_size = font_size;
         self.lite_mode = lite_mode;
         self.medal_display = medal_display;
         self.opacity = opacity;
-        self.rebuild_rows();
+        if layout_changed {
+            self.rebuild_rows(should_auto_scroll);
+        }
         cx.notify();
     }
 
@@ -74,24 +120,45 @@ impl DashboardDanmuView {
         if width <= 0.0 || (self.content_width - width).abs() <= 1.0 {
             return;
         }
+        let should_auto_scroll = self.is_at_bottom();
         self.content_width = width;
-        self.rebuild_rows();
+        self.rebuild_rows(should_auto_scroll);
         cx.notify();
     }
 
-    fn rebuild_rows(&mut self) {
-        if self.content_width <= 0.0 {
-            self.rows = Rc::new(self.messages.iter().cloned().map(RenderRow::Full).collect());
-        } else {
-            self.rows = Rc::new(build_render_rows(
-                self.messages.iter(),
-                self.content_width - 14.0,
-                self.font_size,
-                self.lite_mode,
-                self.medal_display,
-            ));
+    pub(crate) fn is_at_bottom(&self) -> bool {
+        if self.pending_scroll_to_bottom || self.rows.len() <= 1 {
+            return true;
         }
-        self.pending_scroll_to_bottom = true;
+
+        let scroll_state = self.scroll_handle.0.borrow();
+        let base_handle = &scroll_state.base_handle;
+        let offset = base_handle.offset();
+        let max_offset = base_handle.max_offset();
+        offset.y <= -max_offset.height + px(50.0)
+    }
+
+    fn rebuild_rows(&mut self, should_auto_scroll: bool) {
+        let mut rows = Vec::new();
+        self.row_counts.clear();
+        for message in &self.messages {
+            let previous_row_count = rows.len();
+            if self.content_width <= 0.0 {
+                rows.push(RenderRow::Full(message.clone()));
+            } else {
+                append_message_rows(
+                    &mut rows,
+                    message,
+                    self.content_width - 14.0,
+                    self.font_size,
+                    self.lite_mode,
+                    self.medal_display,
+                );
+            }
+            self.row_counts.push_back(rows.len() - previous_row_count);
+        }
+        self.rows = Rc::new(rows);
+        self.pending_scroll_to_bottom = should_auto_scroll;
     }
 }
 

@@ -7,6 +7,7 @@ use jlivertool_core::events::Event;
 impl MainView {
     pub(super) fn process_events(&mut self, cx: &mut Context<Self>) {
         let mut list_modified = false;
+        let mut dashboard_needs_reset = false;
         while let Ok(event) = self.event_rx.try_recv() {
             match event {
                 Event::UpdateRoom {
@@ -50,6 +51,7 @@ impl MainView {
                                     self.danmu_list.pop_front();
                                 }
                                 list_modified = true;
+                                dashboard_needs_reset = true;
                                 self.scroll_to_bottom();
                             }
                         }
@@ -71,28 +73,13 @@ impl MainView {
                 }
                 Event::NewDanmu(danmu) => {
                     if !danmu.is_generated {
-                        let should_auto_scroll = self.is_at_bottom();
-                        self.danmu_list.push_back(DisplayMessage::Danmu(danmu));
-                        if should_auto_scroll {
-                            while self.danmu_list.len() > MAX_DANMU_COUNT {
-                                self.danmu_list.pop_front();
-                            }
-                            self.scroll_to_bottom();
-                        }
+                        self.push_display_message(DisplayMessage::Danmu(danmu), cx);
                         list_modified = true;
                     }
                 }
                 Event::NewInteract(interact) => {
                     if self.interact_display {
-                        let should_auto_scroll = self.is_at_bottom();
-                        self.danmu_list
-                            .push_back(DisplayMessage::Interact(interact));
-                        if should_auto_scroll {
-                            while self.danmu_list.len() > MAX_DANMU_COUNT {
-                                self.danmu_list.pop_front();
-                            }
-                            self.scroll_to_bottom();
-                        }
+                        self.push_display_message(DisplayMessage::Interact(interact), cx);
                         list_modified = true;
                     }
                 }
@@ -105,58 +92,26 @@ impl MainView {
                     };
 
                     if should_display {
-                        let should_auto_scroll = self.is_at_bottom();
-                        self.danmu_list
-                            .push_back(DisplayMessage::EntryEffect(entry));
-                        if should_auto_scroll {
-                            while self.danmu_list.len() > MAX_DANMU_COUNT {
-                                self.danmu_list.pop_front();
-                            }
-                            self.scroll_to_bottom();
-                        }
+                        self.push_display_message(DisplayMessage::EntryEffect(entry), cx);
                         list_modified = true;
                     }
                 }
                 Event::NewGift(gift) => {
-                    let should_auto_scroll = self.is_at_bottom();
-                    self.danmu_list
-                        .push_back(DisplayMessage::Gift(gift.clone()));
-                    if should_auto_scroll {
-                        while self.danmu_list.len() > MAX_DANMU_COUNT {
-                            self.danmu_list.pop_front();
-                        }
-                        self.scroll_to_bottom();
-                    }
+                    self.push_display_message(DisplayMessage::Gift(gift.clone()), cx);
                     list_modified = true;
                     self.gift_view.update(cx, |view, cx| {
                         view.add_gift(gift, cx);
                     });
                 }
                 Event::NewGuard(guard) => {
-                    let should_auto_scroll = self.is_at_bottom();
-                    self.danmu_list
-                        .push_back(DisplayMessage::Guard(guard.clone()));
-                    if should_auto_scroll {
-                        while self.danmu_list.len() > MAX_DANMU_COUNT {
-                            self.danmu_list.pop_front();
-                        }
-                        self.scroll_to_bottom();
-                    }
+                    self.push_display_message(DisplayMessage::Guard(guard.clone()), cx);
                     list_modified = true;
                     self.gift_view.update(cx, |view, cx| {
                         view.add_guard(guard, cx);
                     });
                 }
                 Event::NewSuperChat(sc) => {
-                    let should_auto_scroll = self.is_at_bottom();
-                    self.danmu_list
-                        .push_back(DisplayMessage::SuperChat(sc.clone()));
-                    if should_auto_scroll {
-                        while self.danmu_list.len() > MAX_DANMU_COUNT {
-                            self.danmu_list.pop_front();
-                        }
-                        self.scroll_to_bottom();
-                    }
+                    self.push_display_message(DisplayMessage::SuperChat(sc.clone()), cx);
                     list_modified = true;
                     self.superchat_view.update(cx, |view, cx| {
                         view.add_superchat(sc, cx);
@@ -284,6 +239,7 @@ impl MainView {
                 Event::ClearDanmuList => {
                     self.danmu_list.clear();
                     list_modified = true;
+                    dashboard_needs_reset = true;
                 }
                 Event::UserInfoFetched { uid, user_info } => {
                     let mut selected = self.selected_user.borrow_mut();
@@ -329,6 +285,7 @@ impl MainView {
                     // Clear all UI lists when data is cleared
                     self.danmu_list.clear();
                     list_modified = true;
+                    dashboard_needs_reset = true;
                     // Gift and SC views will be reloaded from database (which is now empty)
                     tracing::info!("Data cleared, UI lists reset");
                 }
@@ -376,6 +333,8 @@ impl MainView {
             // Render rows will be updated in render() via update_render_rows()
             self.render_rows_source_count = 0;
             self.render_rows = std::rc::Rc::new(Vec::new());
+        }
+        if dashboard_needs_reset {
             self.sync_dashboard_danmu(cx);
         }
     }
