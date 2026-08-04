@@ -142,6 +142,10 @@ pub struct Config {
     #[serde(default)]
     pub windows: HashMap<String, WindowConfig>,
 
+    /// Serialized gpui-component DockArea layout for dashboard mode.
+    #[serde(default)]
+    pub dashboard_layout: Option<Value>,
+
     #[serde(default = "default_log_level")]
     pub log_level: String,
 
@@ -254,6 +258,7 @@ impl Default for Config {
             font_size: default_font_size(),
             plugin_list: Vec::new(),
             windows: HashMap::new(),
+            dashboard_layout: None,
             log_level: default_log_level(),
             max_danmu_count: default_max_danmu_count(),
             tts_provider: TtsProvider::None,
@@ -533,6 +538,19 @@ impl ConfigStore {
         {
             let mut cfg = self.inner.config.write();
             cfg.windows.insert(key, config);
+        }
+        self.save()
+    }
+
+    /// Get the serialized dashboard dock layout.
+    pub fn get_dashboard_layout(&self) -> Option<Value> {
+        self.inner.config.read().dashboard_layout.clone()
+    }
+
+    /// Persist the serialized dashboard dock layout.
+    pub fn set_dashboard_layout(&self, layout: Value) -> Result<()> {
+        {
+            self.inner.config.write().dashboard_layout = Some(layout);
         }
         self.save()
     }

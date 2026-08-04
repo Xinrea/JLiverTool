@@ -221,6 +221,7 @@ pub enum WindowType {
     Setting,
     Detail,
     Rank,
+    Dashboard,
 }
 
 impl Default for WindowType {

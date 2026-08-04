@@ -266,6 +266,7 @@ impl MainView {
                         .update(cx, |v, cx| v.set_opacity(opacity, cx));
                     self.audience_view
                         .update(cx, |v, cx| v.set_opacity(opacity, cx));
+                    self.sync_dashboard_danmu_style(cx);
                     if always_on_top {
                         self.pending_always_on_top = Some(always_on_top);
                     }
@@ -375,6 +376,7 @@ impl MainView {
             // Render rows will be updated in render() via update_render_rows()
             self.render_rows_source_count = 0;
             self.render_rows = std::rc::Rc::new(Vec::new());
+            self.sync_dashboard_danmu(cx);
         }
     }
 }

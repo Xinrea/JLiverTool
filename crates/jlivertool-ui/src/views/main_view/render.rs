@@ -1,5 +1,6 @@
 //! Render methods for MainView
 
+use super::user_info_card::SelectedUser;
 use super::{DanmuListItemView, MainView, UserInfoCard};
 use crate::app::UiCommand;
 use crate::components::draggable_area;
@@ -12,6 +13,56 @@ use gpui_component::v_flex;
 use std::rc::Rc;
 
 impl MainView {
+    fn render_user_info_overlay(
+        &self,
+        selected: &SelectedUser,
+        history: Vec<(String, i64)>,
+        opacity: f32,
+    ) -> impl IntoElement {
+        let state_for_close = self.selected_user.clone();
+
+        div()
+            .id("user-info-overlay")
+            .absolute()
+            .inset_0()
+            .flex()
+            .items_center()
+            .justify_center()
+            .p_4()
+            .bg(hsla(0.0, 0.0, 0.0, 0.5 * opacity))
+            .child(
+                div()
+                    .relative()
+                    .w_full()
+                    .max_w(px(300.0))
+                    .child(UserInfoCard::render_element(selected, history))
+                    .child(
+                        div()
+                            .id("close-card-btn")
+                            .absolute()
+                            .top(px(-8.0))
+                            .right(px(-8.0))
+                            .size(px(24.0))
+                            .rounded_full()
+                            .cursor_pointer()
+                            .bg(Colors::bg_secondary_with_opacity(opacity))
+                            .border_2()
+                            .border_color(Colors::border())
+                            .hover(|style| style.bg(Colors::error()))
+                            .flex()
+                            .items_center()
+                            .justify_center()
+                            .text_size(px(14.0))
+                            .text_color(Colors::text_secondary())
+                            .child("×")
+                            .on_click(move |_, _, cx| {
+                                *state_for_close.borrow_mut() = None;
+                                cx.refresh_windows();
+                            }),
+                    ),
+            )
+    }
+
     pub(super) fn render_header(&self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let is_live = self.live_status == 1;
         let opacity = self.opacity;
@@ -76,6 +127,7 @@ impl MainView {
                     .gap_2()
                     .items_center()
                     .child(self.render_pin_button(is_live, cx))
+                    .child(self.render_dashboard_button(is_live, cx))
                     .child(self.render_gift_button(is_live, cx))
                     .child(self.render_superchat_button(is_live, cx))
                     .child(self.render_stats_button(is_live, cx))
@@ -135,7 +187,6 @@ impl MainView {
                         crate::platform::set_window_always_on_top(win, always_on_top);
                     });
                 }
-
                 let _ = this
                     .command_tx
                     .send(UiCommand::UpdateAlwaysOnTop(always_on_top));
@@ -165,6 +216,45 @@ impl MainView {
                             .h(px(6.0))
                             .bg(icon_color),
                     ),
+            )
+    }
+
+    fn render_dashboard_button(&self, is_live: bool, cx: &mut Context<Self>) -> impl IntoElement {
+        let is_dashboard = self.dashboard_view.is_some();
+        let icon_color = if is_dashboard {
+            Colors::accent()
+        } else if is_live {
+            hsla(0.0, 0.0, 1.0, 0.7)
+        } else {
+            Colors::text_muted()
+        };
+
+        div()
+            .id("dashboard-mode-btn")
+            .size(px(24.0))
+            .rounded(px(4.0))
+            .cursor_pointer()
+            .flex()
+            .items_center()
+            .justify_center()
+            .hover(|style| style.bg(hsla(0.0, 0.0, 1.0, 0.2)))
+            .on_click(cx.listener(|this, _, window, cx| {
+                this.toggle_dashboard_mode(window, cx);
+            }))
+            .child(
+                div()
+                    .size(px(14.0))
+                    .grid()
+                    .grid_cols(2)
+                    .gap(px(2.0))
+                    .children((0..4).map(move |_| {
+                        div()
+                            .rounded(px(1.0))
+                            .when(is_dashboard, |style| style.bg(icon_color))
+                            .when(!is_dashboard, |style| {
+                                style.border_1().border_color(icon_color)
+                            })
+                    })),
             )
     }
 
@@ -430,7 +520,7 @@ impl MainView {
                             // Handle debug commands (debug builds only)
                             #[cfg(debug_assertions)]
                             if let Some(args) = text.strip_prefix("/debug ") {
-                                this.handle_debug_command(args);
+                                this.handle_debug_command(args, cx);
                                 pending_clear.set(true);
                                 show_popup.set(false);
                                 selected_idx.set(0);
@@ -847,21 +937,25 @@ impl Render for MainView {
             f32::from(bounds.size.width) as u32,
             f32::from(bounds.size.height) as u32,
         );
-        if self.last_saved_bounds != Some(current_bounds) {
-            self.last_saved_bounds = Some(current_bounds);
-            let _ = self.command_tx.send(UiCommand::SaveWindowBounds {
-                window_type: jlivertool_core::types::WindowType::Main,
-                x: current_bounds.0,
-                y: current_bounds.1,
-                width: current_bounds.2,
-                height: current_bounds.3,
-            });
+        if !window.is_maximized() {
+            let window_type = if self.dashboard_view.is_some() {
+                self.dashboard_window_size = Some((current_bounds.2, current_bounds.3));
+                jlivertool_core::types::WindowType::Dashboard
+            } else {
+                self.regular_window_size = Some((current_bounds.2, current_bounds.3));
+                jlivertool_core::types::WindowType::Main
+            };
+            if self.last_saved_bounds != Some(current_bounds) {
+                self.last_saved_bounds = Some(current_bounds);
+                let _ = self.command_tx.send(UiCommand::SaveWindowBounds {
+                    window_type,
+                    x: current_bounds.0,
+                    y: current_bounds.1,
+                    width: current_bounds.2,
+                    height: current_bounds.3,
+                });
+            }
         }
-
-        // Update render rows (incremental if width unchanged, full rebuild if changed)
-        let window_width = f32::from(bounds.size.width);
-        self.update_render_rows(window_width);
-        self.apply_pending_scroll();
 
         {
             let mut selected = self.selected_user.borrow_mut();
@@ -876,19 +970,44 @@ impl Render for MainView {
 
         let opacity = self.opacity;
         let selected_user = self.selected_user.borrow().clone();
-        let selected_user_state = self.selected_user.clone();
-
         let danmu_history: Vec<(String, i64)> = if let Some(ref selected) = selected_user {
             if let (Some(db), Some(room)) = (&self.database, &self.room) {
-                let uid = selected.sender.uid;
-                let room_id = room.real_id();
-                db.get_danmus_by_user(room_id, uid, 50).unwrap_or_default()
+                db.get_danmus_by_user(room.real_id(), selected.sender.uid, 50)
+                    .unwrap_or_default()
             } else {
                 Vec::new()
             }
         } else {
             Vec::new()
         };
+
+        if let Some(dashboard) = self.dashboard_view.clone() {
+            return v_flex()
+                .size_full()
+                .bg(Colors::bg_primary_with_opacity(opacity))
+                .text_color(Colors::text_primary())
+                .child(self.render_header(window, cx))
+                .child(
+                    div()
+                        .flex_1()
+                        .w_full()
+                        .overflow_hidden()
+                        .child(dashboard),
+                )
+                .when_some(selected_user.clone(), |this, selected| {
+                    this.child(self.render_user_info_overlay(
+                        &selected,
+                        danmu_history.clone(),
+                        opacity,
+                    ))
+                })
+                .into_any_element();
+        }
+
+        // Update render rows (incremental if width unchanged, full rebuild if changed)
+        let window_width = f32::from(bounds.size.width);
+        self.update_render_rows(window_width);
+        self.apply_pending_scroll();
 
         let show_update_dialog = self.show_update_dialog;
         let update_info = self.update_info.clone();
@@ -901,50 +1020,7 @@ impl Render for MainView {
             .child(self.render_danmu_list(window, cx))
             .child(self.render_footer(window, cx))
             .when_some(selected_user, |this, selected| {
-                let state_for_close = selected_user_state.clone();
-                let history = danmu_history.clone();
-                this.child(
-                    div()
-                        .id("user-info-overlay")
-                        .absolute()
-                        .inset_0()
-                        .flex()
-                        .items_center()
-                        .justify_center()
-                        .p_4()
-                        .bg(hsla(0.0, 0.0, 0.0, 0.5 * opacity))
-                        .child(
-                            div()
-                                .relative()
-                                .w_full()
-                                .max_w(px(300.0))
-                                .child(UserInfoCard::render_element(&selected, history))
-                                .child(
-                                    div()
-                                        .id("close-card-btn")
-                                        .absolute()
-                                        .top(px(-8.0))
-                                        .right(px(-8.0))
-                                        .size(px(24.0))
-                                        .rounded_full()
-                                        .cursor_pointer()
-                                        .bg(Colors::bg_secondary_with_opacity(opacity))
-                                        .border_2()
-                                        .border_color(Colors::border())
-                                        .hover(|s| s.bg(Colors::error()))
-                                        .flex()
-                                        .items_center()
-                                        .justify_center()
-                                        .text_size(px(14.0))
-                                        .text_color(Colors::text_secondary())
-                                        .child("×")
-                                        .on_click(move |_, _, cx| {
-                                            *state_for_close.borrow_mut() = None;
-                                            cx.refresh_windows();
-                                        }),
-                                ),
-                        ),
-                )
+                this.child(self.render_user_info_overlay(&selected, danmu_history, opacity))
             })
             // Update available dialog
             .when(show_update_dialog, |this| {
@@ -1026,5 +1102,6 @@ impl Render for MainView {
                         ),
                 )
             })
+            .into_any_element()
     }
 }

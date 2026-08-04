@@ -14,13 +14,16 @@ mod render;
 mod user_info_card;
 
 pub use content_rendering::{render_content_with_links, DisplayMessage, RenderRow};
-use content_rendering::{estimate_danmu_prefix_width, estimate_text_width, split_content_to_lines};
-use danmu_list_item::DanmuListItemView;
-use user_info_card::{SelectedUserState, UserInfoCard};
+pub(crate) use content_rendering::build_render_rows;
+use content_rendering::append_message_rows;
+pub(crate) use danmu_list_item::DanmuListItemView;
+pub(crate) use user_info_card::SelectedUserState;
+use user_info_card::UserInfoCard;
 
 use crate::app::UiCommand;
 use crate::tray::{TrayManager, TrayState};
 use crate::views::AudienceView;
+use crate::views::{DashboardDanmuView, DashboardView, DashboardViews};
 use crate::views::GiftView;
 use crate::views::SettingView;
 use crate::views::StatisticsView;
@@ -52,11 +55,7 @@ pub const AVAILABLE_COMMANDS: &[(&str, &str)] = &[
 /// Main window view state
 pub struct MainView {
     event_rx: mpsc::Receiver<Event>,
-    #[allow(dead_code)] // Used indirectly through closures
     command_tx: mpsc::Sender<UiCommand>,
-    /// Flag indicating there are pending events to process (used by timer)
-    #[allow(dead_code)]
-    has_events: Arc<AtomicBool>,
     room: Option<RoomId>,
     room_title: String,
     live_status: u8,
@@ -82,6 +81,8 @@ pub struct MainView {
     statistics_view: Entity<StatisticsView>,
     // Audience view entity
     audience_view: Entity<AudienceView>,
+    // Dashboard-specific mirror of the danmu feed
+    dashboard_danmu_view: Entity<DashboardDanmuView>,
     // Database reference for statistics
     database: Option<Arc<Database>>,
     // Config store reference for window bounds
@@ -112,6 +113,7 @@ pub struct MainView {
     superchat_window: Option<AnyWindowHandle>,
     statistics_window: Option<AnyWindowHandle>,
     audience_window: Option<AnyWindowHandle>,
+    dashboard_view: Option<Entity<DashboardView>>,
     // Input state for danmu input (lazily initialized)
     input_state: Option<Entity<gpui_component::input::InputState>>,
     // Subscription for input events (must be kept alive)
@@ -122,6 +124,8 @@ pub struct MainView {
     selected_user: SelectedUserState,
     // Last saved window bounds (to avoid saving on every frame)
     last_saved_bounds: Option<(i32, i32, u32, u32)>,
+    regular_window_size: Option<(u32, u32)>,
+    dashboard_window_size: Option<(u32, u32)>,
     // WebSocket port for plugin communication
     ws_port: Option<u16>,
     // HTTP port for serving plugin files
@@ -158,11 +162,14 @@ impl MainView {
         has_events: Arc<AtomicBool>,
         cx: &mut Context<Self>,
     ) -> Self {
+        let selected_user = Rc::new(RefCell::new(None));
         let setting_view = cx.new(SettingView::new);
         let gift_view = cx.new(GiftView::new);
         let superchat_view = cx.new(SuperChatView::new);
         let statistics_view = cx.new(StatisticsView::new);
         let audience_view = cx.new(AudienceView::new);
+        let dashboard_danmu_view =
+            cx.new(|_| DashboardDanmuView::new(selected_user.clone()));
 
         // Setup callbacks for setting view
         let tx_login = command_tx.clone();
@@ -196,7 +203,6 @@ impl MainView {
                     let _ = tx_opacity.send(UiCommand::UpdateOpacity(opacity));
                     let _ = entity.update(cx, |view, cx| {
                         view.opacity = opacity;
-                        // Update opacity for all secondary views
                         view.gift_view
                             .update(cx, |v, cx| v.set_opacity(opacity, cx));
                         view.superchat_view
@@ -205,6 +211,7 @@ impl MainView {
                             .update(cx, |v, cx| v.set_opacity(opacity, cx));
                         view.audience_view
                             .update(cx, |v, cx| v.set_opacity(opacity, cx));
+                        view.sync_dashboard_danmu_style(cx);
                         cx.notify();
                     });
                 }
@@ -303,6 +310,8 @@ impl MainView {
                             });
                         }
 
+                        view.sync_dashboard_danmu_style(cx);
+                        view.sync_dashboard_danmu(cx);
                         cx.notify();
                     });
                 }
@@ -324,6 +333,7 @@ impl MainView {
                     let _ = entity.update(cx, |view, cx| {
                         view.font_size = font_size;
                         view.last_render_width = 0.0; // Force rebuild of render rows
+                        view.sync_dashboard_danmu_style(cx);
                         cx.notify();
                     });
                 }
@@ -452,7 +462,6 @@ impl MainView {
         let this = Self {
             event_rx,
             command_tx,
-            has_events: has_events.clone(),
             room: None,
             room_title: String::new(),
             live_status: 0,
@@ -469,6 +478,7 @@ impl MainView {
             superchat_view,
             statistics_view,
             audience_view,
+            dashboard_danmu_view,
             database: None,
             config: None,
             opacity: 1.0,
@@ -488,11 +498,14 @@ impl MainView {
             superchat_window: None,
             statistics_window: None,
             audience_window: None,
+            dashboard_view: None,
             input_state: None,
             _input_subscription: None,
             pending_input_clear: Rc::new(Cell::new(false)),
-            selected_user: Rc::new(RefCell::new(None)),
+            selected_user,
             last_saved_bounds: None,
+            regular_window_size: None,
+            dashboard_window_size: None,
             ws_port: None,
             http_port: None,
             show_command_popup: Rc::new(Cell::new(false)),
@@ -661,7 +674,7 @@ impl MainView {
 
     /// Handle debug commands (only available in debug builds)
     #[cfg(debug_assertions)]
-    pub(super) fn handle_debug_command(&mut self, args: &str) {
+    pub(super) fn handle_debug_command(&mut self, args: &str, cx: &mut Context<Self>) {
         use jlivertool_core::messages::{GiftInfo, GiftMessage, GuardMessage, SuperChatMessage};
         use jlivertool_core::types::{MedalInfo, Sender};
 
@@ -764,6 +777,7 @@ impl MainView {
         self.render_rows_source_count = 0;
         self.render_rows = Rc::new(Vec::new());
         self.scroll_to_bottom();
+        self.sync_dashboard_danmu(cx);
     }
 
     /// Update render rows: full rebuild if width changed, incremental append otherwise.
@@ -777,18 +791,14 @@ impl MainView {
 
     /// Fully rebuild render_rows from danmu_list for the given window width.
     fn rebuild_render_rows(&mut self, window_width: f32) {
-        let mut rows = Vec::new();
         let available_width = window_width - 14.0; // scrollbar buffer
-        for msg in self.danmu_list.iter() {
-            Self::append_message_rows(
-                &mut rows,
-                msg,
-                available_width,
-                self.font_size,
-                self.lite_mode,
-                self.medal_display,
-            );
-        }
+        let rows = build_render_rows(
+            self.danmu_list.iter(),
+            available_width,
+            self.font_size,
+            self.lite_mode,
+            self.medal_display,
+        );
         self.render_rows = Rc::new(rows);
         self.last_render_width = window_width;
         self.render_rows_source_count = self.danmu_list.len();
@@ -816,7 +826,7 @@ impl MainView {
         let new_start = self.render_rows_source_count;
         for i in new_start..current_source_len {
             let msg = &self.danmu_list[i];
-            Self::append_message_rows(
+            append_message_rows(
                 &mut rows,
                 msg,
                 available_width,
@@ -828,100 +838,6 @@ impl MainView {
 
         self.render_rows = Rc::new(rows);
         self.render_rows_source_count = current_source_len;
-    }
-
-    /// Convert a single DisplayMessage into one or more RenderRows and append them.
-    fn append_message_rows(
-        rows: &mut Vec<RenderRow>,
-        msg: &DisplayMessage,
-        available_width: f32,
-        font_size: f32,
-        lite_mode: bool,
-        medal_display: bool,
-    ) {
-        match msg {
-            DisplayMessage::Danmu(danmu) => {
-                // Skip wrapping for emoji danmu
-                if danmu.emoji_content.is_some() {
-                    rows.push(RenderRow::Full(msg.clone()));
-                    return;
-                }
-
-                let prefix_width =
-                    estimate_danmu_prefix_width(danmu, font_size, lite_mode, medal_display);
-                let first_line_content_width = available_width - prefix_width;
-                // Continuation line has only padding, no prefix
-                let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
-                let continuation_content_width = available_width - padding;
-
-                let content_width = estimate_text_width(&danmu.content, font_size);
-                if content_width <= first_line_content_width || first_line_content_width <= 0.0 {
-                    rows.push(RenderRow::Full(msg.clone()));
-                } else {
-                    let lines = split_content_to_lines(
-                        &danmu.content,
-                        font_size,
-                        first_line_content_width,
-                        continuation_content_width,
-                    );
-
-                    if lines.len() <= 1 {
-                        rows.push(RenderRow::Full(msg.clone()));
-                    } else {
-                        rows.push(RenderRow::DanmuFirstLine {
-                            danmu: danmu.clone(),
-                            content_slice: lines[0].clone(),
-                        });
-                        for (i, line) in lines[1..].iter().enumerate() {
-                            rows.push(RenderRow::DanmuContinuation {
-                                danmu: danmu.clone(),
-                                content_slice: line.clone(),
-                                continuation_index: i,
-                            });
-                        }
-                    }
-                }
-            }
-            DisplayMessage::SuperChat(sc) => {
-                // Always split superchat: header (avatar + price + username) + content rows
-                rows.push(RenderRow::SuperChatHeader { sc: sc.clone() });
-
-                if !sc.message.is_empty() {
-                    let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
-                    // Account for border_l_4 (4px)
-                    let content_line_width = available_width - padding - 4.0;
-                    let content_width = estimate_text_width(&sc.message, font_size * 0.9);
-
-                    if content_width <= content_line_width || content_line_width <= 0.0 {
-                        rows.push(RenderRow::SuperChatContent {
-                            sc: sc.clone(),
-                            content_slice: sc.message.clone(),
-                            continuation_index: 0,
-                            is_last: true,
-                        });
-                    } else {
-                        let lines = split_content_to_lines(
-                            &sc.message,
-                            font_size * 0.9,
-                            content_line_width,
-                            content_line_width,
-                        );
-                        let last_idx = lines.len().saturating_sub(1);
-                        for (i, line) in lines.iter().enumerate() {
-                            rows.push(RenderRow::SuperChatContent {
-                                sc: sc.clone(),
-                                content_slice: line.clone(),
-                                continuation_index: i,
-                                is_last: i == last_idx,
-                            });
-                        }
-                    }
-                }
-            }
-            _ => {
-                rows.push(RenderRow::Full(msg.clone()));
-            }
-        }
     }
 
     /// Open settings window
@@ -1053,11 +969,190 @@ impl MainView {
         }
     }
 
+    fn sync_dashboard_danmu(&mut self, cx: &mut Context<Self>) {
+        if self.dashboard_view.is_none() {
+            return;
+        }
+        self.sync_dashboard_danmu_now(cx);
+    }
+
+    fn sync_dashboard_danmu_now(&mut self, cx: &mut Context<Self>) {
+        let messages = &self.danmu_list;
+        self.dashboard_danmu_view.update(cx, |view, cx| {
+            view.set_messages(messages, cx);
+        });
+    }
+
+    fn sync_dashboard_danmu_style(&mut self, cx: &mut Context<Self>) {
+        self.dashboard_danmu_view.update(cx, |view, cx| {
+            view.set_style(
+                self.font_size,
+                self.lite_mode,
+                self.medal_display,
+                self.opacity,
+                cx,
+            );
+        });
+    }
+
+    fn close_dashboard_secondary_windows(&mut self, cx: &mut Context<Self>) {
+        for handle in [
+            self.gift_window.take(),
+            self.superchat_window.take(),
+            self.statistics_window.take(),
+            self.audience_window.take(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let _ = cx.update_window(handle, |_, window, _| window.remove_window());
+        }
+    }
+
+    /// Toggle the main window between the regular content and dashboard.
+    fn toggle_dashboard_mode(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        use jlivertool_core::types::WindowType;
+
+        let bounds = window.bounds();
+        let current_bounds = (
+            f32::from(bounds.origin.x) as i32,
+            f32::from(bounds.origin.y) as i32,
+            f32::from(bounds.size.width) as u32,
+            f32::from(bounds.size.height) as u32,
+        );
+
+        if self.dashboard_view.is_some() {
+            if !window.is_maximized() {
+                self.dashboard_window_size = Some((current_bounds.2, current_bounds.3));
+                let _ = self.command_tx.send(UiCommand::SaveWindowBounds {
+                    window_type: WindowType::Dashboard,
+                    x: current_bounds.0,
+                    y: current_bounds.1,
+                    width: current_bounds.2,
+                    height: current_bounds.3,
+                });
+            }
+
+            self.dashboard_view = None;
+            self.last_render_width = 0.0;
+            self.last_saved_bounds = None;
+
+            let saved_size = self.regular_window_size.or_else(|| {
+                self.config.as_ref().and_then(|config| {
+                    let saved = config.read().get_window_config(WindowType::Main);
+                    (saved.width > 0 && saved.height > 0).then_some((saved.width, saved.height))
+                })
+            });
+            let (width, height) = saved_size.unwrap_or((450, 800));
+            if window.is_maximized() {
+                window.zoom_window();
+            }
+            window.resize(size(px(width as f32), px(height as f32)));
+            cx.notify();
+            return;
+        }
+
+        let Some(config) = self.config.as_ref().map(|config| config.read().clone()) else {
+            tracing::warn!("Dashboard mode requires an initialized config store");
+            return;
+        };
+
+        if !window.is_maximized() {
+            self.regular_window_size = Some((current_bounds.2, current_bounds.3));
+            let _ = self.command_tx.send(UiCommand::SaveWindowBounds {
+                window_type: WindowType::Main,
+                x: current_bounds.0,
+                y: current_bounds.1,
+                width: current_bounds.2,
+                height: current_bounds.3,
+            });
+        }
+
+        let saved_size = self.dashboard_window_size.or_else(|| {
+            let saved = config.get_window_config(WindowType::Dashboard);
+            (saved.width > 0 && saved.height > 0).then_some((saved.width, saved.height))
+        });
+        let (dashboard_width, dashboard_height) = saved_size.unwrap_or((1440, 900));
+
+        self.close_dashboard_secondary_windows(cx);
+        self.sync_dashboard_danmu_now(cx);
+        self.sync_dashboard_danmu_style(cx);
+
+        if let Some(db) = &self.database {
+            let room_id = self.room.as_ref().map(|room| room.real_id());
+            self.statistics_view.update(cx, |view, cx| {
+                view.set_database(db.clone());
+                view.set_room_id(room_id, cx);
+            });
+        }
+
+        if let Some(room) = &self.room {
+            let room_id = room.real_id();
+            let ruid = room.owner_uid();
+            let tx_audience = self.command_tx.clone();
+            let tx_guards = self.command_tx.clone();
+            self.audience_view.update(cx, |view, _| {
+                view.on_fetch_audience(move |_, _| {
+                    let _ = tx_audience.send(UiCommand::FetchAudienceList { room_id, ruid });
+                });
+                view.on_fetch_guards(move |page, _, _| {
+                    let _ = tx_guards.send(UiCommand::FetchGuardList {
+                        room_id,
+                        ruid,
+                        page,
+                    });
+                });
+            });
+            let _ = self
+                .command_tx
+                .send(UiCommand::FetchAudienceList { room_id, ruid });
+            let _ = self.command_tx.send(UiCommand::FetchGuardList {
+                room_id,
+                ruid,
+                page: 1,
+            });
+        }
+
+        let danmu_view = self.dashboard_danmu_view.clone();
+        let gift_view = self.gift_view.clone();
+        let superchat_view = self.superchat_view.clone();
+        let statistics_view = self.statistics_view.clone();
+        let audience_view = self.audience_view.clone();
+        let dashboard = cx.new(|cx| {
+            DashboardView::new(
+                DashboardViews::new(
+                    danmu_view,
+                    gift_view,
+                    superchat_view,
+                    statistics_view,
+                    audience_view,
+                ),
+                config,
+                window,
+                cx,
+            )
+        });
+        self.dashboard_view = Some(dashboard);
+        self.last_saved_bounds = None;
+        if window.is_maximized() {
+            window.zoom_window();
+        }
+        window.resize(size(
+            px(dashboard_width as f32),
+            px(dashboard_height as f32),
+        ));
+        cx.notify();
+    }
+
     /// Open gift window
     fn open_gift_window(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
-        use crate::views::WindowBoundsTracker;
+        use crate::views::{WindowBoundsTracker, WindowFrame};
         use gpui_component::Root;
         use jlivertool_core::types::WindowType;
+
+        if self.dashboard_view.is_some() {
+            return;
+        }
 
         if let Some(handle) = &self.gift_window {
             if cx
@@ -1109,8 +1204,9 @@ impl MainView {
                 if click_through {
                     crate::platform::set_window_click_through(new_window, true);
                 }
+                let frame = cx.new(|_| WindowFrame::new(gift_view, "礼物记录"));
                 let tracker =
-                    cx.new(|_| WindowBoundsTracker::new(gift_view, WindowType::Gift, command_tx));
+                    cx.new(|_| WindowBoundsTracker::new(frame, WindowType::Gift, command_tx));
                 cx.new(|cx| Root::new(tracker, new_window, cx))
             },
         ) {
@@ -1120,9 +1216,13 @@ impl MainView {
 
     /// Open superchat window
     fn open_superchat_window(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
-        use crate::views::WindowBoundsTracker;
+        use crate::views::{WindowBoundsTracker, WindowFrame};
         use gpui_component::Root;
         use jlivertool_core::types::WindowType;
+
+        if self.dashboard_view.is_some() {
+            return;
+        }
 
         if let Some(handle) = &self.superchat_window {
             if cx
@@ -1174,8 +1274,9 @@ impl MainView {
                 if click_through {
                     crate::platform::set_window_click_through(new_window, true);
                 }
+                let frame = cx.new(|_| WindowFrame::new(superchat_view, "醒目留言"));
                 let tracker = cx.new(|_| {
-                    WindowBoundsTracker::new(superchat_view, WindowType::SuperChat, command_tx)
+                    WindowBoundsTracker::new(frame, WindowType::SuperChat, command_tx)
                 });
                 cx.new(|cx| Root::new(tracker, new_window, cx))
             },
@@ -1186,9 +1287,13 @@ impl MainView {
 
     /// Open statistics window
     fn open_statistics_window(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
-        use crate::views::WindowBoundsTracker;
+        use crate::views::{WindowBoundsTracker, WindowFrame};
         use gpui_component::Root;
         use jlivertool_core::types::WindowType;
+
+        if self.dashboard_view.is_some() {
+            return;
+        }
 
         if let Some(handle) = &self.statistics_window {
             if cx
@@ -1243,8 +1348,9 @@ impl MainView {
                 if always_on_top {
                     crate::platform::set_window_always_on_top(new_window, true);
                 }
+                let frame = cx.new(|_| WindowFrame::new(statistics_view, "数据统计"));
                 let tracker = cx.new(|_| {
-                    WindowBoundsTracker::new(statistics_view, WindowType::Detail, command_tx)
+                    WindowBoundsTracker::new(frame, WindowType::Detail, command_tx)
                 });
                 cx.new(|cx| Root::new(tracker, new_window, cx))
             },
@@ -1255,9 +1361,13 @@ impl MainView {
 
     /// Open audience window
     fn open_audience_window(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
-        use crate::views::WindowBoundsTracker;
+        use crate::views::{WindowBoundsTracker, WindowFrame};
         use gpui_component::Root;
         use jlivertool_core::types::WindowType;
+
+        if self.dashboard_view.is_some() {
+            return;
+        }
 
         if let Some(handle) = &self.audience_window {
             if cx
@@ -1327,12 +1437,9 @@ impl MainView {
                 if always_on_top {
                     crate::platform::set_window_always_on_top(new_window, true);
                 }
+                let frame = cx.new(|_| WindowFrame::new(audience_view, "观众列表"));
                 let tracker = cx.new(|_| {
-                    WindowBoundsTracker::new(
-                        audience_view,
-                        WindowType::Rank,
-                        command_tx_for_tracker,
-                    )
+                    WindowBoundsTracker::new(frame, WindowType::Rank, command_tx_for_tracker)
                 });
                 cx.new(|cx| Root::new(tracker, new_window, cx))
             },
