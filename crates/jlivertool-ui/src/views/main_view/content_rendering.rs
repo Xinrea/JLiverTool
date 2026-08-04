@@ -15,8 +15,7 @@ use regex::Regex;
 use std::sync::LazyLock;
 
 /// Static regex for matching BV video IDs (compiled once)
-static BV_REGEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?i)(BV[0-9a-zA-Z]+)").unwrap());
+static BV_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)(BV[0-9a-zA-Z]+)").unwrap());
 
 /// Render content with BV links as clickable elements
 pub fn render_content_with_links(
@@ -48,7 +47,10 @@ pub fn render_content_with_links(
         let link_color = Colors::accent();
         container = container.child(
             div()
-                .id(SharedString::from(format!("bv-link-{}-{}", item_index, link_index)))
+                .id(SharedString::from(format!(
+                    "bv-link-{}-{}",
+                    item_index, link_index
+                )))
                 .text_size(px(font_size))
                 .text_color(link_color)
                 .cursor_pointer()
@@ -120,9 +122,7 @@ pub enum RenderRow {
         continuation_index: usize,
     },
     /// SuperChat header row: avatar + price + username
-    SuperChatHeader {
-        sc: SuperChatMessage,
-    },
+    SuperChatHeader { sc: SuperChatMessage },
     /// SuperChat content row: message text
     SuperChatContent {
         sc: SuperChatMessage,
@@ -130,6 +130,119 @@ pub enum RenderRow {
         continuation_index: usize,
         is_last: bool,
     },
+}
+
+/// Build the fixed-height rows used by danmu lists for the supplied width.
+///
+/// Both the main window and dashboard use this so wrapping behavior remains
+/// consistent when either surface is resized.
+pub(crate) fn build_render_rows<'a>(
+    messages: impl IntoIterator<Item = &'a DisplayMessage>,
+    available_width: f32,
+    font_size: f32,
+    lite_mode: bool,
+    medal_display: bool,
+) -> Vec<RenderRow> {
+    let mut rows = Vec::new();
+    for message in messages {
+        append_message_rows(
+            &mut rows,
+            message,
+            available_width,
+            font_size,
+            lite_mode,
+            medal_display,
+        );
+    }
+    rows
+}
+
+/// Convert one display message into one or more fixed-height render rows.
+pub(crate) fn append_message_rows(
+    rows: &mut Vec<RenderRow>,
+    message: &DisplayMessage,
+    available_width: f32,
+    font_size: f32,
+    lite_mode: bool,
+    medal_display: bool,
+) {
+    match message {
+        DisplayMessage::Danmu(danmu) => {
+            if danmu.emoji_content.is_some() {
+                rows.push(RenderRow::Full(message.clone()));
+                return;
+            }
+
+            let prefix_width =
+                estimate_danmu_prefix_width(danmu, font_size, lite_mode, medal_display);
+            let first_line_content_width = available_width - prefix_width;
+            let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
+            let continuation_content_width = available_width - padding;
+
+            let content_width = estimate_text_width(&danmu.content, font_size);
+            if content_width <= first_line_content_width || first_line_content_width <= 0.0 {
+                rows.push(RenderRow::Full(message.clone()));
+            } else {
+                let lines = split_content_to_lines(
+                    &danmu.content,
+                    font_size,
+                    first_line_content_width,
+                    continuation_content_width,
+                );
+
+                if lines.len() <= 1 {
+                    rows.push(RenderRow::Full(message.clone()));
+                } else {
+                    rows.push(RenderRow::DanmuFirstLine {
+                        danmu: danmu.clone(),
+                        content_slice: lines[0].clone(),
+                    });
+                    for (index, line) in lines[1..].iter().enumerate() {
+                        rows.push(RenderRow::DanmuContinuation {
+                            danmu: danmu.clone(),
+                            content_slice: line.clone(),
+                            continuation_index: index,
+                        });
+                    }
+                }
+            }
+        }
+        DisplayMessage::SuperChat(sc) => {
+            rows.push(RenderRow::SuperChatHeader { sc: sc.clone() });
+
+            if !sc.message.is_empty() {
+                let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
+                let content_line_width = available_width - padding - 4.0;
+                let content_width = estimate_text_width(&sc.message, font_size * 0.9);
+
+                if content_width <= content_line_width || content_line_width <= 0.0 {
+                    rows.push(RenderRow::SuperChatContent {
+                        sc: sc.clone(),
+                        content_slice: sc.message.clone(),
+                        continuation_index: 0,
+                        is_last: true,
+                    });
+                } else {
+                    let lines = split_content_to_lines(
+                        &sc.message,
+                        font_size * 0.9,
+                        content_line_width,
+                        content_line_width,
+                    );
+                    let last_index = lines.len().saturating_sub(1);
+                    for (index, line) in lines.iter().enumerate() {
+                        rows.push(RenderRow::SuperChatContent {
+                            sc: sc.clone(),
+                            content_slice: line.clone(),
+                            continuation_index: index,
+                            is_last: index == last_index,
+                        });
+                    }
+                }
+            }
+        }
+        _ => rows.push(RenderRow::Full(message.clone())),
+    }
 }
 
 /// Estimate the rendered width of a string in pixels.
@@ -162,7 +275,8 @@ pub fn estimate_danmu_prefix_width(
 
     let sender = &danmu.sender;
     let medal = &sender.medal_info;
-    let show_medal = medal_display && !medal.medal_name.is_empty() && medal.is_lighted && !lite_mode;
+    let show_medal =
+        medal_display && !medal.medal_name.is_empty() && medal.is_lighted && !lite_mode;
 
     // Medal badge width (approximate)
     if show_medal {
@@ -229,14 +343,17 @@ pub fn split_content_to_lines(
     let mut is_first = true;
 
     while !remaining.is_empty() {
-        let available = if is_first { first_line_width } else { continuation_width };
+        let available = if is_first {
+            first_line_width
+        } else {
+            continuation_width
+        };
         // Add safety margin (10% of available width or at least 8px) to prevent overflow
         let safety_margin = (available * 0.1).max(8.0);
         let safe_width = (available - safety_margin).max(font_size);
 
         let mut current_width = 0.0f32;
         let mut split_pos = 0;
-        let mut last_safe_split = 0; // Last position before a BV ID
 
         let remaining_start = content.len() - remaining.len();
 
@@ -261,14 +378,12 @@ pub fn split_content_to_lines(
                             // Current line is empty, force include the BV ID
                             current_width += bv_width;
                             split_pos = byte_idx + bv_text.len();
-                            last_safe_split = split_pos;
                             continue;
                         }
                     } else {
                         // BV ID fits, add its width and skip to the end of it
                         current_width += bv_width;
                         split_pos = byte_idx + bv_text.len();
-                        last_safe_split = split_pos;
                         continue;
                     }
                 }
@@ -276,9 +391,9 @@ pub fn split_content_to_lines(
 
             // Use slightly larger width estimates to be more conservative
             let char_width = if ch.is_ascii() {
-                font_size * 0.6  // Increased from 0.55
+                font_size * 0.6 // Increased from 0.55
             } else {
-                font_size * 1.1  // Increased from 1.0
+                font_size * 1.1 // Increased from 1.0
             };
 
             if current_width + char_width > safe_width && split_pos > 0 {
@@ -286,16 +401,6 @@ pub fn split_content_to_lines(
             }
             current_width += char_width;
             split_pos = byte_idx + ch.len_utf8();
-
-            // Update last_safe_split only if we're not inside a BV ID
-            let inside_bv = bv_matches.iter().any(|m| {
-                let rel_start = m.start().saturating_sub(remaining_start);
-                let rel_end = m.end().saturating_sub(remaining_start);
-                byte_idx >= rel_start && byte_idx < rel_end
-            });
-            if !inside_bv {
-                last_safe_split = split_pos;
-            }
         }
 
         // Force at least one character per line

@@ -63,6 +63,8 @@ pub enum UiCommand {
         width: u32,
         height: u32,
     },
+    /// Save dashboard dock layout
+    SaveDashboardLayout(serde_json::Value),
     /// Update TTS enabled settings
     UpdateTtsEnabled {
         danmu: bool,

@@ -14,8 +14,11 @@
     }
 
     // WebSocket connection
+    const INITIAL_RECONNECT_DELAY = 200;
+    const MAX_RECONNECT_DELAY = 3000;
     let ws = null;
     let reconnectTimer = null;
+    let reconnectDelay = INITIAL_RECONNECT_DELAY;
     let requestId = 0;
     const pendingRequests = new Map();
     const eventCallbacks = new Map();
@@ -30,6 +33,7 @@
 
         ws.onopen = function() {
             console.log('JLiverTool: Connected to plugin server');
+            reconnectDelay = INITIAL_RECONNECT_DELAY;
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
@@ -57,10 +61,12 @@
 
     function scheduleReconnect() {
         if (!reconnectTimer) {
+            const delay = reconnectDelay;
+            reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
             reconnectTimer = setTimeout(function() {
                 reconnectTimer = null;
                 connect();
-            }, 3000);
+            }, delay);
         }
     }
 
@@ -187,6 +193,7 @@
 
         // Reconnect manually
         reconnect: function() {
+            reconnectDelay = INITIAL_RECONNECT_DELAY;
             if (ws) {
                 ws.close();
             }

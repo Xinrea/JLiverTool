@@ -1,7 +1,7 @@
 //! Gift window view
 
-use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
+use crate::views::window_wrapper::WindowFrameContent;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
 use gpui_component::h_flex;
@@ -76,12 +76,13 @@ type PendingDelete = Rc<RefCell<Option<String>>>;
 
 pub struct GiftView {
     gift_list: VecDeque<GiftEntry>,
-    only_guards: bool,  // Whether to show only guard entries
-    show_archived: bool,  // Whether to show archived entries
-    min_value: f64,  // Minimum value filter in CNY
-    max_value: f64,  // Maximum value filter in CNY (0 = no limit)
+    only_guards: bool,   // Whether to show only guard entries
+    show_archived: bool, // Whether to show archived entries
+    min_value: f64,      // Minimum value filter in CNY
+    max_value: f64,      // Maximum value filter in CNY (0 = no limit)
     min_value_input: Option<Entity<gpui_component::input::InputState>>,
     max_value_input: Option<Entity<gpui_component::input::InputState>>,
+    controls_window: Option<WindowId>,
     scroll_handle: UniformListScrollHandle,
     opacity: f32,
     database: Option<Arc<Database>>,
@@ -106,6 +107,7 @@ impl GiftView {
             max_value: 0.0,
             min_value_input: None,
             max_value_input: None,
+            controls_window: None,
             scroll_handle: UniformListScrollHandle::new(),
             opacity: 1.0,
             database: None,
@@ -182,7 +184,8 @@ impl GiftView {
         }
 
         // Rebuild the filtered list
-        let filtered: Vec<GiftEntry> = self.gift_list
+        let filtered: Vec<GiftEntry> = self
+            .gift_list
             .iter()
             .filter(|entry| {
                 // Filter out archived entries if not showing them
@@ -220,12 +223,7 @@ impl GiftView {
     }
 
     /// Load historical gifts and guards from database
-    pub fn load_from_database(
-        &mut self,
-        db: &Arc<Database>,
-        room_id: u64,
-        cx: &mut Context<Self>,
-    ) {
+    pub fn load_from_database(&mut self, db: &Arc<Database>, room_id: u64, cx: &mut Context<Self>) {
         self.database = Some(db.clone());
         self.room_id = Some(room_id);
         self.gift_list.clear();
@@ -303,12 +301,10 @@ impl GiftView {
 
         // Re-sort the list (archived items at front)
         let mut sorted: Vec<GiftEntry> = self.gift_list.drain(..).collect();
-        sorted.sort_by(|a, b| {
-            match (a.archived(), b.archived()) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.timestamp().cmp(&b.timestamp()),
-            }
+        sorted.sort_by(|a, b| match (a.archived(), b.archived()) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.timestamp().cmp(&b.timestamp()),
         });
         self.gift_list = sorted.into_iter().collect();
 
@@ -362,30 +358,41 @@ impl GiftView {
         offset.y <= -max_offset.height + threshold
     }
 
-    fn render_header(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_toolbar(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
-
-        #[cfg(target_os = "macos")]
-        let left_padding = px(78.0);
-        #[cfg(not(target_os = "macos"))]
-        let left_padding = px(12.0);
+        let window_id = window.window_handle().window_id();
+        if self.controls_window != Some(window_id) {
+            self.controls_window = Some(window_id);
+            self.min_value_input = None;
+            self.max_value_input = None;
+        }
 
         // Initialize min value input if not already done
         if self.min_value_input.is_none() {
+            let value = (self.min_value > 0.0).then(|| self.min_value.to_string());
             let input = cx.new(|cx| {
-                gpui_component::input::InputState::new(window, cx)
+                let mut state = gpui_component::input::InputState::new(window, cx)
                     .placeholder("最小")
-                    .mask_pattern(gpui_component::input::MaskPattern::number(None))
+                    .mask_pattern(gpui_component::input::MaskPattern::number(None));
+                if let Some(value) = value {
+                    state.set_value(value, window, cx);
+                }
+                state
             });
             self.min_value_input = Some(input);
         }
 
         // Initialize max value input if not already done
         if self.max_value_input.is_none() {
+            let value = (self.max_value > 0.0).then(|| self.max_value.to_string());
             let input = cx.new(|cx| {
-                gpui_component::input::InputState::new(window, cx)
+                let mut state = gpui_component::input::InputState::new(window, cx)
                     .placeholder("最大")
-                    .mask_pattern(gpui_component::input::MaskPattern::number(None))
+                    .mask_pattern(gpui_component::input::MaskPattern::number(None));
+                if let Some(value) = value {
+                    state.set_value(value, window, cx);
+                }
+                state
             });
             self.max_value_input = Some(input);
         }
@@ -421,35 +428,9 @@ impl GiftView {
             self.invalidate_cache();
         }
 
-        let is_maximized = window.is_maximized();
-
         v_flex()
             .w_full()
             .bg(Colors::bg_secondary_with_opacity(opacity))
-            // Title bar - only title and window controls
-            .child(
-                h_flex()
-                    .w_full()
-                    .h(px(32.0))
-                    .items_center()
-                    .child(
-                        draggable_area()
-                            .flex_1()
-                            .h_full()
-                            .pl(left_padding)
-                            .pr_2()
-                            .flex()
-                            .items_center()
-                            .child(
-                                div()
-                                    .text_size(px(12.0))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(Colors::text_primary())
-                                    .child("礼物记录"),
-                            ),
-                    )
-                    .child(render_window_controls(is_maximized)),
-            )
             // Filter controls - in content area
             .child(
                 h_flex()
@@ -475,12 +456,10 @@ impl GiftView {
                                                 .child("¥"),
                                         )
                                         .child(
-                                            div()
-                                                .w(px(70.0))
-                                                .child(
-                                                    gpui_component::input::Input::new(&min_input_state)
-                                                        .small()
-                                                ),
+                                            div().w(px(70.0)).child(
+                                                gpui_component::input::Input::new(&min_input_state)
+                                                    .small(),
+                                            ),
                                         )
                                         .child(
                                             div()
@@ -489,12 +468,10 @@ impl GiftView {
                                                 .child("-"),
                                         )
                                         .child(
-                                            div()
-                                                .w(px(70.0))
-                                                .child(
-                                                    gpui_component::input::Input::new(&max_input_state)
-                                                        .small()
-                                                ),
+                                            div().w(px(70.0)).child(
+                                                gpui_component::input::Input::new(&max_input_state)
+                                                    .small(),
+                                            ),
                                         ),
                                 )
                             }),
@@ -517,11 +494,13 @@ impl GiftView {
                                     .child(
                                         gpui_component::switch::Switch::new("only-guards-toggle")
                                             .checked(self.only_guards)
-                                            .on_click(cx.listener(|this, checked: &bool, _window, cx| {
-                                                this.only_guards = *checked;
-                                                this.invalidate_cache();
-                                                cx.notify();
-                                            })),
+                                            .on_click(cx.listener(
+                                                |this, checked: &bool, _window, cx| {
+                                                    this.only_guards = *checked;
+                                                    this.invalidate_cache();
+                                                    cx.notify();
+                                                },
+                                            )),
                                     ),
                             )
                             // Show archived toggle
@@ -538,11 +517,13 @@ impl GiftView {
                                     .child(
                                         gpui_component::switch::Switch::new("show-archived-toggle")
                                             .checked(self.show_archived)
-                                            .on_click(cx.listener(|this, checked: &bool, _window, cx| {
-                                                this.show_archived = *checked;
-                                                this.invalidate_cache();
-                                                cx.notify();
-                                            })),
+                                            .on_click(cx.listener(
+                                                |this, checked: &bool, _window, cx| {
+                                                    this.show_archived = *checked;
+                                                    this.invalidate_cache();
+                                                    cx.notify();
+                                                },
+                                            )),
                                     ),
                             )
                             .child(
@@ -565,7 +546,11 @@ impl GiftView {
             )
     }
 
-    fn render_gift_list(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_gift_list(
+        &mut self,
+        _window: &mut Window,
+        _cx: &mut Context<Self>,
+    ) -> impl IntoElement {
         let gift_list: Vec<GiftEntry> = self.filtered_gift_list();
         let item_count = gift_list.len();
         let scroll_handle = self.scroll_handle.clone();
@@ -587,7 +572,9 @@ impl GiftView {
                                 let entry = gift_list[ix].clone();
                                 let pending = pending_archive_toggle.clone();
                                 let pending_del = pending_delete.clone();
-                                cx.new(|_| GiftItemView::new(entry, ix, opacity, pending, pending_del))
+                                cx.new(|_| {
+                                    GiftItemView::new(entry, ix, opacity, pending, pending_del)
+                                })
                             })
                             .collect()
                     }
@@ -621,7 +608,7 @@ impl Render for GiftView {
             .size_full()
             .bg(Colors::bg_primary_with_opacity(opacity))
             .text_color(Colors::text_primary())
-            .child(self.render_header(window, cx))
+            .child(self.render_toolbar(window, cx))
             .child(self.render_gift_list(window, cx))
             // Confirmation dialog overlay
             .when(show_confirm, |this| {
@@ -670,10 +657,12 @@ impl Render for GiftView {
                                                 .bg(Colors::bg_hover_with_opacity(opacity))
                                                 .text_size(px(12.0))
                                                 .hover(|s| s.opacity(0.8))
-                                                .on_click(cx.listener(|this, _event, _window, cx| {
-                                                    this.show_clear_confirm = false;
-                                                    cx.notify();
-                                                }))
+                                                .on_click(cx.listener(
+                                                    |this, _event, _window, cx| {
+                                                        this.show_clear_confirm = false;
+                                                        cx.notify();
+                                                    },
+                                                ))
                                                 .child("取消"),
                                         )
                                         .child(
@@ -687,16 +676,24 @@ impl Render for GiftView {
                                                 .text_size(px(12.0))
                                                 .text_color(gpui::white())
                                                 .hover(|s| s.opacity(0.8))
-                                                .on_click(cx.listener(|this, _event, _window, cx| {
-                                                    this.show_clear_confirm = false;
-                                                    this.clear_all(cx);
-                                                }))
+                                                .on_click(cx.listener(
+                                                    |this, _event, _window, cx| {
+                                                        this.show_clear_confirm = false;
+                                                        this.clear_all(cx);
+                                                    },
+                                                ))
                                                 .child("确认"),
                                         ),
                                 ),
                         ),
                 )
             })
+    }
+}
+
+impl WindowFrameContent for GiftView {
+    fn window_opacity(&self) -> f32 {
+        self.opacity
     }
 }
 
@@ -709,8 +706,20 @@ struct GiftItemView {
 }
 
 impl GiftItemView {
-    fn new(entry: GiftEntry, index: usize, opacity: f32, pending_archive_toggle: PendingArchiveToggle, pending_delete: PendingDelete) -> Self {
-        Self { entry, index, opacity, pending_archive_toggle, pending_delete }
+    fn new(
+        entry: GiftEntry,
+        index: usize,
+        opacity: f32,
+        pending_archive_toggle: PendingArchiveToggle,
+        pending_delete: PendingDelete,
+    ) -> Self {
+        Self {
+            entry,
+            index,
+            opacity,
+            pending_archive_toggle,
+            pending_delete,
+        }
     }
 
     fn format_timestamp(timestamp: i64) -> String {
@@ -811,11 +820,18 @@ impl Render for GiftItemView {
                                         let id = id.clone();
                                         let pending = pending_archive_toggle.clone();
                                         div()
-                                            .id(SharedString::from(format!("archive-btn-{}", index)))
+                                            .id(SharedString::from(format!(
+                                                "archive-btn-{}",
+                                                index
+                                            )))
                                             .px_2()
                                             .py(px(2.0))
                                             .rounded(px(4.0))
-                                            .bg(if archived { Colors::accent().opacity(0.2 * opacity) } else { Colors::bg_hover_with_opacity(opacity) })
+                                            .bg(if archived {
+                                                Colors::accent().opacity(0.2 * opacity)
+                                            } else {
+                                                Colors::bg_hover_with_opacity(opacity)
+                                            })
                                             .cursor_pointer()
                                             .text_size(px(10.0))
                                             .font_weight(FontWeight::MEDIUM)
@@ -824,11 +840,20 @@ impl Render for GiftItemView {
                                             } else {
                                                 Colors::text_secondary()
                                             })
-                                            .hover(|s| s.bg(if archived { Colors::accent().opacity(0.3 * opacity) } else { Colors::bg_secondary_with_opacity(opacity) }))
-                                            .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
-                                                *pending.borrow_mut() = Some(id.clone());
-                                                cx.refresh_windows();
+                                            .hover(|s| {
+                                                s.bg(if archived {
+                                                    Colors::accent().opacity(0.3 * opacity)
+                                                } else {
+                                                    Colors::bg_secondary_with_opacity(opacity)
+                                                })
                                             })
+                                            .on_mouse_down(
+                                                MouseButton::Left,
+                                                move |_event, _window, cx| {
+                                                    *pending.borrow_mut() = Some(id.clone());
+                                                    cx.refresh_windows();
+                                                },
+                                            )
                                             .child(if archived { "恢复" } else { "归档" })
                                     })
                                     .child({
@@ -845,10 +870,13 @@ impl Render for GiftItemView {
                                             .font_weight(FontWeight::MEDIUM)
                                             .text_color(hsla(0.0, 0.7, 0.5, 1.0))
                                             .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.2 * opacity)))
-                                            .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
-                                                *pending.borrow_mut() = Some(id.clone());
-                                                cx.refresh_windows();
-                                            })
+                                            .on_mouse_down(
+                                                MouseButton::Left,
+                                                move |_event, _window, cx| {
+                                                    *pending.borrow_mut() = Some(id.clone());
+                                                    cx.refresh_windows();
+                                                },
+                                            )
                                             .child("删除")
                                     }),
                             ),
@@ -956,11 +984,18 @@ impl Render for GiftItemView {
                                         let id = id.clone();
                                         let pending = pending_archive_toggle.clone();
                                         div()
-                                            .id(SharedString::from(format!("archive-btn-{}", index)))
+                                            .id(SharedString::from(format!(
+                                                "archive-btn-{}",
+                                                index
+                                            )))
                                             .px_2()
                                             .py(px(2.0))
                                             .rounded(px(4.0))
-                                            .bg(if archived { Colors::accent().opacity(0.2 * opacity) } else { Colors::bg_hover_with_opacity(opacity) })
+                                            .bg(if archived {
+                                                Colors::accent().opacity(0.2 * opacity)
+                                            } else {
+                                                Colors::bg_hover_with_opacity(opacity)
+                                            })
                                             .cursor_pointer()
                                             .text_size(px(10.0))
                                             .font_weight(FontWeight::MEDIUM)
@@ -969,11 +1004,20 @@ impl Render for GiftItemView {
                                             } else {
                                                 Colors::text_secondary()
                                             })
-                                            .hover(|s| s.bg(if archived { Colors::accent().opacity(0.3 * opacity) } else { Colors::bg_secondary_with_opacity(opacity) }))
-                                            .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
-                                                *pending.borrow_mut() = Some(id.clone());
-                                                cx.refresh_windows();
+                                            .hover(|s| {
+                                                s.bg(if archived {
+                                                    Colors::accent().opacity(0.3 * opacity)
+                                                } else {
+                                                    Colors::bg_secondary_with_opacity(opacity)
+                                                })
                                             })
+                                            .on_mouse_down(
+                                                MouseButton::Left,
+                                                move |_event, _window, cx| {
+                                                    *pending.borrow_mut() = Some(id.clone());
+                                                    cx.refresh_windows();
+                                                },
+                                            )
                                             .child(if archived { "恢复" } else { "归档" })
                                     })
                                     .child({
@@ -990,10 +1034,13 @@ impl Render for GiftItemView {
                                             .font_weight(FontWeight::MEDIUM)
                                             .text_color(hsla(0.0, 0.7, 0.5, 1.0))
                                             .hover(|s| s.bg(hsla(0.0, 0.7, 0.5, 0.2 * opacity)))
-                                            .on_mouse_down(MouseButton::Left, move |_event, _window, cx| {
-                                                *pending.borrow_mut() = Some(id.clone());
-                                                cx.refresh_windows();
-                                            })
+                                            .on_mouse_down(
+                                                MouseButton::Left,
+                                                move |_event, _window, cx| {
+                                                    *pending.borrow_mut() = Some(id.clone());
+                                                    cx.refresh_windows();
+                                                },
+                                            )
                                             .child("删除")
                                     }),
                             ),

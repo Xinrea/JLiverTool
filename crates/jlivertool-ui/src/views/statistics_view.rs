@@ -1,7 +1,7 @@
 //! Statistics window view with line chart
 
-use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
+use crate::views::window_wrapper::WindowFrameContent;
 use chrono::{Datelike, Local, NaiveDate, TimeZone};
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -9,6 +9,7 @@ use gpui_component::calendar::Date;
 use gpui_component::chart::LineChart;
 use gpui_component::date_picker::{DatePicker, DatePickerEvent, DatePickerState};
 use gpui_component::h_flex;
+use gpui_component::scroll::Scrollbar;
 use gpui_component::select::{Select, SelectEvent, SelectState};
 use gpui_component::v_flex;
 use gpui_component::Sizable;
@@ -66,16 +67,16 @@ impl StatsPeriod {
     /// Bucket size in seconds - determines granularity of data points
     fn bucket_seconds(&self) -> i64 {
         match self {
-            StatsPeriod::FiveMinutes => 10,           // 10 seconds per bucket (30 points)
-            StatsPeriod::TenMinutes => 20,            // 20 seconds per bucket (30 points)
-            StatsPeriod::ThirtyMinutes => 60,         // 1 minute per bucket (30 points)
-            StatsPeriod::OneHour => 2 * 60,           // 2 minutes per bucket (30 points)
-            StatsPeriod::TwoHours => 4 * 60,          // 4 minutes per bucket (30 points)
-            StatsPeriod::FourHours => 8 * 60,         // 8 minutes per bucket (30 points)
-            StatsPeriod::EightHours => 16 * 60,       // 16 minutes per bucket (30 points)
-            StatsPeriod::OneDay => 60 * 60,           // 1 hour per bucket (24 points)
-            StatsPeriod::OneWeek => 24 * 60 * 60,     // 1 day per bucket (7 points)
-            StatsPeriod::OneMonth => 24 * 60 * 60,    // 1 day per bucket (30 points)
+            StatsPeriod::FiveMinutes => 10,   // 10 seconds per bucket (30 points)
+            StatsPeriod::TenMinutes => 20,    // 20 seconds per bucket (30 points)
+            StatsPeriod::ThirtyMinutes => 60, // 1 minute per bucket (30 points)
+            StatsPeriod::OneHour => 2 * 60,   // 2 minutes per bucket (30 points)
+            StatsPeriod::TwoHours => 4 * 60,  // 4 minutes per bucket (30 points)
+            StatsPeriod::FourHours => 8 * 60, // 8 minutes per bucket (30 points)
+            StatsPeriod::EightHours => 16 * 60, // 16 minutes per bucket (30 points)
+            StatsPeriod::OneDay => 60 * 60,   // 1 hour per bucket (24 points)
+            StatsPeriod::OneWeek => 24 * 60 * 60, // 1 day per bucket (7 points)
+            StatsPeriod::OneMonth => 24 * 60 * 60, // 1 day per bucket (30 points)
         }
     }
 
@@ -134,18 +135,14 @@ struct ChartDataPoint {
 fn format_time_label(timestamp: i64, period: StatsPeriod) -> String {
     let dt = Local.timestamp_opt(timestamp, 0).unwrap();
     match period {
-        StatsPeriod::FiveMinutes | StatsPeriod::TenMinutes => {
-            dt.format("%H:%M:%S").to_string()
-        }
+        StatsPeriod::FiveMinutes | StatsPeriod::TenMinutes => dt.format("%H:%M:%S").to_string(),
         StatsPeriod::ThirtyMinutes | StatsPeriod::OneHour | StatsPeriod::TwoHours => {
             dt.format("%H:%M").to_string()
         }
         StatsPeriod::FourHours | StatsPeriod::EightHours | StatsPeriod::OneDay => {
             dt.format("%m/%d %H:%M").to_string()
         }
-        StatsPeriod::OneWeek | StatsPeriod::OneMonth => {
-            dt.format("%m/%d").to_string()
-        }
+        StatsPeriod::OneWeek | StatsPeriod::OneMonth => dt.format("%m/%d").to_string(),
     }
 }
 
@@ -228,6 +225,7 @@ pub struct StatisticsView {
     stats: TimeBasedStats,
     time_series: Vec<TimeSeriesPoint>,
     opacity: f32,
+    chart_scroll_handle: ScrollHandle,
     // Custom time range mode
     use_custom_range: bool,
     custom_start_picker: Option<Entity<DatePickerState>>,
@@ -237,6 +235,8 @@ pub struct StatisticsView {
     start_minute_select: Option<Entity<SelectState<Vec<String>>>>,
     end_hour_select: Option<Entity<SelectState<Vec<String>>>>,
     end_minute_select: Option<Entity<SelectState<Vec<String>>>>,
+    controls_window: Option<WindowId>,
+    control_subscriptions: Vec<Subscription>,
     // Cached values
     custom_start_date: Option<NaiveDate>,
     custom_end_date: Option<NaiveDate>,
@@ -249,8 +249,8 @@ pub struct StatisticsView {
 impl StatisticsView {
     pub fn new(cx: &mut Context<Self>) -> Self {
         // Start auto-refresh timer (every 10 seconds)
-        cx.spawn(async move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
-            loop {
+        cx.spawn(
+            async move |this: WeakEntity<Self>, cx: &mut AsyncApp| loop {
                 Timer::after(Duration::from_secs(10)).await;
                 let result = cx.update(|cx| {
                     this.update(cx, |view, cx| {
@@ -261,8 +261,8 @@ impl StatisticsView {
                 if result.is_err() {
                     break;
                 }
-            }
-        })
+            },
+        )
         .detach();
 
         Self {
@@ -272,6 +272,7 @@ impl StatisticsView {
             stats: TimeBasedStats::default(),
             time_series: Vec::new(),
             opacity: 1.0,
+            chart_scroll_handle: ScrollHandle::new(),
             use_custom_range: false,
             custom_start_picker: None,
             custom_end_picker: None,
@@ -279,6 +280,8 @@ impl StatisticsView {
             start_minute_select: None,
             end_hour_select: None,
             end_minute_select: None,
+            controls_window: None,
+            control_subscriptions: Vec::new(),
             custom_start_date: None,
             custom_end_date: None,
             custom_start_hour: 0,
@@ -311,7 +314,9 @@ impl StatisticsView {
         if let (Some(db), Some(room_id)) = (&self.database, self.room_id) {
             if self.use_custom_range {
                 // Custom time range mode - calculate timestamps from date and time
-                if let (Some(start_date), Some(end_date)) = (self.custom_start_date, self.custom_end_date) {
+                if let (Some(start_date), Some(end_date)) =
+                    (self.custom_start_date, self.custom_end_date)
+                {
                     let start = naive_date_time_to_timestamp(
                         start_date,
                         self.custom_start_hour,
@@ -334,7 +339,9 @@ impl StatisticsView {
                         let bucket_seconds = calculate_bucket_seconds(duration);
 
                         // Get time series data
-                        if let Ok(series) = db.get_time_series_stats_range(room_id, start, end, bucket_seconds) {
+                        if let Ok(series) =
+                            db.get_time_series_stats_range(room_id, start, end, bucket_seconds)
+                        {
                             self.time_series = series;
                         }
                     }
@@ -349,7 +356,9 @@ impl StatisticsView {
                 }
 
                 // Get time series data with bucket size based on period
-                if let Ok(series) = db.get_time_series_stats(room_id, since, self.period.bucket_seconds()) {
+                if let Ok(series) =
+                    db.get_time_series_stats(room_id, since, self.period.bucket_seconds())
+                {
                     self.time_series = series;
                 }
             }
@@ -373,8 +382,7 @@ impl StatisticsView {
                     .cursor_pointer()
                     .text_size(px(11.0))
                     .when(is_selected, |this| {
-                        this.bg(Colors::accent())
-                            .text_color(Colors::button_text())
+                        this.bg(Colors::accent()).text_color(Colors::button_text())
                     })
                     .when(!is_selected, |this| {
                         this.bg(Colors::bg_hover())
@@ -405,8 +413,7 @@ impl StatisticsView {
                     .cursor_pointer()
                     .text_size(px(11.0))
                     .when(!use_custom, |this| {
-                        this.bg(Colors::accent())
-                            .text_color(Colors::button_text())
+                        this.bg(Colors::accent()).text_color(Colors::button_text())
                     })
                     .when(use_custom, |this| {
                         this.bg(Colors::bg_hover())
@@ -429,8 +436,7 @@ impl StatisticsView {
                     .cursor_pointer()
                     .text_size(px(11.0))
                     .when(use_custom, |this| {
-                        this.bg(Colors::accent())
-                            .text_color(Colors::button_text())
+                        this.bg(Colors::accent()).text_color(Colors::button_text())
                     })
                     .when(!use_custom, |this| {
                         this.bg(Colors::bg_hover())
@@ -451,15 +457,25 @@ impl StatisticsView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
+        let window_id = window.window_handle().window_id();
+        if self.controls_window != Some(window_id) {
+            self.controls_window = Some(window_id);
+            self.custom_start_picker = None;
+            self.custom_end_picker = None;
+            self.start_hour_select = None;
+            self.start_minute_select = None;
+            self.end_hour_select = None;
+            self.end_minute_select = None;
+            self.control_subscriptions.clear();
+        }
+
         // Initialize start date picker if not already done
         if self.custom_start_picker.is_none() {
             let now = Local::now();
             let one_day_ago = now - chrono::Duration::days(1);
-            let default_date = NaiveDate::from_ymd_opt(
-                one_day_ago.year(),
-                one_day_ago.month(),
-                one_day_ago.day(),
-            );
+            let default_date = self.custom_start_date.or_else(|| {
+                NaiveDate::from_ymd_opt(one_day_ago.year(), one_day_ago.month(), one_day_ago.day())
+            });
 
             let picker = cx.new(|cx| {
                 let mut state = DatePickerState::new(window, cx).date_format("%Y/%m/%d");
@@ -471,14 +487,18 @@ impl StatisticsView {
             });
 
             // Subscribe to date changes
-            cx.subscribe_in(&picker, window, |this, _, event: &DatePickerEvent, _window, cx| {
-                let DatePickerEvent::Change(date) = event;
-                if let Date::Single(Some(d)) = date {
-                    this.custom_start_date = Some(*d);
-                    cx.notify();
-                }
-            })
-            .detach();
+            let subscription = cx.subscribe_in(
+                &picker,
+                window,
+                |this, _, event: &DatePickerEvent, _window, cx| {
+                    let DatePickerEvent::Change(date) = event;
+                    if let Date::Single(Some(d)) = date {
+                        this.custom_start_date = Some(*d);
+                        cx.notify();
+                    }
+                },
+            );
+            self.control_subscriptions.push(subscription);
 
             self.custom_start_picker = Some(picker);
         }
@@ -486,7 +506,9 @@ impl StatisticsView {
         // Initialize end date picker if not already done
         if self.custom_end_picker.is_none() {
             let now = Local::now();
-            let default_date = NaiveDate::from_ymd_opt(now.year(), now.month(), now.day());
+            let default_date = self
+                .custom_end_date
+                .or_else(|| NaiveDate::from_ymd_opt(now.year(), now.month(), now.day()));
 
             let picker = cx.new(|cx| {
                 let mut state = DatePickerState::new(window, cx).date_format("%Y/%m/%d");
@@ -498,14 +520,18 @@ impl StatisticsView {
             });
 
             // Subscribe to date changes
-            cx.subscribe_in(&picker, window, |this, _, event: &DatePickerEvent, _window, cx| {
-                let DatePickerEvent::Change(date) = event;
-                if let Date::Single(Some(d)) = date {
-                    this.custom_end_date = Some(*d);
-                    cx.notify();
-                }
-            })
-            .detach();
+            let subscription = cx.subscribe_in(
+                &picker,
+                window,
+                |this, _, event: &DatePickerEvent, _window, cx| {
+                    let DatePickerEvent::Change(date) = event;
+                    if let Date::Single(Some(d)) = date {
+                        this.custom_end_date = Some(*d);
+                        cx.notify();
+                    }
+                },
+            );
+            self.control_subscriptions.push(subscription);
 
             self.custom_end_picker = Some(picker);
         }
@@ -513,69 +539,109 @@ impl StatisticsView {
         // Initialize hour/minute selectors
         if self.start_hour_select.is_none() {
             let hours = generate_hour_options();
+            let selected = self.custom_start_hour.min(23) as usize;
             let select = cx.new(|cx| {
-                SelectState::new(hours, Some(gpui_component::IndexPath::new(0)), window, cx)
+                SelectState::new(
+                    hours,
+                    Some(gpui_component::IndexPath::new(selected)),
+                    window,
+                    cx,
+                )
             });
-            cx.subscribe_in(&select, window, |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
-                if let SelectEvent::Confirm(Some(hour_str)) = event {
-                    if let Ok(hour) = hour_str.parse::<u32>() {
-                        this.custom_start_hour = hour;
-                        cx.notify();
+            let subscription = cx.subscribe_in(
+                &select,
+                window,
+                |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
+                    if let SelectEvent::Confirm(Some(hour_str)) = event {
+                        if let Ok(hour) = hour_str.parse::<u32>() {
+                            this.custom_start_hour = hour;
+                            cx.notify();
+                        }
                     }
-                }
-            })
-            .detach();
+                },
+            );
+            self.control_subscriptions.push(subscription);
             self.start_hour_select = Some(select);
         }
 
         if self.start_minute_select.is_none() {
             let minutes = generate_minute_options();
+            let selected = self.custom_start_minute.min(59) as usize;
             let select = cx.new(|cx| {
-                SelectState::new(minutes, Some(gpui_component::IndexPath::new(0)), window, cx)
+                SelectState::new(
+                    minutes,
+                    Some(gpui_component::IndexPath::new(selected)),
+                    window,
+                    cx,
+                )
             });
-            cx.subscribe_in(&select, window, |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
-                if let SelectEvent::Confirm(Some(minute_str)) = event {
-                    if let Ok(minute) = minute_str.parse::<u32>() {
-                        this.custom_start_minute = minute;
-                        cx.notify();
+            let subscription = cx.subscribe_in(
+                &select,
+                window,
+                |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
+                    if let SelectEvent::Confirm(Some(minute_str)) = event {
+                        if let Ok(minute) = minute_str.parse::<u32>() {
+                            this.custom_start_minute = minute;
+                            cx.notify();
+                        }
                     }
-                }
-            })
-            .detach();
+                },
+            );
+            self.control_subscriptions.push(subscription);
             self.start_minute_select = Some(select);
         }
 
         if self.end_hour_select.is_none() {
             let hours = generate_hour_options();
+            let selected = self.custom_end_hour.min(23) as usize;
             let select = cx.new(|cx| {
-                SelectState::new(hours, Some(gpui_component::IndexPath::new(23)), window, cx)
+                SelectState::new(
+                    hours,
+                    Some(gpui_component::IndexPath::new(selected)),
+                    window,
+                    cx,
+                )
             });
-            cx.subscribe_in(&select, window, |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
-                if let SelectEvent::Confirm(Some(hour_str)) = event {
-                    if let Ok(hour) = hour_str.parse::<u32>() {
-                        this.custom_end_hour = hour;
-                        cx.notify();
+            let subscription = cx.subscribe_in(
+                &select,
+                window,
+                |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
+                    if let SelectEvent::Confirm(Some(hour_str)) = event {
+                        if let Ok(hour) = hour_str.parse::<u32>() {
+                            this.custom_end_hour = hour;
+                            cx.notify();
+                        }
                     }
-                }
-            })
-            .detach();
+                },
+            );
+            self.control_subscriptions.push(subscription);
             self.end_hour_select = Some(select);
         }
 
         if self.end_minute_select.is_none() {
             let minutes = generate_minute_options();
+            let selected = self.custom_end_minute.min(59) as usize;
             let select = cx.new(|cx| {
-                SelectState::new(minutes, Some(gpui_component::IndexPath::new(59)), window, cx)
+                SelectState::new(
+                    minutes,
+                    Some(gpui_component::IndexPath::new(selected)),
+                    window,
+                    cx,
+                )
             });
-            cx.subscribe_in(&select, window, |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
-                if let SelectEvent::Confirm(Some(minute_str)) = event {
-                    if let Ok(minute) = minute_str.parse::<u32>() {
-                        this.custom_end_minute = minute;
-                        cx.notify();
+            let subscription = cx.subscribe_in(
+                &select,
+                window,
+                |this, _, event: &SelectEvent<Vec<String>>, _window, cx| {
+                    if let SelectEvent::Confirm(Some(minute_str)) = event {
+                        if let Ok(minute) = minute_str.parse::<u32>() {
+                            this.custom_end_minute = minute;
+                            cx.notify();
+                        }
                     }
-                }
-            })
-            .detach();
+                },
+            );
+            self.control_subscriptions.push(subscription);
             self.end_minute_select = Some(select);
         }
 
@@ -586,103 +652,93 @@ impl StatisticsView {
         let end_hour = self.end_hour_select.as_ref().unwrap().clone();
         let end_minute = self.end_minute_select.as_ref().unwrap().clone();
 
-        v_flex()
-            .gap_2()
-            .child(
-                h_flex()
-                    .gap_3()
-                    .items_center()
-                    .flex_wrap()
-                    .child(
-                        h_flex()
-                            .gap_1()
-                            .items_center()
-                            .child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .child("开始:"),
-                            )
-                            .child(
-                                div()
-                                    .min_w(px(95.0))
-                                    .child(
-                                        DatePicker::new(&start_picker)
-                                            .xsmall()
-                                            .appearance(false),
-                                    ),
-                            )
-                            .child(
-                                div()
-                                    .w(px(50.0))
-                                    .child(Select::new(&start_hour).xsmall().appearance(false)),
-                            )
-                            .child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .child(":"),
-                            )
-                            .child(
-                                div()
-                                    .w(px(50.0))
-                                    .child(Select::new(&start_minute).xsmall().appearance(false)),
-                            ),
-                    )
-                    .child(
-                        h_flex()
-                            .gap_1()
-                            .items_center()
-                            .child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .child("结束:"),
-                            )
-                            .child(
-                                div()
-                                    .min_w(px(95.0))
-                                    .child(
-                                        DatePicker::new(&end_picker)
-                                            .xsmall()
-                                            .appearance(false),
-                                    ),
-                            )
-                            .child(
-                                div()
-                                    .w(px(50.0))
-                                    .child(Select::new(&end_hour).xsmall().appearance(false)),
-                            )
-                            .child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .child(":"),
-                            )
-                            .child(
-                                div()
-                                    .w(px(50.0))
-                                    .child(Select::new(&end_minute).xsmall().appearance(false)),
-                            ),
-                    )
-                    .child(
-                        div()
-                            .id("apply-range")
-                            .px_2()
-                            .py_1()
-                            .rounded_md()
-                            .cursor_pointer()
-                            .text_size(px(11.0))
-                            .bg(Colors::accent())
-                            .text_color(Colors::button_text())
-                            .hover(|s| s.opacity(0.8))
-                            .child("应用")
-                            .on_click(cx.listener(move |this, _event, _window, cx| {
-                                this.refresh_stats();
-                                cx.notify();
-                            })),
-                    ),
-            )
+        v_flex().gap_2().child(
+            h_flex()
+                .gap_3()
+                .items_center()
+                .flex_wrap()
+                .child(
+                    h_flex()
+                        .gap_1()
+                        .items_center()
+                        .child(
+                            div()
+                                .text_size(px(11.0))
+                                .text_color(Colors::text_muted())
+                                .child("开始:"),
+                        )
+                        .child(
+                            div()
+                                .min_w(px(95.0))
+                                .child(DatePicker::new(&start_picker).xsmall().appearance(false)),
+                        )
+                        .child(
+                            div()
+                                .w(px(50.0))
+                                .child(Select::new(&start_hour).xsmall().appearance(false)),
+                        )
+                        .child(
+                            div()
+                                .text_size(px(11.0))
+                                .text_color(Colors::text_muted())
+                                .child(":"),
+                        )
+                        .child(
+                            div()
+                                .w(px(50.0))
+                                .child(Select::new(&start_minute).xsmall().appearance(false)),
+                        ),
+                )
+                .child(
+                    h_flex()
+                        .gap_1()
+                        .items_center()
+                        .child(
+                            div()
+                                .text_size(px(11.0))
+                                .text_color(Colors::text_muted())
+                                .child("结束:"),
+                        )
+                        .child(
+                            div()
+                                .min_w(px(95.0))
+                                .child(DatePicker::new(&end_picker).xsmall().appearance(false)),
+                        )
+                        .child(
+                            div()
+                                .w(px(50.0))
+                                .child(Select::new(&end_hour).xsmall().appearance(false)),
+                        )
+                        .child(
+                            div()
+                                .text_size(px(11.0))
+                                .text_color(Colors::text_muted())
+                                .child(":"),
+                        )
+                        .child(
+                            div()
+                                .w(px(50.0))
+                                .child(Select::new(&end_minute).xsmall().appearance(false)),
+                        ),
+                )
+                .child(
+                    div()
+                        .id("apply-range")
+                        .px_2()
+                        .py_1()
+                        .rounded_md()
+                        .cursor_pointer()
+                        .text_size(px(11.0))
+                        .bg(Colors::accent())
+                        .text_color(Colors::button_text())
+                        .hover(|s| s.opacity(0.8))
+                        .child("应用")
+                        .on_click(cx.listener(move |this, _event, _window, cx| {
+                            this.refresh_stats();
+                            cx.notify();
+                        })),
+                ),
+        )
     }
 
     /// Render summary stats
@@ -822,13 +878,7 @@ impl StatisticsView {
                 h_flex()
                     .items_center()
                     .gap_2()
-                    .child(
-                        div()
-                            .w(px(8.0))
-                            .h(px(8.0))
-                            .rounded(px(4.0))
-                            .bg(color),
-                    )
+                    .child(div().w(px(8.0)).h(px(8.0)).rounded(px(4.0)).bg(color))
                     .child(
                         div()
                             .text_size(px(11.0))
@@ -885,9 +935,19 @@ impl StatisticsView {
     fn render_charts(&self) -> impl IntoElement {
         // Calculate duration for time label formatting
         let duration_seconds = if self.use_custom_range {
-            if let (Some(start_date), Some(end_date)) = (self.custom_start_date, self.custom_end_date) {
-                let start = naive_date_time_to_timestamp(start_date, self.custom_start_hour, self.custom_start_minute);
-                let end = naive_date_time_to_timestamp(end_date, self.custom_end_hour, self.custom_end_minute);
+            if let (Some(start_date), Some(end_date)) =
+                (self.custom_start_date, self.custom_end_date)
+            {
+                let start = naive_date_time_to_timestamp(
+                    start_date,
+                    self.custom_start_hour,
+                    self.custom_start_minute,
+                );
+                let end = naive_date_time_to_timestamp(
+                    end_date,
+                    self.custom_end_hour,
+                    self.custom_end_minute,
+                );
                 end - start
             } else {
                 self.period.total_seconds()
@@ -936,13 +996,7 @@ impl Render for StatisticsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
         let use_custom_range = self.use_custom_range;
-
-        #[cfg(target_os = "macos")]
-        let left_padding = px(78.0);
-        #[cfg(not(target_os = "macos"))]
-        let left_padding = px(12.0);
-
-        let is_maximized = window.is_maximized();
+        let chart_scroll_handle = self.chart_scroll_handle.clone();
 
         // Pre-render custom range inputs if in custom mode
         let custom_range_inputs = if use_custom_range {
@@ -955,31 +1009,6 @@ impl Render for StatisticsView {
             .size_full()
             .bg(Colors::bg_primary_with_opacity(opacity))
             .text_color(Colors::text_primary())
-            // Header
-            .child(
-                h_flex()
-                    .w_full()
-                    .h(px(32.0))
-                    .items_center()
-                    .bg(Colors::bg_secondary_with_opacity(opacity))
-                    .child(
-                        draggable_area()
-                            .flex_1()
-                            .h_full()
-                            .pl(left_padding)
-                            .pr_2()
-                            .flex()
-                            .items_center()
-                            .child(
-                                div()
-                                    .text_size(px(12.0))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(Colors::text_primary())
-                                    .child("数据统计"),
-                            ),
-                    )
-                    .child(render_window_controls(is_maximized)),
-            )
             // Content
             .child(
                 v_flex()
@@ -990,22 +1019,18 @@ impl Render for StatisticsView {
                     .overflow_hidden()
                     // Mode selector row
                     .child(
-                        h_flex()
-                            .w_full()
-                            .justify_between()
-                            .items_center()
-                            .child(
-                                h_flex()
-                                    .gap_2()
-                                    .items_center()
-                                    .child(
-                                        div()
-                                            .text_size(px(11.0))
-                                            .text_color(Colors::text_muted())
-                                            .child("统计区间"),
-                                    )
-                                    .child(self.render_mode_selector(cx)),
-                            ),
+                        h_flex().w_full().justify_between().items_center().child(
+                            h_flex()
+                                .gap_2()
+                                .items_center()
+                                .child(
+                                    div()
+                                        .text_size(px(11.0))
+                                        .text_color(Colors::text_muted())
+                                        .child("统计区间"),
+                                )
+                                .child(self.render_mode_selector(cx)),
+                        ),
                     )
                     // Period selector or custom range inputs
                     .child(
@@ -1015,14 +1040,36 @@ impl Render for StatisticsView {
                             .when(!use_custom_range, |this| {
                                 this.child(self.render_period_selector(cx))
                             })
-                            .when(use_custom_range, |this| {
-                                this.children(custom_range_inputs)
-                            }),
+                            .when(use_custom_range, |this| this.children(custom_range_inputs)),
                     )
                     // Summary stats
                     .child(self.render_summary())
                     // Charts
-                    .child(self.render_charts()),
+                    .child(
+                        h_flex()
+                            .flex_1()
+                            .min_h_0()
+                            .w_full()
+                            .overflow_hidden()
+                            .child(
+                                div()
+                                    .id("statistics-charts-scroll")
+                                    .flex_1()
+                                    .h_full()
+                                    .min_h_0()
+                                    .pr_2()
+                                    .overflow_y_scroll()
+                                    .track_scroll(&chart_scroll_handle)
+                                    .child(self.render_charts()),
+                            )
+                            .child(Scrollbar::vertical(&chart_scroll_handle)),
+                    ),
             )
+    }
+}
+
+impl WindowFrameContent for StatisticsView {
+    fn window_opacity(&self) -> f32 {
+        self.opacity
     }
 }

@@ -852,6 +852,11 @@ async fn handle_commands(
                     error!("Failed to save window bounds: {}", e);
                 }
             }
+            UiCommand::SaveDashboardLayout(layout) => {
+                if let Err(e) = config.write().set_dashboard_layout(layout) {
+                    error!("Failed to save dashboard layout: {}", e);
+                }
+            }
             UiCommand::UpdateTtsEnabled {
                 danmu,
                 gift,
@@ -1227,6 +1232,15 @@ async fn poll_qr_login(
     }
 }
 
+const INITIAL_RECONNECT_DELAY: tokio::time::Duration = tokio::time::Duration::from_millis(200);
+const MAX_RECONNECT_DELAY: tokio::time::Duration = tokio::time::Duration::from_secs(3);
+
+async fn wait_before_reconnect(delay: &mut tokio::time::Duration) {
+    info!("Reconnecting in {:?}...", *delay);
+    tokio::time::sleep(*delay).await;
+    *delay = std::cmp::min(delay.saturating_mul(2), MAX_RECONNECT_DELAY);
+}
+
 /// Run the backend service
 async fn run_backend(
     event_tx: EventSender,
@@ -1243,6 +1257,7 @@ async fn run_backend(
         .unwrap_or_else(|| RoomId::new(0, 21484828, 0)); // Default room
 
     let mut current_room = initial_room;
+    let mut reconnect_delay = INITIAL_RECONNECT_DELAY;
 
     loop {
         // Connect to current room
@@ -1278,8 +1293,7 @@ async fn run_backend(
             Ok(info) => info,
             Err(e) => {
                 error!("Failed to get danmu info: {}", e);
-                // Wait and retry
-                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                wait_before_reconnect(&mut reconnect_delay).await;
                 continue;
             }
         };
@@ -1287,7 +1301,7 @@ async fn run_backend(
         // Pick the lowest-latency host via parallel TCP probes
         let Some(host) = select_best_danmu_host(&danmu_info.host_list).await else {
             error!("No WebSocket host available");
-            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            wait_before_reconnect(&mut reconnect_delay).await;
             continue;
         };
 
@@ -1340,6 +1354,7 @@ async fn run_backend(
                         }
                         Some(WsEvent::Authenticated) => {
                             info!("WebSocket authenticated");
+                            reconnect_delay = INITIAL_RECONNECT_DELAY;
                         }
                         Some(WsEvent::HeartbeatReply(count)) => {
                             // Only update online count from heartbeat if it's a reasonable value
@@ -1401,10 +1416,9 @@ async fn run_backend(
         // Update current room if changed
         if let Some(room) = new_room {
             current_room = room;
+            reconnect_delay = INITIAL_RECONNECT_DELAY;
         } else if should_reconnect {
-            // Wait before reconnecting
-            info!("Reconnecting in 3 seconds...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            wait_before_reconnect(&mut reconnect_delay).await;
         }
     }
 }

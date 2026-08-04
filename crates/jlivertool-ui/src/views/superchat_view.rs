@@ -1,7 +1,7 @@
 //! Superchat window view
 
-use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
+use crate::views::window_wrapper::WindowFrameContent;
 use crate::views::render_content_with_links;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
@@ -34,6 +34,7 @@ pub struct SuperChatView {
     show_archived: bool,
     search_query: String,
     search_input: Option<Entity<gpui_component::input::InputState>>,
+    controls_window: Option<WindowId>,
 }
 
 impl SuperChatView {
@@ -50,6 +51,7 @@ impl SuperChatView {
             show_archived: false,
             search_query: String::new(),
             search_input: None,
+            controls_window: None,
         }
     }
 
@@ -78,12 +80,7 @@ impl SuperChatView {
     }
 
     /// Load historical superchats from database
-    pub fn load_from_database(
-        &mut self,
-        db: &Arc<Database>,
-        room_id: u64,
-        cx: &mut Context<Self>,
-    ) {
+    pub fn load_from_database(&mut self, db: &Arc<Database>, room_id: u64, cx: &mut Context<Self>) {
         self.database = Some(db.clone());
         self.room_id = Some(room_id);
         self.sc_list.clear();
@@ -97,12 +94,10 @@ impl SuperChatView {
 
         // Sort by archived status first (archived at front), then by timestamp
         let mut sorted: Vec<SuperChatMessage> = self.sc_list.drain(..).collect();
-        sorted.sort_by(|a, b| {
-            match (a.archived, b.archived) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.timestamp.cmp(&b.timestamp),
-            }
+        sorted.sort_by(|a, b| match (a.archived, b.archived) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.timestamp.cmp(&b.timestamp),
         });
         self.sc_list = sorted.into_iter().collect();
 
@@ -136,12 +131,10 @@ impl SuperChatView {
 
         // Re-sort the list (archived items at front)
         let mut sorted: Vec<SuperChatMessage> = self.sc_list.drain(..).collect();
-        sorted.sort_by(|a, b| {
-            match (a.archived, b.archived) {
-                (true, false) => std::cmp::Ordering::Less,
-                (false, true) => std::cmp::Ordering::Greater,
-                _ => a.timestamp.cmp(&b.timestamp),
-            }
+        sorted.sort_by(|a, b| match (a.archived, b.archived) {
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            _ => a.timestamp.cmp(&b.timestamp),
         });
         self.sc_list = sorted.into_iter().collect();
 
@@ -193,19 +186,24 @@ impl SuperChatView {
             .collect()
     }
 
-    fn render_header(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_toolbar(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
-
-        #[cfg(target_os = "macos")]
-        let left_padding = px(78.0);
-        #[cfg(not(target_os = "macos"))]
-        let left_padding = px(12.0);
+        let window_id = window.window_handle().window_id();
+        if self.controls_window != Some(window_id) {
+            self.controls_window = Some(window_id);
+            self.search_input = None;
+        }
 
         // Initialize search input if not already done
         if self.search_input.is_none() {
+            let search_query = self.search_query.clone();
             let input = cx.new(|cx| {
-                gpui_component::input::InputState::new(window, cx)
-                    .placeholder("搜索用户名或内容...")
+                let mut state = gpui_component::input::InputState::new(window, cx)
+                    .placeholder("搜索用户名或内容...");
+                if !search_query.is_empty() {
+                    state.set_value(search_query, window, cx);
+                }
+                state
             });
             self.search_input = Some(input);
         }
@@ -218,46 +216,9 @@ impl SuperChatView {
             self.search_query = current_text;
         }
 
-        let is_maximized = window.is_maximized();
-
         v_flex()
             .w_full()
             .bg(Colors::bg_secondary_with_opacity(opacity))
-            // Title bar - only title, count and window controls
-            .child(
-                h_flex()
-                    .w_full()
-                    .h(px(32.0))
-                    .items_center()
-                    .child(
-                        draggable_area()
-                            .flex_1()
-                            .h_full()
-                            .pl(left_padding)
-                            .pr_2()
-                            .flex()
-                            .items_center()
-                            .child(
-                                h_flex()
-                                    .gap_2()
-                                    .items_center()
-                                    .child(
-                                        div()
-                                            .text_size(px(12.0))
-                                            .font_weight(FontWeight::BOLD)
-                                            .text_color(Colors::text_primary())
-                                            .child("醒目留言"),
-                                    )
-                                    .child(
-                                        div()
-                                            .text_size(px(11.0))
-                                            .text_color(Colors::text_muted())
-                                            .child(format!("({})", self.sc_list.len())),
-                                    ),
-                            ),
-                    )
-                    .child(render_window_controls(is_maximized)),
-            )
             // Filter controls - in content area
             .child(
                 h_flex()
@@ -270,16 +231,19 @@ impl SuperChatView {
                     .child(
                         div()
                             .flex_1()
-                            .child(
-                                gpui_component::input::Input::new(&input_state)
-                                    .cleanable(true),
-                            ),
+                            .child(gpui_component::input::Input::new(&input_state).cleanable(true)),
                     )
                     .child(
                         h_flex()
                             .gap_2()
                             .pl_2()
                             .items_center()
+                            .child(
+                                div()
+                                    .text_size(px(10.0))
+                                    .text_color(Colors::text_muted())
+                                    .child(format!("{} 条", self.sc_list.len())),
+                            )
                             // Show archived toggle
                             .child(
                                 h_flex()
@@ -294,10 +258,12 @@ impl SuperChatView {
                                     .child(
                                         gpui_component::switch::Switch::new("show-archived-toggle")
                                             .checked(self.show_archived)
-                                            .on_click(cx.listener(|this, checked: &bool, _window, cx| {
-                                                this.show_archived = *checked;
-                                                cx.notify();
-                                            })),
+                                            .on_click(cx.listener(
+                                                |this, checked: &bool, _window, cx| {
+                                                    this.show_archived = *checked;
+                                                    cx.notify();
+                                                },
+                                            )),
                                     ),
                             )
                             // Clear button
@@ -355,13 +321,13 @@ impl SuperChatView {
                                 .child(format!("找到 {} 条结果", filtered_count)),
                         )
                     })
-                    .children(
-                        sc_list.iter().enumerate().map(|(ix, sc)| {
-                            let pending = pending_archive_toggle.clone();
-                            let pending_del = pending_delete.clone();
-                            cx.new(|_| SuperChatItemView::new(sc.clone(), ix, pending, pending_del, opacity))
+                    .children(sc_list.iter().enumerate().map(|(ix, sc)| {
+                        let pending = pending_archive_toggle.clone();
+                        let pending_del = pending_delete.clone();
+                        cx.new(|_| {
+                            SuperChatItemView::new(sc.clone(), ix, pending, pending_del, opacity)
                         })
-                    ),
+                    })),
             )
     }
 }
@@ -387,7 +353,7 @@ impl Render for SuperChatView {
             .size_full()
             .bg(Colors::bg_primary_with_opacity(opacity))
             .text_color(Colors::text_primary())
-            .child(self.render_header(window, cx))
+            .child(self.render_toolbar(window, cx))
             .child(self.render_sc_list(window, cx))
             // Confirmation dialog overlay
             .when(show_confirm, |this| {
@@ -436,10 +402,12 @@ impl Render for SuperChatView {
                                                 .bg(Colors::bg_hover_with_opacity(opacity))
                                                 .text_size(px(12.0))
                                                 .hover(|s| s.opacity(0.8))
-                                                .on_click(cx.listener(|this, _event, _window, cx| {
-                                                    this.show_clear_confirm = false;
-                                                    cx.notify();
-                                                }))
+                                                .on_click(cx.listener(
+                                                    |this, _event, _window, cx| {
+                                                        this.show_clear_confirm = false;
+                                                        cx.notify();
+                                                    },
+                                                ))
                                                 .child("取消"),
                                         )
                                         .child(
@@ -453,16 +421,24 @@ impl Render for SuperChatView {
                                                 .text_size(px(12.0))
                                                 .text_color(gpui::white())
                                                 .hover(|s| s.opacity(0.8))
-                                                .on_click(cx.listener(|this, _event, _window, cx| {
-                                                    this.show_clear_confirm = false;
-                                                    this.clear_all(cx);
-                                                }))
+                                                .on_click(cx.listener(
+                                                    |this, _event, _window, cx| {
+                                                        this.show_clear_confirm = false;
+                                                        this.clear_all(cx);
+                                                    },
+                                                ))
                                                 .child("确认"),
                                         ),
                                 ),
                         ),
                 )
             })
+    }
+}
+
+impl WindowFrameContent for SuperChatView {
+    fn window_opacity(&self) -> f32 {
+        self.opacity
     }
 }
 
@@ -509,9 +485,21 @@ impl Render for SuperChatItemView {
 
         // Use SC theme color
         let sc_color = Colors::superchat();
-        let accent = if archived { Colors::text_muted() } else { sc_color };
-        let text_primary = if archived { Colors::text_muted() } else { Colors::text_primary() };
-        let text_secondary = if archived { Colors::text_muted() } else { Colors::text_secondary() };
+        let accent = if archived {
+            Colors::text_muted()
+        } else {
+            sc_color
+        };
+        let text_primary = if archived {
+            Colors::text_muted()
+        } else {
+            Colors::text_primary()
+        };
+        let text_secondary = if archived {
+            Colors::text_muted()
+        } else {
+            Colors::text_secondary()
+        };
 
         // Simplified single-row layout
         h_flex()
@@ -565,9 +553,12 @@ impl Render for SuperChatItemView {
                             ),
                     )
                     // Message with BV link support
-                    .child(
-                        render_content_with_links(&self.sc.message, 12.0, text_primary, index),
-                    ),
+                    .child(render_content_with_links(
+                        &self.sc.message,
+                        12.0,
+                        text_primary,
+                        index,
+                    )),
             )
             // Action buttons (compact)
             .child(

@@ -1,7 +1,7 @@
 //! Audience window view
 
-use crate::components::{draggable_area, render_window_controls};
 use crate::theme::Colors;
+use crate::views::window_wrapper::WindowFrameContent;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
 use gpui_component::h_flex;
@@ -132,51 +132,13 @@ impl AudienceView {
         }
     }
 
-    fn render_header(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render_toolbar(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let opacity = self.opacity;
         let current_tab = self.current_tab;
-
-        #[cfg(target_os = "macos")]
-        let left_padding = px(78.0);
-        #[cfg(not(target_os = "macos"))]
-        let left_padding = px(12.0);
-
-        let is_maximized = window.is_maximized();
 
         v_flex()
             .w_full()
             .bg(Colors::bg_secondary_with_opacity(opacity))
-            // Title bar
-            .child(
-                h_flex()
-                    .w_full()
-                    .h(px(32.0))
-                    .items_center()
-                    .child(
-                        draggable_area()
-                            .flex_1()
-                            .h_full()
-                            .pl(left_padding)
-                            .pr_2()
-                            .flex()
-                            .items_center()
-                            .justify_between()
-                            .child(
-                                div()
-                                    .text_size(px(12.0))
-                                    .font_weight(FontWeight::BOLD)
-                                    .text_color(Colors::text_primary())
-                                    .child("观众列表"),
-                            )
-                            .child(
-                                div()
-                                    .text_size(px(11.0))
-                                    .text_color(Colors::text_muted())
-                                    .child(format!("舰长: {}", self.guard_total)),
-                            ),
-                    )
-                    .child(render_window_controls(is_maximized)),
-            )
             // Tab bar
             .child(
                 h_flex()
@@ -227,7 +189,7 @@ impl AudienceView {
                                 this.current_tab = AudienceTab::Guards;
                                 cx.notify();
                             }))
-                            .child("舰长"),
+                            .child(format!("舰长 ({})", self.guard_total)),
                     ),
             )
     }
@@ -351,13 +313,19 @@ impl Render for AudienceView {
             .size_full()
             .bg(Colors::bg_primary_with_opacity(opacity))
             .text_color(Colors::text_primary())
-            .child(self.render_header(window, cx))
+            .child(self.render_toolbar(window, cx))
             .when(current_tab == AudienceTab::Audience, |el| {
                 el.child(self.render_audience_list(window, cx))
             })
             .when(current_tab == AudienceTab::Guards, |el| {
                 el.child(self.render_guard_list(window, cx))
             })
+    }
+}
+
+impl WindowFrameContent for AudienceView {
+    fn window_opacity(&self) -> f32 {
+        self.opacity
     }
 }
 
