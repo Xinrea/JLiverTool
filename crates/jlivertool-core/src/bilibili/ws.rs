@@ -465,8 +465,10 @@ pub struct ManagedBiliWebSocket {
     ws_info: WsInfo,
     event_tx: mpsc::UnboundedSender<WsEvent>,
     is_running: Arc<std::sync::atomic::AtomicBool>,
-    reconnect_delay: Duration,
 }
+
+const INITIAL_RECONNECT_DELAY: Duration = Duration::from_millis(200);
+const MAX_RECONNECT_DELAY: Duration = Duration::from_secs(3);
 
 impl ManagedBiliWebSocket {
     pub fn new(ws_info: WsInfo) -> (Self, mpsc::UnboundedReceiver<WsEvent>) {
@@ -476,7 +478,6 @@ impl ManagedBiliWebSocket {
             ws_info,
             event_tx,
             is_running: Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            reconnect_delay: Duration::from_secs(3),
         };
 
         (client, event_rx)
@@ -486,14 +487,21 @@ impl ManagedBiliWebSocket {
     pub async fn run(&self) {
         self.is_running
             .store(true, std::sync::atomic::Ordering::SeqCst);
+        let mut reconnect_delay = INITIAL_RECONNECT_DELAY;
 
         while self.is_running.load(std::sync::atomic::Ordering::SeqCst) {
             let (ws, mut rx) = BiliWebSocket::new(self.ws_info.clone());
 
             // Forward events
             let event_tx = self.event_tx.clone();
+            let authenticated = Arc::new(std::sync::atomic::AtomicBool::new(false));
+            let authenticated_for_events = authenticated.clone();
             let forward_handle = tokio::spawn(async move {
                 while let Some(event) = rx.recv().await {
+                    if matches!(event, WsEvent::Authenticated) {
+                        authenticated_for_events
+                            .store(true, std::sync::atomic::Ordering::Relaxed);
+                    }
                     if event_tx.send(event).is_err() {
                         break;
                     }
@@ -513,8 +521,15 @@ impl ManagedBiliWebSocket {
                 break;
             }
 
-            info!("Reconnecting in {:?}...", self.reconnect_delay);
-            tokio::time::sleep(self.reconnect_delay).await;
+            if authenticated.load(std::sync::atomic::Ordering::Relaxed) {
+                reconnect_delay = INITIAL_RECONNECT_DELAY;
+            }
+            info!("Reconnecting in {:?}...", reconnect_delay);
+            tokio::time::sleep(reconnect_delay).await;
+            reconnect_delay = std::cmp::min(
+                reconnect_delay.saturating_mul(2),
+                MAX_RECONNECT_DELAY,
+            );
         }
     }
 
