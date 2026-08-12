@@ -3,7 +3,10 @@
 //! This module contains the unified view for rendering different types of
 //! messages in the danmu list (danmu, interact, entry effect, gift, guard, superchat).
 
-use super::content_rendering::{guard_icon_url, guard_level_name, render_content_with_links, DisplayMessage, RenderRow};
+use super::content_rendering::{
+    guard_icon_url, guard_level_name, render_content_with_links, DisplayMessage, GiftTextRole,
+    GiftTextRun, RenderRow,
+};
 use super::user_info_card::{SelectedUser, SelectedUserState};
 use crate::theme::Colors;
 use gpui::*;
@@ -621,6 +624,12 @@ impl DanmuListItemView {
             RenderRow::DanmuContinuation { danmu, content_slice, continuation_index } => {
                 self.render_danmu_continuation(danmu, content_slice, *continuation_index)
             }
+            RenderRow::GiftLine {
+                gift,
+                runs,
+                line_index,
+                is_last,
+            } => self.render_gift_line(gift, runs, *line_index, *is_last),
             RenderRow::SuperChatHeader { sc } => {
                 self.render_superchat_header(sc)
             }
@@ -628,6 +637,60 @@ impl DanmuListItemView {
                 self.render_superchat_content(sc, content_slice, *continuation_index, *is_last)
             }
         }
+    }
+
+    fn render_gift_line(
+        &self,
+        gift: &GiftMessage,
+        runs: &[GiftTextRun],
+        line_index: usize,
+        is_last: bool,
+    ) -> Div {
+        let font_size = self.font_size;
+        let lite_mode = self.lite_mode;
+        let opacity = self.opacity;
+        let row_height = self.row_height();
+        let is_paid = gift.gift_info.coin_type != "silver";
+        let gift_color = if is_paid {
+            hsla(42.0 / 360.0, 0.85, 0.59, 1.0)
+        } else {
+            Colors::text_secondary()
+        };
+
+        let mut el = h_flex()
+            .w_full()
+            .h(px(row_height))
+            .gap_1()
+            .items_center()
+            .border_l_2()
+            .border_color(gift_color)
+            .hover(|s| s.bg(Colors::bg_hover_with_opacity(opacity)))
+            .overflow_hidden();
+
+        if line_index == 0 {
+            el = el.rounded_t_sm().border_t_1();
+        }
+        if is_last {
+            el = el.rounded_b_sm().border_b_1();
+        }
+        el = if lite_mode { el.px_1() } else { el.px_2() };
+
+        for run in runs {
+            let (color, weight, size) = match run.role {
+                GiftTextRole::GiftName => (gift_color, FontWeight::BOLD, font_size),
+                GiftTextRole::Price => (gift_color, FontWeight::NORMAL, font_size * 0.9),
+                _ => (Colors::text_secondary(), FontWeight::NORMAL, font_size),
+            };
+            el = el.child(
+                div()
+                    .text_size(px(size))
+                    .font_weight(weight)
+                    .text_color(color)
+                    .child(run.text.clone()),
+            );
+        }
+
+        el
     }
 
     /// Render the first line of a wrapped danmu (medal + username + partial content)

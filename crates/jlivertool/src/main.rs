@@ -16,7 +16,7 @@ use jlivertool_core::messages::{
     OnlineRankCountMessage, RoomChangeMessage, SuperChatMessage, WarningMessage,
 };
 use jlivertool_core::tts::{TtsEnabled, TtsManager, TtsMessage};
-use jlivertool_core::types::RoomId;
+use jlivertool_core::types::{MedalInfo, RoomId, Sender};
 use jlivertool_plugin::PluginManager;
 use jlivertool_ui::{run_app_with_tray, PluginInfo, UiCommand};
 use notify_rust::Notification;
@@ -25,6 +25,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc as tokio_mpsc;
 use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -113,7 +114,153 @@ impl EventSender {
     }
 }
 
+const MOCK_MESSAGES_FLAG: &str = "--mock-messages";
+
+/// Tiny dependency-free PRNG used only by the opt-in message generator.
+struct MockRng(u64);
+
+impl MockRng {
+    fn new() -> Self {
+        let seed = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_nanos() as u64;
+        Self(seed ^ 0x9E37_79B9_7F4A_7C15)
+    }
+
+    fn next(&mut self) -> u64 {
+        self.0 = self
+            .0
+            .wrapping_mul(6_364_136_223_846_793_005)
+            .wrapping_add(1_442_695_040_888_963_407);
+        self.0
+    }
+
+    fn index(&mut self, len: usize) -> usize {
+        (self.next() as usize) % len
+    }
+}
+
+fn mock_sender(rng: &mut MockRng, sequence: u64) -> Sender {
+    const NAMES: &[&str] = &[
+        "测试用户",
+        "一只路过的小猫咪",
+        "JLiverTool 测试员",
+        "用户名特别长用于测试换行",
+        "Alice_2026",
+    ];
+    const MEDALS: &[&str] = &["测试", "轴伊", "开发", "长勋章名称"];
+
+    Sender {
+        uid: 10_000 + sequence,
+        uname: NAMES[rng.index(NAMES.len())].to_string(),
+        face: String::new(),
+        medal_info: MedalInfo {
+            medal_level: (rng.index(40) + 1) as u8,
+            medal_name: MEDALS[rng.index(MEDALS.len())].to_string(),
+            medal_color: 0x6154c1,
+            medal_color_border: 0x6154c1,
+            medal_color_start: 0x6154c1,
+            medal_color_end: 0x6154c1,
+            is_lighted: true,
+            ..Default::default()
+        },
+    }
+}
+
+fn mock_event(rng: &mut MockRng, sequence: u64) -> Event {
+    const DANMU_CONTENTS: &[&str] = &[
+        "测试弹幕",
+        "这是一条用于检查窗口宽度变化后换行是否正确的长弹幕消息",
+        "短消息",
+        "中英文 mixed content with BV1xx411c7mD and some more text",
+        "今天天气不错，直播也很精彩！",
+    ];
+    const GIFT_NAMES: &[&str] = &[
+        "辣条",
+        "小花花",
+        "一个名字特别特别长用于测试礼物消息换行的礼物",
+        "梦幻城堡",
+        "Super Gift 2026 Limited Edition",
+    ];
+    const SC_CONTENTS: &[&str] = &[
+        "测试醒目留言",
+        "这是一条比较长的醒目留言，用于验证多行内容在不同窗口宽度下的渲染效果。",
+        "感谢开发这个工具！",
+        "SC mixed with English words and BV1xx411c7mD",
+    ];
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let sender = mock_sender(rng, sequence);
+
+    match rng.index(3) {
+        0 => Event::NewDanmu(DanmuMessage {
+            sender,
+            content: DANMU_CONTENTS[rng.index(DANMU_CONTENTS.len())].to_string(),
+            is_generated: false,
+            is_special: rng.index(5) == 0,
+            is_mirror: false,
+            emoji_content: None,
+            side_index: -1,
+            reply_uname: None,
+        }),
+        1 => {
+            let paid = rng.index(4) != 0;
+            Event::NewGift(GiftMessage {
+                id: format!("mock-gift-{sequence}"),
+                room: 0,
+                gift_info: jlivertool_core::messages::GiftInfo {
+                    id: sequence,
+                    name: GIFT_NAMES[rng.index(GIFT_NAMES.len())].to_string(),
+                    price: if paid { [1000, 5000, 30_000][rng.index(3)] } else { 0 },
+                    coin_type: if paid { "gold" } else { "silver" }.to_string(),
+                    img_basic: String::new(),
+                    img_dynamic: String::new(),
+                    gif: String::new(),
+                    webp: String::new(),
+                },
+                sender,
+                action: ["投喂", "赠送", "送出"][rng.index(3)].to_string(),
+                num: [1, 2, 5, 10, 99][rng.index(5)],
+                timestamp: now,
+                archived: false,
+            })
+        }
+        _ => Event::NewSuperChat(SuperChatMessage {
+            id: format!("mock-sc-{sequence}"),
+            room: 0,
+            sender,
+            message: SC_CONTENTS[rng.index(SC_CONTENTS.len())].to_string(),
+            price: [30, 50, 100, 500][rng.index(4)],
+            timestamp: now,
+            start_time: now,
+            end_time: now + 60,
+            background_color: "#EDF5FF".to_string(),
+            background_bottom_color: "#2A60B2".to_string(),
+            archived: false,
+        }),
+    }
+}
+
+fn start_mock_message_generator(event_tx: EventSender) {
+    std::thread::spawn(move || {
+        let mut rng = MockRng::new();
+        let mut sequence = 1_u64;
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+            if event_tx.send(mock_event(&mut rng, sequence)).is_err() {
+                break;
+            }
+            sequence = sequence.wrapping_add(1);
+        }
+    });
+}
+
 fn main() -> Result<()> {
+    let mock_messages_enabled = std::env::args().any(|arg| arg == MOCK_MESSAGES_FLAG);
     // Get data directory and initialize logging
     let data_dir = get_data_dir();
     std::fs::create_dir_all(&data_dir)?;
@@ -265,6 +412,14 @@ fn main() -> Result<()> {
             sender
         }
     };
+
+    if mock_messages_enabled {
+        info!(
+            "Mock message generator enabled via {}; emitting one random danmu/gift/SC per second",
+            MOCK_MESSAGES_FLAG
+        );
+        start_mock_message_generator(event_sender.clone());
+    }
 
     // Initialize database
     let db_path = config.read().data_dir().join("jlivertool.db");

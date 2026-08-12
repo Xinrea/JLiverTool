@@ -13,7 +13,9 @@ mod event_processing;
 mod render;
 mod user_info_card;
 
-pub use content_rendering::{render_content_with_links, DisplayMessage, RenderRow};
+pub use content_rendering::{
+    render_content_with_links, DisplayMessage, GiftTextRole, GiftTextRun, RenderRow,
+};
 pub(crate) use content_rendering::{append_message_rows, build_render_rows};
 pub(crate) use danmu_list_item::DanmuListItemView;
 pub(crate) use user_info_card::SelectedUserState;
