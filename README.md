@@ -52,6 +52,20 @@
 
 当登录账号与直播间号匹配时，直播间标题设置和开/关播按钮才可使用。
 
+## 插件
+
+插件是放在应用数据目录 `plugins/` 下的静态网页（`meta.json` + `index.html`），由应用内置的本地服务器提供，在系统默认浏览器中打开，通过自动注入的 `jliverAPI` 接收弹幕、礼物、舰长、醒目留言等事件。开发文档见 [插件文档](https://xinrea.github.io/JLiverTool/plugin-document.html)，完整示例见 [`plugins/`](https://github.com/Xinrea/JLiverTool/tree/master/plugins)。
+
+### 让 AI Agent 写插件
+
+仓库内置了一份 [Agent Skill](https://github.com/Xinrea/JLiverTool/tree/master/skills/jlivertool-plugin)，一条命令即可装到本机的编码 Agent（Claude Code、Codex、Cursor 等，需要 Node.js）：
+
+```bash
+npx skills add Xinrea/JLiverTool --skill jlivertool-plugin -g -y
+```
+
+安装后直接向 Agent 描述需求即可，例如「写一个把弹幕画成像素画的插件」。Skill 用法与更多命令见[插件文档](https://xinrea.github.io/JLiverTool/plugin-document.html)。
+
 ## 安装说明
 
 ### macOS

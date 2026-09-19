@@ -1,0 +1,9 @@
+{
+  "id": "jlivertool.example.my-plugin",
+  "name": "我的插件",
+  "author": "你的名字",
+  "desc": "一句话说明这个插件做什么",
+  "version": "0.1.0",
+  "index": "index.html",
+  "url": "https://github.com/your-name/your-repo"
+}

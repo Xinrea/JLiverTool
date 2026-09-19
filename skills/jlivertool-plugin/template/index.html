@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>我的插件</title>
+  <!-- jliver-api.js 由 JLiverTool 的 HTTP 服务器自动注入，不要手动引入 -->
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: #16161a;
+      color: #e6e6e6;
+    }
+    h1 { margin: 0 0 12px; font-size: 18px; }
+    .bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #22222a; border-radius: 8px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #e5484d; }
+    .dot.on { background: #46a758; }
+    .stats { display: flex; gap: 24px; margin: 12px 0; }
+    .stats b { display: block; font-size: 20px; }
+    #danmu-list { max-height: 320px; overflow-y: auto; background: #1c1c22; border-radius: 8px; padding: 8px; }
+    .item { padding: 4px 8px; border-radius: 4px; }
+    .item .name { color: #7cc4ff; }
+    .item .price { color: #ffd93d; }
+  </style>
+</head>
+<body>
+  <h1>我的插件</h1>
+
+  <div class="bar">
+    <span class="dot" id="dot"></span>
+    <span id="status">等待 JLiverTool…</span>
+  </div>
+
+  <div class="stats">
+    <div><b id="count-danmu">0</b>弹幕</div>
+    <div><b id="count-gift">0</b>礼物</div>
+  </div>
+
+  <div id="danmu-list"></div>
+
+  <script>
+    // ---- 状态与渲染 ---------------------------------------------------------
+    const state = { danmu: 0, gift: 0 };
+    const listEl = document.getElementById('danmu-list');
+
+    // 弹幕内容是不可信的用户输入，一律用 textContent 渲染，禁止 innerHTML
+    function appendRow(name, text, cls) {
+      const row = document.createElement('div');
+      row.className = 'item';
+      const nameEl = document.createElement('span');
+      nameEl.className = 'name';
+      nameEl.textContent = name + '：';
+      const textEl = document.createElement('span');
+      if (cls) textEl.className = cls;
+      textEl.textContent = text;
+      row.append(nameEl, textEl);
+      listEl.prepend(row);
+      while (listEl.children.length > 100) listEl.lastChild.remove();
+    }
+
+    function render() {
+      document.getElementById('count-danmu').textContent = state.danmu;
+      document.getElementById('count-gift').textContent = state.gift;
+    }
+
+    // ---- 事件处理（纯逻辑，便于离线调试） -----------------------------------
+    function onDanmu(data) {
+      state.danmu++;
+      appendRow(data.uname, data.msg);
+      render();
+    }
+
+    function onGift(data) {
+      state.gift++;
+      appendRow(data.uname, data.num + 'x ' + data.gift_name, 'price');
+      render();
+    }
+
+    // ---- 与 JLiverTool 的连接 ----------------------------------------------
+    function setConnected(connected) {
+      document.getElementById('dot').classList.toggle('on', connected);
+      document.getElementById('status').textContent = connected
+        ? '已连接 JLiverTool'
+        : '未连接（等待 JLiverTool 启动）';
+    }
+
+    // jliver-api.js 由服务器注入，正常情况下 jliverAPI 已就绪；
+    // 轮询等待是为了兼容页面不是由 JLiverTool 打开（没有 jliverAPI）的情况
+    function waitForApi(cb, timeoutMs) {
+      const start = Date.now();
+      (function poll() {
+        if (window.jliverAPI) return cb();
+        if (Date.now() - start > (timeoutMs || 15000)) {
+          console.warn('JLiverTool: jliverAPI 未出现，页面可能不是由 JLiverTool 打开的');
+          return;
+        }
+        setTimeout(poll, 100);
+      })();
+    }
+
+    waitForApi(function () {
+      jliverAPI.register('NewDanmu', (event) => onDanmu(event.data));
+      jliverAPI.register('NewGift', (event) => onGift(event.data));
+      // 其他频道（NewGuard / NewSuperChat / NewInteract / UpdateRoom / UpdateOnline /
+      // LiveStart / LiveEnd）的字段见 references/api.md
+
+      setConnected(jliverAPI.isConnected());
+      setInterval(() => setConnected(jliverAPI.isConnected()), 1000);
+    });
+
+    // ---- 离线调试 -----------------------------------------------------------
+    // 用 file:// 打开，或访问 .../index.html?demo=1 时，用假数据预览界面
+    if (new URLSearchParams(location.search).has('demo')) {
+      setConnected(false);
+      let n = 0;
+      setInterval(() => onDanmu({ uname: '测试观众', msg: '演示弹幕 ' + ++n }), 500);
+    }
+  </script>
+</body>
+</html>
