@@ -5,7 +5,7 @@
 ## 插件目录与文件服务
 
 ```
-plugins/
+<数据目录>/plugins/
   my-plugin/
     meta.json      # 必需，元数据
     index.html     # 必需，入口页面（文件名固定为 index.html）
@@ -14,7 +14,7 @@ plugins/
     lib/xxx.js     # 可选，第三方库（自己 vendored 进来）
 ```
 
-- 应用启动时扫描数据目录下的 `plugins/`，遇到含 `meta.json` 的子目录就加载；加载失败只在日志里报错（`Failed to load plugin at ...`），不影响其他插件。
+- 应用启动时扫描**用户数据目录**下的 `plugins/`（不是 JLiverTool 仓库源码里的 `plugins/`），遇到含 `meta.json` 的子目录就加载；加载失败只在日志里报错（`Failed to load plugin at ...`），不影响其他插件。数据目录路径见 [SKILL.md](../SKILL.md)。
 - HTTP 服务器（默认 `http://127.0.0.1:8080`）的路由：
   - `GET /jliver-api.js`：返回 API 脚本本体。
   - `GET /{插件目录名}/{文件路径}`：返回插件目录下的文件，MIME 由扩展名推断，所有响应带 `Cache-Control: no-cache`。
