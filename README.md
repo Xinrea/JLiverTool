@@ -68,6 +68,10 @@ npx skills add Xinrea/JLiverTool --skill jlivertool-plugin -g -y
 
 ## 安装说明
 
+在「设置 → 关于 → 更新」点击「检查更新」可手动检查新版本。发现更新后，可以选择「稍后」「下载并更新」或「查看更新内容」；查看更新内容会打开 GitHub 发布页。
+
+「下载并更新」会下载当前系统和处理器对应的安装包，校验完成后安装并自动重启。支持 macOS 应用、Windows 安装版和便携版，以及 Linux AppImage/DEB；需要安装权限时，系统会请求授权。macOS 应用和 AppImage/便携版所在目录需可写，开发构建和 Arch 软件包请手动更新。
+
 ### macOS
 
 由于应用未经 Apple 签名，首次运行时可能提示"文件已损坏"。请在终端中执行以下命令：

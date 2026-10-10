@@ -327,6 +327,19 @@ impl MainView {
                         });
                     }
                 }
+                Event::UpdateInstallProgress(progress) => {
+                    self.update_dialog.update(cx, |dialog, cx| dialog.progress(progress, cx));
+                }
+                Event::UpdateInstallFailed { version, release_url, error } => {
+                    self.update_dialog.update(cx, |dialog, cx| {
+                        // Preserve the release URL when a preparation error does not include one.
+                        if !release_url.is_empty() { dialog.show(version, release_url, cx); }
+                        dialog.fail(error, cx);
+                    });
+                }
+                Event::UpdateReadyToRestart => {
+                    cx.defer(|cx| cx.quit());
+                }
                 Event::UpdateCheckResult {
                     has_update,
                     latest_version,
@@ -338,11 +351,8 @@ impl MainView {
                     let status = if let Some(err) = error {
                         UpdateStatus::Error(err)
                     } else if has_update {
-                        // Show update dialog popup
-                        self.show_update_dialog = true;
-                        self.update_info = Some(super::UpdateDialogInfo {
-                            latest_version: latest_version.clone(),
-                            release_url: release_url.clone(),
+                        self.update_dialog.update(cx, |dialog, cx| {
+                            dialog.show(latest_version.clone(), release_url.clone(), cx);
                         });
                         UpdateStatus::UpdateAvailable {
                             version: latest_version,

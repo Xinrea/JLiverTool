@@ -169,6 +169,14 @@ pub enum Event {
         release_url: String,
         error: Option<String>,
     },
+    UpdateInstallProgress(crate::update::install::InstallProgress),
+    UpdateInstallFailed {
+        version: String,
+        release_url: String,
+        error: String,
+    },
+    /// The helper is running and waiting for this application's exit.
+    UpdateReadyToRestart,
 
     /// Live stream warning received
     Warning(WarningMessage),
@@ -305,6 +313,9 @@ impl EventBus {
             Event::PluginImportResult { .. } => "plugin_import_result",
             Event::DataCleared => "data_cleared",
             Event::UpdateCheckResult { .. } => "update_check_result",
+            Event::UpdateInstallProgress(_) => "update_install_progress",
+            Event::UpdateInstallFailed { .. } => "update_install_failed",
+            Event::UpdateReadyToRestart => "update_ready_to_restart",
             Event::Warning(_) => "warning",
             Event::CutOff(_) => "cut_off",
         }

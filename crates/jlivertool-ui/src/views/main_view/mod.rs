@@ -22,6 +22,7 @@ pub(crate) use user_info_card::SelectedUserState;
 use user_info_card::UserInfoCard;
 
 use crate::app::UiCommand;
+use crate::components::update_dialog::UpdateDialog;
 use crate::tray::{TrayManager, TrayState};
 use crate::views::AudienceView;
 use crate::views::{DashboardDanmuView, DashboardView, DashboardViews};
@@ -137,8 +138,7 @@ pub struct MainView {
     // Pending command to insert (set by subscription, applied in render)
     pending_command_insert: Rc<RefCell<Option<String>>>,
     // Update dialog state
-    show_update_dialog: bool,
-    update_info: Option<UpdateDialogInfo>,
+    update_dialog: Entity<UpdateDialog>,
     // Tray manager for system tray integration
     tray_manager: Option<Arc<parking_lot::Mutex<TrayManager>>>,
     // Login status for tray
@@ -147,13 +147,6 @@ pub struct MainView {
     logged_in_uid: Option<u64>,
     // Pending tray command to open settings (Arc for thread-safe sharing)
     pending_open_settings: Arc<AtomicBool>,
-}
-
-/// Update dialog information
-#[derive(Clone)]
-pub struct UpdateDialogInfo {
-    pub latest_version: String,
-    pub release_url: String,
 }
 
 impl MainView {
@@ -165,6 +158,8 @@ impl MainView {
     ) -> Self {
         let selected_user = Rc::new(RefCell::new(None));
         let setting_view = cx.new(SettingView::new);
+        let update_dialog = cx.new(|_| UpdateDialog::new(command_tx.clone()));
+        setting_view.update(cx, |view, cx| view.set_update_dialog(update_dialog.clone(), cx));
         let gift_view = cx.new(GiftView::new);
         gift_view.update(cx, |view, cx| {
             view.set_query_command_sender(command_tx.clone(), cx)
@@ -515,8 +510,7 @@ impl MainView {
             show_command_popup: Rc::new(Cell::new(false)),
             selected_command_index: Rc::new(Cell::new(0)),
             pending_command_insert: Rc::new(RefCell::new(None)),
-            show_update_dialog: false,
-            update_info: None,
+            update_dialog,
             tray_manager: None,
             logged_in: false,
             logged_in_uid: None,

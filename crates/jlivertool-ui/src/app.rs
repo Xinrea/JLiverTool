@@ -107,6 +107,8 @@ pub enum UiCommand {
     OpenDataFolder,
     /// Check for updates
     CheckForUpdate,
+    /// Download, verify and install the release confirmed by the user.
+    DownloadAndInstallUpdate { version: String },
     /// Update auto-update check setting
     UpdateAutoUpdateCheck(bool),
     /// Update plugin server ports

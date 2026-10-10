@@ -128,6 +128,7 @@ pub struct SettingView {
     on_room_title_change: Option<RoomTitleCallback>,
     show_clear_data_confirm: bool,
     // Update check
+    update_dialog: Option<Entity<crate::components::update_dialog::UpdateDialog>>,
     auto_update_check: Arc<RwLock<bool>>,
     update_status: Arc<RwLock<UpdateStatus>>,
     on_check_update: Option<UpdateCheckCallback>,
@@ -329,6 +330,7 @@ impl SettingView {
             on_open_data_folder: None,
             on_room_title_change: None,
             show_clear_data_confirm: false,
+            update_dialog: None,
             auto_update_check: Arc::new(RwLock::new(true)),
             update_status: Arc::new(RwLock::new(UpdateStatus::default())),
             on_check_update: None,
@@ -582,6 +584,11 @@ impl SettingView {
         F: Fn(&mut Window, &mut App) + Send + Sync + 'static,
     {
         self.on_open_data_folder = Some(Arc::new(callback));
+    }
+
+    pub fn set_update_dialog(&mut self, dialog: Entity<crate::components::update_dialog::UpdateDialog>, cx: &mut Context<Self>) {
+        self.update_dialog = Some(dialog);
+        cx.notify();
     }
 
     /// Set check update callback
@@ -3570,17 +3577,14 @@ impl SettingView {
             UpdateStatus::Checking => ("检查中...", false, None),
             UpdateStatus::UpToDate => ("检查更新", true, Some("已是最新版本".to_string())),
             UpdateStatus::UpdateAvailable { version, .. } => {
-                ("前往下载", true, Some(format!("发现新版本: {}", version)))
+                ("检查更新", true, Some(format!("发现新版本: {}", version)))
             }
-            UpdateStatus::Error(msg) => ("重试", true, Some(format!("检查失败: {}", msg))),
+            UpdateStatus::Error(msg) => ("检查更新", true, Some(format!("检查失败: {}", msg))),
         };
 
         let is_update_available = matches!(status, UpdateStatus::UpdateAvailable { .. });
-        let update_url = if let UpdateStatus::UpdateAvailable { url, .. } = &status {
-            Some(url.clone())
-        } else {
-            None
-        };
+        let installing = self.update_dialog.as_ref().is_some_and(|dialog| dialog.read(cx).busy);
+        let button_enabled = button_enabled && !installing;
 
         v_flex()
             .w_full()
@@ -3601,6 +3605,7 @@ impl SettingView {
             .child(
                 div()
                     .id("check-update-btn")
+                    .debug_selector(|| "check-update-btn".into())
                     .w_full()
                     .px_3()
                     .py_2()
@@ -3625,9 +3630,7 @@ impl SettingView {
                     .child(button_text)
                     .when(button_enabled, |this| {
                         this.on_click(cx.listener(move |this, _event, window, cx| {
-                            if let Some(ref url) = update_url {
-                                cx.open_url(url);
-                            } else if let Some(ref callback) = this.on_check_update {
+                            if let Some(ref callback) = this.on_check_update {
                                 *this.update_status.write() = UpdateStatus::Checking;
                                 callback(window, cx);
                             }
@@ -3736,6 +3739,7 @@ impl Render for SettingView {
                             ),
                     ),
             )
+            .when_some(self.update_dialog.clone(), |this, dialog| this.child(dialog))
             // Face auth dialog overlay
             .when(self.show_face_auth_dialog, |this| {
                 this.child(
@@ -3804,5 +3808,32 @@ impl Render for SettingView {
                         ),
                 )
             })
+    }
+}
+
+#[cfg(test)]
+mod update_tests {
+    use super::{SettingView, UpdateStatus};
+    use gpui::{Modifiers, TestAppContext};
+    use std::sync::mpsc;
+
+    #[gpui::test]
+    fn manual_check_remains_available_after_an_update_is_found(cx: &mut TestAppContext) {
+        cx.update(gpui_component::init);
+        let (tx, rx) = mpsc::channel();
+        let (settings, cx) = cx.add_window_view(|_, cx| SettingView::new(cx));
+        settings.update(cx, |settings, cx| {
+            settings.active_tab = 6;
+            settings.on_check_update(move |_, _| { tx.send(()).unwrap(); });
+            settings.set_update_status(UpdateStatus::UpdateAvailable {
+                version: "9.0.0".into(),
+                url: "https://github.com/Xinrea/JLiverTool/releases/tag/v9.0.0".into(),
+            }, cx);
+        });
+        cx.run_until_parked();
+        let button = cx.debug_bounds("check-update-btn").expect("manual check is rendered in Settings");
+        cx.simulate_click(button.center(), Modifiers::default());
+        assert!(rx.try_recv().is_ok(), "manual check invokes its callback");
+        assert!(cx.opened_url().is_none(), "manual check does not open a download URL");
     }
 }

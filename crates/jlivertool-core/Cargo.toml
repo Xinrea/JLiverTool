@@ -41,6 +41,9 @@ uuid = { workspace = true }
 directories = { workspace = true }
 parking_lot = { workspace = true }
 urlencoding = { workspace = true }
+semver = "1"
+sha2 = "0.10"
+tempfile = "3"
 
 # Database
 rusqlite = { workspace = true }

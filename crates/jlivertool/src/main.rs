@@ -260,6 +260,18 @@ fn start_mock_message_generator(event_tx: EventSender) {
 }
 
 fn main() -> Result<()> {
+    use jlivertool_core::update::install::{APPLY_UPDATE_FLAG, UPDATE_RESULT_FLAG};
+    let arguments: Vec<_> = std::env::args_os().collect();
+    if arguments.get(1).is_some_and(|arg| arg == APPLY_UPDATE_FLAG) {
+        let manifest = arguments.get(2).ok_or_else(|| anyhow::anyhow!("Missing update manifest"))?;
+        return jlivertool_core::update::install::apply_update(std::path::Path::new(manifest));
+    }
+    let update_outcome = arguments.iter().position(|arg| arg == UPDATE_RESULT_FLAG)
+        .and_then(|index| arguments.get(index + 1))
+        .map(|path| jlivertool_core::update::install::read_outcome(std::path::Path::new(path)));
+    let update_failed = update_outcome.as_ref().is_some_and(|result| {
+        result.as_ref().is_ok_and(|outcome| outcome.error.is_some())
+    });
     let mock_messages_enabled = std::env::args().any(|arg| arg == MOCK_MESSAGES_FLAG);
     // Get data directory and initialize logging
     let data_dir = get_data_dir();
@@ -281,6 +293,21 @@ fn main() -> Result<()> {
 
     // Create flag for pending events (shared between sender and UI)
     let has_events = Arc::new(AtomicBool::new(false));
+    if let Some(outcome) = update_outcome {
+        match outcome {
+            Ok(outcome) => {
+                if let Some(error) = outcome.error {
+                    let _ = event_tx.send(Event::UpdateInstallFailed {
+                        version: outcome.version, release_url: outcome.release_url, error,
+                    });
+                    has_events.store(true, Ordering::Relaxed);
+                } else {
+                    info!("Update installed successfully: v{}", outcome.version);
+                }
+            }
+            Err(error) => warn!("Failed to read update outcome: {error:#}"),
+        }
+    }
 
     // Shared API client and config
     let config = Arc::new(RwLock::new(ConfigStore::new()?));
@@ -557,7 +584,7 @@ fn main() -> Result<()> {
         });
 
         // Auto-check for updates on startup if enabled
-        if cfg.auto_update_check {
+        if cfg.auto_update_check && !update_failed {
             let event_tx = event_sender.clone();
             let current_version = env!("CARGO_PKG_VERSION").to_string();
             std::thread::spawn(move || {
@@ -675,6 +702,7 @@ async fn handle_commands(
 ) {
     let mut gift_query_task: Option<tokio::task::JoinHandle<()>> = None;
     let mut gift_types_task: Option<tokio::task::JoinHandle<()>> = None;
+    let update_running = Arc::new(AtomicBool::new(false));
     while let Ok(command) = command_rx.recv() {
         match command {
             UiCommand::FetchOnlineGiftTypes {
@@ -1311,6 +1339,7 @@ async fn handle_commands(
                 }
             }
             UiCommand::CheckForUpdate => {
+                if update_running.load(Ordering::Acquire) { continue; }
                 info!("Checking for updates...");
                 let event_tx = event_tx.clone();
                 let current_version = env!("CARGO_PKG_VERSION").to_string();
@@ -1332,6 +1361,30 @@ async fn handle_commands(
                                 latest_version: String::new(),
                                 release_url: String::new(),
                                 error: Some(e.to_string()),
+                            });
+                        }
+                    }
+                });
+            }
+            UiCommand::DownloadAndInstallUpdate { version } => {
+                if update_running.swap(true, Ordering::AcqRel) { continue; }
+                let running = update_running.clone();
+                let event_tx = event_tx.clone();
+                tokio::spawn(async move {
+                    let result = async {
+                        let prepared = jlivertool_core::update::install::prepare_update(&version, |progress| {
+                            let _ = event_tx.send(Event::UpdateInstallProgress(progress));
+                        }).await?;
+                        tokio::task::spawn_blocking(move || prepared.launch()).await??;
+                        Ok::<(), anyhow::Error>(())
+                    }.await;
+                    match result {
+                        Ok(()) => { let _ = event_tx.send(Event::UpdateReadyToRestart); }
+                        Err(error) => {
+                            error!("Update failed: {error:#}");
+                            running.store(false, Ordering::Release);
+                            let _ = event_tx.send(Event::UpdateInstallFailed {
+                                version, release_url: String::new(), error: format!("{error:#}"),
                             });
                         }
                     }
