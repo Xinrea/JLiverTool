@@ -162,7 +162,7 @@ impl SuperChatView {
         let offset = self.scroll_handle.offset();
         let max_offset = self.scroll_handle.max_offset();
         let threshold = px(50.0);
-        offset.y <= -max_offset.height + threshold
+        offset.y <= -max_offset.y + threshold
     }
 
     /// Filter superchats based on search query and archived status

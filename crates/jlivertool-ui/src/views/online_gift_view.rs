@@ -276,7 +276,7 @@ impl OnlineGiftView {
             self.subscriptions
                 .push(cx.subscribe(&picker, |this, _, event, cx| {
                     let DatePickerEvent::Change(date) = event;
-                    this.period = *date;
+                    this.period = date.date();
                     this.clear_results();
                     cx.notify();
                 }));
@@ -552,7 +552,7 @@ impl Render for OnlineGiftView {
                                     .child(div().w(px(160.0)).flex_shrink_0().truncate().text_color(if record.is_guard() { Colors::accent() } else { Colors::text_primary() }).child(record.gift_name().to_string()))
                                     .child(div().w(px(60.0)).flex_shrink_0().text_right().child(record.quantity()))
                             }).collect()
-                        }).flex_1().h_full().track_scroll(self.scroll.clone()))
+                        }).flex_1().h_full().track_scroll(&self.scroll))
                         .child(Scrollbar::vertical(&self.scroll)))))
     }
 }

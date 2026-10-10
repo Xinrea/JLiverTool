@@ -222,7 +222,7 @@ impl AudienceView {
                 })
                 .flex_1()
                 .h_full()
-                .track_scroll(scroll_handle.clone()),
+                .track_scroll(&scroll_handle),
             )
             .child(Scrollbar::vertical(&scroll_handle))
     }
@@ -259,7 +259,7 @@ impl AudienceView {
                         })
                         .flex_1()
                         .h_full()
-                        .track_scroll(scroll_handle.clone()),
+                        .track_scroll(&scroll_handle),
                     )
                     .child(Scrollbar::vertical(&scroll_handle)),
             )

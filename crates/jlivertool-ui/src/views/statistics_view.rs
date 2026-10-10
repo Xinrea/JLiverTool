@@ -251,7 +251,7 @@ impl StatisticsView {
         // Start auto-refresh timer (every 10 seconds)
         cx.spawn(
             async move |this: WeakEntity<Self>, cx: &mut AsyncApp| loop {
-                Timer::after(Duration::from_secs(10)).await;
+                cx.background_executor().timer(Duration::from_secs(10)).await;
                 let result = cx.update(|cx| {
                     this.update(cx, |view, cx| {
                         view.refresh_stats();
@@ -492,8 +492,8 @@ impl StatisticsView {
                 window,
                 |this, _, event: &DatePickerEvent, _window, cx| {
                     let DatePickerEvent::Change(date) = event;
-                    if let Date::Single(Some(d)) = date {
-                        this.custom_start_date = Some(*d);
+                    if let Date::Single(Some(d)) = date.date() {
+                        this.custom_start_date = Some(d);
                         cx.notify();
                     }
                 },
@@ -525,8 +525,8 @@ impl StatisticsView {
                 window,
                 |this, _, event: &DatePickerEvent, _window, cx| {
                     let DatePickerEvent::Change(date) = event;
-                    if let Date::Single(Some(d)) = date {
-                        this.custom_end_date = Some(*d);
+                    if let Date::Single(Some(d)) = date.date() {
+                        this.custom_end_date = Some(d);
                         cx.notify();
                     }
                 },

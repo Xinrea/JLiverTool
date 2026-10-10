@@ -466,7 +466,7 @@ impl GiftView {
         let offset = base_handle.offset();
         let max_offset = base_handle.max_offset();
         let threshold = px(50.0);
-        offset.y <= -max_offset.height + threshold
+        offset.y <= -max_offset.y + threshold
     }
 
     fn render_toolbar(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -761,7 +761,7 @@ impl GiftView {
                 })
                 .flex_1()
                 .h_full()
-                .track_scroll(scroll_handle.clone()),
+                .track_scroll(&scroll_handle),
             )
             .child(Scrollbar::vertical(&scroll_handle))
     }

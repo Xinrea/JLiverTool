@@ -2007,7 +2007,7 @@ impl SettingView {
                 &slider_state,
                 window,
                 move |_view, _, event: &SliderEvent, window, cx| {
-                    let SliderEvent::Change(value) = event;
+                    let SliderEvent::Change(value) = event else { return; };
                     let font_size = value.start();
                     settings_for_slider.write().font_size = font_size;
                     if let Some(ref callback) = on_font_size_change {
@@ -2140,7 +2140,7 @@ impl SettingView {
                 &slider_state,
                 window,
                 move |_view, _, event: &SliderEvent, window, cx| {
-                    let SliderEvent::Change(value) = event;
+                    let SliderEvent::Change(value) = event else { return; };
                     let opacity = value.start();
                     settings_for_slider.write().opacity = opacity;
                     if let Some(ref callback) = on_opacity_change {
@@ -2327,7 +2327,7 @@ impl SettingView {
                 &slider_state,
                 window,
                 move |_view, _, event: &SliderEvent, window, cx| {
-                    let SliderEvent::Change(value) = event;
+                    let SliderEvent::Change(value) = event else { return; };
                     let volume = value.start();
                     settings_for_slider.write().tts_volume = volume;
                     if let Some(ref callback) = on_tts_volume_change {

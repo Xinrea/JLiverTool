@@ -687,6 +687,8 @@ pub fn guard_level_name(level: u8) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // Keep GPUI's re-exported test macro out of these ordinary unit tests.
+    use core::prelude::v1::test;
     use jlivertool_core::messages::GiftInfo;
     use jlivertool_core::types::Sender;
 

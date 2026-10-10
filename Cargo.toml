@@ -11,9 +11,11 @@ repository = "https://github.com/your-repo/jlivertool"
 
 [workspace.dependencies]
 # GPUI Framework
-# Compile Metal shaders at runtime so macOS builds do not require Xcode's metal tool.
-gpui = { version = "0.2.2", features = ["runtime_shaders"] }
-gpui-component = "0.5.0"
+# Use the exact GPUI snapshot that gpui-component 0.7.1 is built against.
+gpui = { package = "gpui-pre", version = "=0.3.8" }
+# Platform backends are separate from GPUI; compile Metal shaders at runtime.
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+gpui-component = "=0.7.1"
 # Pin core-text to fix core_graphics version conflict
 core-text = "=21.0.0"
 

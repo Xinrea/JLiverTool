@@ -38,8 +38,8 @@ crates/
 
 ## 依赖
 
-- [GPUI](https://gpui.rs/) - Zed 的 GPU 加速 UI 框架
-- [gpui-component](https://github.com/longbridge/gpui-component) - GPUI 组件库
+- [GPUI](https://gpui.rs/) - Zed 的 GPU 加速 UI 框架，使用 GPUI Kit 发布的 `gpui-pre` 快照
+- [gpui-component](https://github.com/longbridge/gpui-kit) - GPUI 组件库
 - [Tokio](https://tokio.rs/) - 异步运行时
 - [Reqwest](https://docs.rs/reqwest) - HTTP 客户端
 - [tokio-tungstenite](https://docs.rs/tokio-tungstenite) - WebSocket 客户端
@@ -48,32 +48,38 @@ crates/
 
 ### 前置要求
 
-- Rust 1.75+ (推荐使用 rustup 安装)
+- Rust 1.98.1（`rust-toolchain.toml` 自动选择，推荐使用 rustup 安装）
 - 系统依赖 (macOS):
   - Xcode Command Line Tools
 
 ### 依赖配置
 
-在 `Cargo.toml` 中需要固定 `core-text` 版本以解决依赖冲突：
+GPUI、平台后端和组件库必须使用匹配的版本；不要单独升级 `gpui-pre`。
+Metal 着色器在运行时编译，无需安装完整 Xcode 的 Metal 工具。
+工作区配置如下，macOS 仍固定 `core-text` 版本以解决依赖冲突：
 
 ```toml
-[dependencies]
-gpui = "0.2.2"
-gpui-component = "0.5.0"
+[workspace.dependencies]
+gpui = { package = "gpui-pre", version = "=0.3.8" }
+gpui_platform = { package = "gpui-pre-platform", version = "=0.3.8", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
+gpui-component = "=0.7.1"
 core-text = "=21.0.0"
 ```
+
+`Cargo.lock` 纳入版本管理，用 `--locked` 构建以复现依赖。
+升级改动与新功能评估见 [GPUI 升级评估](gpui-upgrade.md)。
 
 ### 编译
 
 ```bash
 # 开发构建
-cargo build
+cargo build --locked
 
 # 发布构建
-cargo build --release
+cargo build --release --locked
 
 # 运行
-cargo run --release
+cargo run --release --locked
 ```
 
 ### 生成文件大小

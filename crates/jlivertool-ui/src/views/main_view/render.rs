@@ -970,7 +970,7 @@ impl MainView {
                 })
                 .flex_1()
                 .h_full()
-                .track_scroll(scroll_handle.clone()),
+                .track_scroll(&scroll_handle),
             )
             .child(Scrollbar::vertical(&scroll_handle))
     }
@@ -1007,7 +1007,7 @@ impl Render for MainView {
         if self.pending_open_settings.swap(false, std::sync::atomic::Ordering::Relaxed) {
             cx.spawn(async move |this: WeakEntity<Self>, cx: &mut AsyncApp| {
                 // Small delay to ensure render is complete
-                Timer::after(std::time::Duration::from_millis(1)).await;
+                cx.background_executor().timer(std::time::Duration::from_millis(1)).await;
                 let _ = cx.update(|cx| {
                     let _ = this.update(cx, |view, cx| {
                         view.open_settings_window_deferred(cx);

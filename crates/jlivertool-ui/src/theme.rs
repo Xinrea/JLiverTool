@@ -31,89 +31,105 @@ pub fn set_theme(name: &str) {
 /// This should be called with the GPUI context after set_theme
 pub fn update_gpui_component_theme(cx: &mut App) {
     let theme_colors = current_theme().read();
-    let gpui_theme = gpui_component::theme::Theme::global_mut(cx);
+    gpui_component::theme::Theme::update(cx, |gpui_theme| {
+        // Set background to transparent so window opacity can work
+        // The actual background color is applied by each view with opacity
+        gpui_theme.colors.background = gpui::transparent_black();
 
-    // Set background to transparent so window opacity can work
-    // The actual background color is applied by each view with opacity
-    gpui_theme.colors.background = gpui::transparent_black();
-
-    gpui_theme.colors.foreground = theme_colors.font_color;
-    gpui_theme.colors.border = theme_colors.border;
-    gpui_theme.colors.primary = theme_colors.uname_color;
-    gpui_theme.colors.primary_foreground = theme_colors.button_text;
-    let accent = theme_colors.uname_color;
-    gpui_theme.colors.primary_hover = hsla(accent.h, accent.s, (accent.l - 0.04).max(0.0), 1.0);
-    gpui_theme.colors.primary_active = hsla(accent.h, accent.s, (accent.l - 0.08).max(0.0), 1.0);
-    gpui_theme.colors.ring = accent;
-
-    let (r, g, b) = theme_colors.gift_bg;
-    gpui_theme.colors.secondary = rgb_to_hsla(r, g, b);
-    gpui_theme.colors.secondary_foreground = theme_colors.font_color;
-    let secondary = gpui_theme.colors.secondary;
-    let direction = if secondary.l > 0.5 { -1.0 } else { 1.0 };
-    gpui_theme.colors.secondary_hover = hsla(
-        secondary.h,
-        secondary.s,
-        (secondary.l + direction * 0.04).clamp(0.0, 1.0),
-        1.0,
-    );
-    gpui_theme.colors.secondary_active = hsla(
-        secondary.h,
-        secondary.s,
-        (secondary.l + direction * 0.08).clamp(0.0, 1.0),
-        1.0,
-    );
-    // Calendar ranges and control hover states must follow the current theme.
-    gpui_theme.colors.accent = gpui_theme.colors.secondary_hover;
-    gpui_theme.colors.accent_foreground = theme_colors.font_color;
-
-    // Muted color - derived from font color
-    let font = theme_colors.font_color;
-    gpui_theme.colors.muted = hsla(font.h, font.s * 0.5, font.l * 0.6, 0.6);
-    gpui_theme.colors.muted_foreground = hsla(font.h, font.s * 0.3, font.l * 0.8, 0.8);
-
-    // Set caret (cursor) color to be more visible - use the font color for best contrast
-    gpui_theme.colors.caret = theme_colors.font_color;
-
-    // List colors for Select dropdown
-    let (r, g, b) = theme_colors.main_bg;
-    let is_light = (r as u32 + g as u32 + b as u32) > 384; // Light theme detection
-
-    // List active (selected item) - use accent color with proper contrast
-    gpui_theme.colors.list_active = theme_colors.uname_color;
-    // For selected item text, use white for dark accent, black for light accent
-    let accent_lightness = theme_colors.uname_color.l;
-    if accent_lightness > 0.5 {
         gpui_theme.colors.foreground = theme_colors.font_color;
-    }
+        gpui_theme.colors.border = theme_colors.border;
+        gpui_theme.colors.primary = theme_colors.uname_color;
+        gpui_theme.colors.primary_foreground = theme_colors.button_text;
+        let accent = theme_colors.uname_color;
+        gpui_theme.colors.primary_hover = hsla(accent.h, accent.s, (accent.l - 0.04).max(0.0), 1.0);
+        gpui_theme.colors.primary_active =
+            hsla(accent.h, accent.s, (accent.l - 0.08).max(0.0), 1.0);
+        gpui_theme.colors.ring = accent;
 
-    // List hover
-    if is_light {
-        gpui_theme.colors.list_hover = hsla(0.0, 0.0, 0.9, 1.0);
-        gpui_theme.colors.list = hsla(0.0, 0.0, 0.95, 1.0);
-    } else {
-        gpui_theme.colors.list_hover = hsla(0.0, 0.0, 0.2, 1.0);
-        gpui_theme.colors.list = hsla(0.0, 0.0, 0.15, 1.0);
-    }
+        let (r, g, b) = theme_colors.gift_bg;
+        gpui_theme.colors.secondary = rgb_to_hsla(r, g, b);
+        gpui_theme.colors.secondary_foreground = theme_colors.font_color;
+        let secondary = gpui_theme.colors.secondary;
+        let direction = if secondary.l > 0.5 { -1.0 } else { 1.0 };
+        gpui_theme.colors.secondary_hover = hsla(
+            secondary.h,
+            secondary.s,
+            (secondary.l + direction * 0.04).clamp(0.0, 1.0),
+            1.0,
+        );
+        gpui_theme.colors.secondary_active = hsla(
+            secondary.h,
+            secondary.s,
+            (secondary.l + direction * 0.08).clamp(0.0, 1.0),
+            1.0,
+        );
+        // Buttons have independent color tokens in gpui-component 0.7.
+        // Default outline buttons also use button_foreground, including the
+        // online gift search and category/type dropdown triggers.
+        gpui_theme.colors.button = gpui_theme.colors.secondary;
+        gpui_theme.colors.button_hover = gpui_theme.colors.secondary_hover;
+        gpui_theme.colors.button_active = gpui_theme.colors.secondary_active;
+        gpui_theme.colors.button_foreground = theme_colors.font_color;
+        gpui_theme.colors.button_primary = gpui_theme.colors.primary;
+        gpui_theme.colors.button_primary_hover = gpui_theme.colors.primary_hover;
+        gpui_theme.colors.button_primary_active = gpui_theme.colors.primary_active;
+        gpui_theme.colors.button_primary_foreground = theme_colors.button_text;
+        gpui_theme.colors.button_secondary = gpui_theme.colors.secondary;
+        gpui_theme.colors.button_secondary_hover = gpui_theme.colors.secondary_hover;
+        gpui_theme.colors.button_secondary_active = gpui_theme.colors.secondary_active;
+        gpui_theme.colors.button_secondary_foreground = theme_colors.font_color;
+        // Calendar ranges and control hover states must follow the current theme.
+        gpui_theme.colors.accent = gpui_theme.colors.secondary_hover;
+        gpui_theme.colors.accent_foreground = theme_colors.font_color;
 
-    // Popover colors (for dropdown menus)
-    let (r, g, b) = theme_colors.gift_bg;
-    gpui_theme.colors.popover = rgb_to_hsla(r, g, b);
-    gpui_theme.colors.popover_foreground = theme_colors.font_color;
+        // Muted color - derived from font color
+        let font = theme_colors.font_color;
+        gpui_theme.colors.muted = hsla(font.h, font.s * 0.5, font.l * 0.6, 0.6);
+        gpui_theme.colors.muted_foreground = hsla(font.h, font.s * 0.3, font.l * 0.8, 0.8);
 
-    // Input colors
-    gpui_theme.colors.input = theme_colors.border;
+        // Set caret (cursor) color to be more visible - use the font color for best contrast
+        gpui_theme.colors.caret = theme_colors.font_color;
 
-    // Switch colors - derive from theme
-    if is_light {
-        // Light theme: darker switch background, white thumb
-        gpui_theme.colors.switch = hsla(0.0, 0.0, 0.7, 1.0);
-        gpui_theme.colors.switch_thumb = hsla(0.0, 0.0, 1.0, 1.0);
-    } else {
-        // Dark theme: lighter switch background, white thumb
-        gpui_theme.colors.switch = hsla(0.0, 0.0, 0.3, 1.0);
-        gpui_theme.colors.switch_thumb = hsla(0.0, 0.0, 1.0, 1.0);
-    }
+        // List colors for Select dropdown
+        let (r, g, b) = theme_colors.main_bg;
+        let is_light = (r as u32 + g as u32 + b as u32) > 384; // Light theme detection
+
+        // List active (selected item) - use accent color with proper contrast
+        gpui_theme.colors.list_active = theme_colors.uname_color;
+        // For selected item text, use white for dark accent, black for light accent
+        let accent_lightness = theme_colors.uname_color.l;
+        if accent_lightness > 0.5 {
+            gpui_theme.colors.foreground = theme_colors.font_color;
+        }
+
+        // List hover
+        if is_light {
+            gpui_theme.colors.list_hover = hsla(0.0, 0.0, 0.9, 1.0);
+            gpui_theme.colors.list = hsla(0.0, 0.0, 0.95, 1.0);
+        } else {
+            gpui_theme.colors.list_hover = hsla(0.0, 0.0, 0.2, 1.0);
+            gpui_theme.colors.list = hsla(0.0, 0.0, 0.15, 1.0);
+        }
+
+        // Popover colors (for dropdown menus)
+        let (r, g, b) = theme_colors.gift_bg;
+        gpui_theme.colors.popover = rgb_to_hsla(r, g, b);
+        gpui_theme.colors.popover_foreground = theme_colors.font_color;
+
+        // Input colors
+        gpui_theme.colors.input = theme_colors.border;
+
+        // Switch colors - derive from theme
+        if is_light {
+            // Light theme: darker switch background, white thumb
+            gpui_theme.colors.switch = hsla(0.0, 0.0, 0.7, 1.0);
+            gpui_theme.colors.switch_thumb = hsla(0.0, 0.0, 1.0, 1.0);
+        } else {
+            // Dark theme: lighter switch background, white thumb
+            gpui_theme.colors.switch = hsla(0.0, 0.0, 0.3, 1.0);
+            gpui_theme.colors.switch_thumb = hsla(0.0, 0.0, 1.0, 1.0);
+        }
+    });
 }
 
 /// Theme color definitions

@@ -1,0 +1,5 @@
+[toolchain]
+# Match the Zed revision used by gpui-pre 0.3.8.
+channel = "1.98.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]

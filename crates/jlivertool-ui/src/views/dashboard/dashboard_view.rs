@@ -1,14 +1,16 @@
-use super::DashboardDanmuView;
 use super::panel::DashboardPanel;
+use super::DashboardDanmuView;
 use crate::app::UiCommand;
 use crate::theme::Colors;
 use crate::views::{AudienceView, GiftView, StatisticsView, SuperChatView};
 use gpui::*;
-use gpui_component::dock::{DockArea, DockAreaState, DockEvent, DockItem, register_panel};
+use gpui_component::dock::{
+    register_panel, DockArea, DockAreaState, DockEvent, DockLayout, DockSkin, PanelHandle,
+};
 use gpui_component::v_flex;
 use jlivertool_core::config::ConfigStore;
-use std::sync::Arc;
 use std::sync::mpsc;
+use std::sync::Arc;
 use std::time::Duration;
 
 const LAYOUT_VERSION: usize = 2;
@@ -82,8 +84,8 @@ impl DashboardView {
     ) -> Self {
         Self::register_panels(&views, cx);
 
-        let dock_area =
-            cx.new(|cx| DockArea::new("jlivertool-dashboard", Some(LAYOUT_VERSION), window, cx));
+        let (dock_area, _) =
+            DockSkin::dock_area("jlivertool-dashboard", Some(LAYOUT_VERSION), window, cx);
 
         let saved_layout = config.get_dashboard_layout();
         let loaded = saved_layout
@@ -107,8 +109,9 @@ impl DashboardView {
                     let state = dock_area.read(cx).dump(cx);
                     if let Ok(value) = serde_json::to_value(state) {
                         let command_tx = command_tx_for_layout.clone();
+                        let delay = cx.background_executor().timer(Duration::from_millis(400));
                         this._layout_save_task = cx.background_executor().spawn(async move {
-                            Timer::after(Duration::from_millis(400)).await;
+                            delay.await;
                             let _ = command_tx.send(UiCommand::SaveDashboardLayout(value));
                         });
                     }
@@ -132,28 +135,38 @@ impl DashboardView {
 
     fn register_panels(views: &DashboardViews, cx: &mut Context<Self>) {
         let content = views.danmu.clone();
-        register_panel(cx, DANMU_PANEL.name, move |_, _, _, _, cx| {
-            Box::new(cx.new(|cx| DashboardPanel::new(DANMU_PANEL, content.clone(), cx)))
+        register_panel(cx, DANMU_PANEL.name, move |_, _, cx| {
+            Arc::new(PanelHandle::new(
+                cx.new(|cx| DashboardPanel::new(DANMU_PANEL, content.clone(), cx)),
+            ))
         });
 
         let content = views.superchat.clone();
-        register_panel(cx, SUPERCHAT_PANEL.name, move |_, _, _, _, cx| {
-            Box::new(cx.new(|cx| DashboardPanel::new(SUPERCHAT_PANEL, content.clone(), cx)))
+        register_panel(cx, SUPERCHAT_PANEL.name, move |_, _, cx| {
+            Arc::new(PanelHandle::new(cx.new(|cx| {
+                DashboardPanel::new(SUPERCHAT_PANEL, content.clone(), cx)
+            })))
         });
 
         let content = views.gift.clone();
-        register_panel(cx, GIFT_PANEL.name, move |_, _, _, _, cx| {
-            Box::new(cx.new(|cx| DashboardPanel::new(GIFT_PANEL, content.clone(), cx)))
+        register_panel(cx, GIFT_PANEL.name, move |_, _, cx| {
+            Arc::new(PanelHandle::new(
+                cx.new(|cx| DashboardPanel::new(GIFT_PANEL, content.clone(), cx)),
+            ))
         });
 
         let content = views.statistics.clone();
-        register_panel(cx, STATISTICS_PANEL.name, move |_, _, _, _, cx| {
-            Box::new(cx.new(|cx| DashboardPanel::new(STATISTICS_PANEL, content.clone(), cx)))
+        register_panel(cx, STATISTICS_PANEL.name, move |_, _, cx| {
+            Arc::new(PanelHandle::new(cx.new(|cx| {
+                DashboardPanel::new(STATISTICS_PANEL, content.clone(), cx)
+            })))
         });
 
         let content = views.audience.clone();
-        register_panel(cx, AUDIENCE_PANEL.name, move |_, _, _, _, cx| {
-            Box::new(cx.new(|cx| DashboardPanel::new(AUDIENCE_PANEL, content.clone(), cx)))
+        register_panel(cx, AUDIENCE_PANEL.name, move |_, _, cx| {
+            Arc::new(PanelHandle::new(cx.new(|cx| {
+                DashboardPanel::new(AUDIENCE_PANEL, content.clone(), cx)
+            })))
         });
     }
 
@@ -163,8 +176,6 @@ impl DashboardView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let weak_dock = dock_area.downgrade();
-
         let danmu_panel = cx.new(|cx| DashboardPanel::new(DANMU_PANEL, views.danmu, cx));
         let gift_panel = cx.new(|cx| DashboardPanel::new(GIFT_PANEL, views.gift, cx));
         let superchat_panel =
@@ -173,19 +184,26 @@ impl DashboardView {
             cx.new(|cx| DashboardPanel::new(STATISTICS_PANEL, views.statistics, cx));
         let audience_panel = cx.new(|cx| DashboardPanel::new(AUDIENCE_PANEL, views.audience, cx));
 
-        let danmu = DockItem::tabs(vec![Arc::new(danmu_panel)], &weak_dock, window, cx);
+        let danmu = DockLayout::tabs().panel_view(Arc::new(PanelHandle::new(danmu_panel)), cx);
+        let gift = DockLayout::tabs().panel_view(Arc::new(PanelHandle::new(gift_panel)), cx);
+        let superchat =
+            DockLayout::tabs().panel_view(Arc::new(PanelHandle::new(superchat_panel)), cx);
+        let middle = DockLayout::v_split()
+            .child(gift, None)
+            .child(superchat, None);
 
-        let gift = DockItem::tabs(vec![Arc::new(gift_panel)], &weak_dock, window, cx);
-        let superchat = DockItem::tabs(vec![Arc::new(superchat_panel)], &weak_dock, window, cx);
-        let middle =
-            DockItem::v_split(vec![gift, superchat], &weak_dock, window, cx).size(px(400.0));
+        let statistics =
+            DockLayout::tabs().panel_view(Arc::new(PanelHandle::new(statistics_panel)), cx);
+        let audience =
+            DockLayout::tabs().panel_view(Arc::new(PanelHandle::new(audience_panel)), cx);
+        let right = DockLayout::v_split()
+            .child(statistics, None)
+            .child(audience, None);
 
-        let statistics = DockItem::tabs(vec![Arc::new(statistics_panel)], &weak_dock, window, cx);
-        let audience = DockItem::tabs(vec![Arc::new(audience_panel)], &weak_dock, window, cx);
-        let right =
-            DockItem::v_split(vec![statistics, audience], &weak_dock, window, cx).size(px(400.0));
-
-        let root = DockItem::h_split(vec![danmu, middle, right], &weak_dock, window, cx);
+        let root = DockLayout::h_split()
+            .child(danmu, None)
+            .child(middle, Some(px(400.0)))
+            .child(right, Some(px(400.0)));
 
         dock_area.update(cx, |dock, cx| dock.set_center(root, window, cx));
     }

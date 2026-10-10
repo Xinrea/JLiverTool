@@ -135,7 +135,7 @@ impl DashboardDanmuView {
         let base_handle = &scroll_state.base_handle;
         let offset = base_handle.offset();
         let max_offset = base_handle.max_offset();
-        offset.y <= -max_offset.height + px(50.0)
+        offset.y <= -max_offset.y + px(50.0)
     }
 
     fn rebuild_rows(&mut self, should_auto_scroll: bool) {
@@ -215,7 +215,7 @@ impl Render for DashboardDanmuView {
                 })
                 .flex_1()
                 .h_full()
-                .track_scroll(scroll_handle.clone()),
+                .track_scroll(&scroll_handle),
             )
             .child(Scrollbar::vertical(&scroll_handle))
     }

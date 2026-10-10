@@ -88,8 +88,10 @@ makepkg -si
 
 ### Run
 
+使用 `rust-toolchain.toml` 指定的 Rust 1.98.1。GPUI 的升级说明和新功能评估见 [GPUI 升级评估](crates/gpui-upgrade.md)。
+
 ```bash
-cargo run
+cargo run --locked
 ```
 
 ### Build

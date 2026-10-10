@@ -160,7 +160,7 @@ pub fn run_app_with_plugins(
         .map(|c| c.read().get_window_config(WindowType::Main))
         .unwrap_or_default();
 
-    Application::new().with_assets(crate::assets::UiAssets).run(move |cx| {
+    gpui_platform::application().with_assets(crate::assets::UiAssets).run(move |cx| {
         // Initialize gpui-component
         init(cx);
         gpui_component::set_locale("zh-CN");
@@ -247,7 +247,7 @@ pub fn run_app_with_tray(
         .map(|c| c.read().get_window_config(WindowType::Main))
         .unwrap_or_default();
 
-    Application::new().with_assets(crate::assets::UiAssets).run(move |cx| {
+    gpui_platform::application().with_assets(crate::assets::UiAssets).run(move |cx| {
         // Initialize gpui-component
         init(cx);
         gpui_component::set_locale("zh-CN");
@@ -424,7 +424,7 @@ pub fn run_app_with_tray(
                             }
                         }
                     }
-                    Timer::after(Duration::from_millis(100)).await;
+                    cx.background_executor().timer(Duration::from_millis(100)).await;
                 }
             })
             .detach();

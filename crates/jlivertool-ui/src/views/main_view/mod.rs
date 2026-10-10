@@ -527,7 +527,7 @@ impl MainView {
         // Only triggers re-render when has_events flag is set
         cx.spawn(async move |view: WeakEntity<Self>, cx: &mut AsyncApp| {
             loop {
-                Timer::after(Duration::from_millis(200)).await;
+                cx.background_executor().timer(Duration::from_millis(200)).await;
                 // Only notify if there are pending events
                 if has_events.swap(false, Ordering::Relaxed) {
                     let result = cx.update(|cx| {
@@ -658,7 +658,7 @@ impl MainView {
         let offset = base_handle.offset();
         let max_offset = base_handle.max_offset();
         let threshold = px(50.0);
-        offset.y <= -max_offset.height + threshold
+        offset.y <= -max_offset.y + threshold
     }
 
     fn active_danmu_is_at_bottom(&self, cx: &App) -> bool {

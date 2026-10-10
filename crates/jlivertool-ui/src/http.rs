@@ -112,10 +112,6 @@ impl IsahcHttpClient {
 }
 
 impl HttpClient for IsahcHttpClient {
-    fn type_name(&self) -> &'static str {
-        "IsahcHttpClient"
-    }
-
     fn user_agent(&self) -> Option<&gpui::http_client::http::HeaderValue> {
         Some(&self.user_agent)
     }

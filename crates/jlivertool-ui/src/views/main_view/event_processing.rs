@@ -203,6 +203,7 @@ impl MainView {
                     auto_update_check,
                 } => {
                     crate::theme::set_theme(&theme);
+                    crate::theme::update_gpui_component_theme(cx);
 
                     self.setting_view.update(cx, |view, cx| {
                         view.load_config(
