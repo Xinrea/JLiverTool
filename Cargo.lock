@@ -4011,7 +4011,7 @@ checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
 name = "jlivertool"
-version = "3.1.1"
+version = "3.2.0"
 dependencies = [
  "anyhow",
  "core-text",
@@ -4035,7 +4035,7 @@ dependencies = [
 
 [[package]]
 name = "jlivertool-core"
-version = "3.1.1"
+version = "3.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4089,7 +4089,7 @@ dependencies = [
 
 [[package]]
 name = "jlivertool-ui"
-version = "3.1.1"
+version = "3.2.0"
 dependencies = [
  "anyhow",
  "bytes",
