@@ -3,6 +3,7 @@
 //! This crate provides GPUI-based UI components for JLiverTool.
 
 pub mod app;
+pub mod assets;
 pub mod components;
 pub mod http;
 pub mod platform;

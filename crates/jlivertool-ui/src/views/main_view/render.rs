@@ -245,6 +245,10 @@ impl MainView {
 
                 crate::platform::set_window_always_on_top(window, always_on_top);
 
+                this.gift_view.update(cx, |view, cx| {
+                    view.set_online_query_always_on_top(always_on_top, cx);
+                });
+
                 if let Some(handle) = &this.settings_window {
                     let _ = cx.update_window(*handle, |_, win, _| {
                         crate::platform::set_window_always_on_top(win, always_on_top);

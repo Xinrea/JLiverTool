@@ -166,6 +166,9 @@ impl MainView {
         let selected_user = Rc::new(RefCell::new(None));
         let setting_view = cx.new(SettingView::new);
         let gift_view = cx.new(GiftView::new);
+        gift_view.update(cx, |view, cx| {
+            view.set_query_command_sender(command_tx.clone(), cx)
+        });
         let superchat_view = cx.new(SuperChatView::new);
         let statistics_view = cx.new(StatisticsView::new);
         let audience_view = cx.new(AudienceView::new);

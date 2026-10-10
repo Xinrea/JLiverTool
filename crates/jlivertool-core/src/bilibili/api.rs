@@ -9,6 +9,12 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
+mod gift_stream;
+pub use gift_stream::{
+    gift_stream_date_ranges, gift_stream_default_period, gift_stream_today, GiftStreamCategory,
+    GiftStreamFilter, GiftStreamRecord, GiftStreamType,
+};
+
 /// Base URLs
 const LIVE_API_BASE: &str = "https://api.live.bilibili.com";
 const WEB_API_BASE: &str = "https://api.bilibili.com";

@@ -40,9 +40,32 @@ pub fn update_gpui_component_theme(cx: &mut App) {
     gpui_theme.colors.foreground = theme_colors.font_color;
     gpui_theme.colors.border = theme_colors.border;
     gpui_theme.colors.primary = theme_colors.uname_color;
+    gpui_theme.colors.primary_foreground = theme_colors.button_text;
+    let accent = theme_colors.uname_color;
+    gpui_theme.colors.primary_hover = hsla(accent.h, accent.s, (accent.l - 0.04).max(0.0), 1.0);
+    gpui_theme.colors.primary_active = hsla(accent.h, accent.s, (accent.l - 0.08).max(0.0), 1.0);
+    gpui_theme.colors.ring = accent;
 
     let (r, g, b) = theme_colors.gift_bg;
     gpui_theme.colors.secondary = rgb_to_hsla(r, g, b);
+    gpui_theme.colors.secondary_foreground = theme_colors.font_color;
+    let secondary = gpui_theme.colors.secondary;
+    let direction = if secondary.l > 0.5 { -1.0 } else { 1.0 };
+    gpui_theme.colors.secondary_hover = hsla(
+        secondary.h,
+        secondary.s,
+        (secondary.l + direction * 0.04).clamp(0.0, 1.0),
+        1.0,
+    );
+    gpui_theme.colors.secondary_active = hsla(
+        secondary.h,
+        secondary.s,
+        (secondary.l + direction * 0.08).clamp(0.0, 1.0),
+        1.0,
+    );
+    // Calendar ranges and control hover states must follow the current theme.
+    gpui_theme.colors.accent = gpui_theme.colors.secondary_hover;
+    gpui_theme.colors.accent_foreground = theme_colors.font_color;
 
     // Muted color - derived from font color
     let font = theme_colors.font_color;

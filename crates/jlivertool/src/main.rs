@@ -673,8 +673,69 @@ async fn handle_commands(
     database: Arc<Database>,
     backend_cmd_tx: tokio_mpsc::UnboundedSender<BackendCommand>,
 ) {
+    let mut gift_query_task: Option<tokio::task::JoinHandle<()>> = None;
+    let mut gift_types_task: Option<tokio::task::JoinHandle<()>> = None;
     while let Ok(command) = command_rx.recv() {
         match command {
+            UiCommand::FetchOnlineGiftTypes {
+                request_id,
+                account_uid,
+            } => {
+                if let Some(task) = gift_types_task.take() {
+                    task.abort();
+                }
+                let api = api.read().clone();
+                let event_tx = event_tx.clone();
+                gift_types_task = Some(tokio::spawn(async move {
+                    let result = async {
+                        let nav = tokio::time::timeout(Duration::from_secs(30), api.nav())
+                            .await
+                            .map_err(|_| anyhow::anyhow!("验证登录状态超时，请稍后重试"))??;
+                        if !nav.is_login || nav.mid != Some(account_uid) {
+                            anyhow::bail!("登录状态已失效或账号已变更，请重新登录后查询");
+                        }
+                        api.get_gift_types().await
+                    }
+                    .await
+                    .map_err(|error: anyhow::Error| error.to_string());
+                    let _ = event_tx.send(Event::OnlineGiftTypesFetched {
+                        request_id,
+                        account_uid,
+                        result,
+                    });
+                }));
+            }
+            UiCommand::QueryOnlineGifts {
+                request_id,
+                account_uid,
+                begin,
+                end,
+                filter,
+            } => {
+                if let Some(task) = gift_query_task.take() {
+                    task.abort();
+                }
+                let api = api.read().clone();
+                let event_tx = event_tx.clone();
+                gift_query_task = Some(tokio::spawn(async move {
+                    let result = async {
+                        let nav = tokio::time::timeout(Duration::from_secs(30), api.nav())
+                            .await
+                            .map_err(|_| anyhow::anyhow!("验证登录状态超时，请稍后重试"))??;
+                        if !nav.is_login || nav.mid != Some(account_uid) {
+                            anyhow::bail!("登录状态已失效或账号已变更，请重新登录后查询");
+                        }
+                        api.get_received_gifts(&begin, &end, &filter).await
+                    }
+                    .await
+                    .map_err(|error: anyhow::Error| error.to_string());
+                    let _ = event_tx.send(Event::OnlineGiftsFetched {
+                        request_id,
+                        account_uid,
+                        result,
+                    });
+                }));
+            }
             UiCommand::RequestQrLogin => {
                 info!("Starting QR login...");
                 let api_read = api.read().clone();
@@ -704,6 +765,12 @@ async fn handle_commands(
                 }
             }
             UiCommand::RequestLogout => {
+                if let Some(task) = gift_types_task.take() {
+                    task.abort();
+                }
+                if let Some(task) = gift_query_task.take() {
+                    task.abort();
+                }
                 info!("Logging out...");
                 let api_read = api.read().clone();
 

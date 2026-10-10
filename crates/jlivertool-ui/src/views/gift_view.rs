@@ -1,10 +1,14 @@
 //! Gift window view
 
+use crate::app::UiCommand;
 use crate::theme::Colors;
+use crate::views::online_gift_view::OnlineGiftView;
 use crate::views::window_wrapper::WindowFrameContent;
 use gpui::prelude::FluentBuilder;
 use gpui::*;
 use gpui_component::h_flex;
+use gpui_component::button::Button;
+use gpui_component::{Disableable, IconName};
 use gpui_component::scroll::Scrollbar;
 use gpui_component::v_flex;
 use gpui_component::Sizable;
@@ -75,6 +79,10 @@ type PendingArchiveToggle = Rc<RefCell<Option<String>>>;
 type PendingDelete = Rc<RefCell<Option<String>>>;
 
 pub struct GiftView {
+    online_query: Option<Entity<OnlineGiftView>>,
+    online_window: Option<AnyWindowHandle>,
+    online_always_on_top: bool,
+    online_account: Option<(u64, String)>,
     gift_list: VecDeque<GiftEntry>,
     only_guards: bool,   // Whether to show only guard entries
     show_archived: bool, // Whether to show archived entries
@@ -100,6 +108,10 @@ pub struct GiftView {
 impl GiftView {
     pub fn new(_cx: &mut Context<Self>) -> Self {
         Self {
+            online_query: None,
+            online_window: None,
+            online_always_on_top: false,
+            online_account: None,
             gift_list: VecDeque::with_capacity(MAX_GIFT_COUNT),
             only_guards: false,
             show_archived: false,
@@ -118,6 +130,105 @@ impl GiftView {
             filtered_cache: None,
             list_version: 0,
             cached_list_version: 0,
+        }
+    }
+
+    pub fn set_query_command_sender(
+        &mut self,
+        sender: std::sync::mpsc::Sender<UiCommand>,
+        cx: &mut Context<Self>,
+    ) {
+        self.online_query = Some(cx.new(|_| OnlineGiftView::new(sender)));
+    }
+
+    pub fn set_online_account(&mut self, account: Option<(u64, String)>, cx: &mut Context<Self>) {
+        self.online_account = account.clone();
+        if let Some(query) = &self.online_query {
+            query.update(cx, |view, cx| view.set_account(account, cx));
+        }
+        cx.notify();
+    }
+
+    pub fn set_online_query_always_on_top(&mut self, always_on_top: bool, cx: &mut Context<Self>) {
+        self.online_always_on_top = always_on_top;
+        if let Some(handle) = self.online_window {
+            if cx
+                .update_window(handle, |_, window, _| {
+                    crate::platform::set_window_always_on_top(window, always_on_top);
+                })
+                .is_err()
+            {
+                self.online_window = None;
+            }
+        }
+    }
+
+    pub fn receive_online_gift_types(
+        &mut self,
+        request_id: u64,
+        account_uid: u64,
+        result: Result<Vec<jlivertool_core::bilibili::api::GiftStreamCategory>, String>,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(query) = &self.online_query {
+            query.update(cx, |view, cx| view.receive_types(request_id, account_uid, result, cx));
+        }
+    }
+
+    pub fn receive_online_gifts(
+        &mut self,
+        request_id: u64,
+        account_uid: u64,
+        result: Result<Vec<jlivertool_core::bilibili::api::GiftStreamRecord>, String>,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(query) = &self.online_query {
+            query.update(cx, |view, cx| view.receive(request_id, account_uid, result, cx));
+        }
+    }
+
+    fn open_online_query(&mut self, cx: &mut Context<Self>) {
+        if self.online_account.is_none() {
+            return;
+        }
+        let always_on_top = self.online_always_on_top;
+        if let Some(handle) = self.online_window {
+            if cx
+                .update_window(handle, |_, window, _| {
+                    crate::platform::set_window_always_on_top(window, always_on_top);
+                    window.activate_window();
+                })
+                .is_ok()
+            {
+                return;
+            }
+            self.online_window = None;
+        }
+        let Some(query) = self.online_query.clone() else {
+            return;
+        };
+        let bounds = Bounds::centered(None, size(px(900.0), px(640.0)), cx);
+        match cx.open_window(
+            WindowOptions {
+                window_bounds: Some(WindowBounds::Windowed(bounds)),
+                titlebar: Some(TitlebarOptions {
+                    title: Some("在线记录查询".into()),
+                    appears_transparent: true,
+                    ..Default::default()
+                }),
+                window_min_size: Some(size(px(760.0), px(480.0))),
+                ..Default::default()
+            },
+            |window, cx| {
+                if always_on_top {
+                    crate::platform::set_window_always_on_top(window, true);
+                }
+                let frame = cx.new(|_| crate::views::WindowFrame::new(query, "在线记录查询"));
+                cx.new(|cx| gpui_component::Root::new(frame, window, cx))
+            },
+        ) {
+            Ok(handle) => self.online_window = Some(handle.into()),
+            Err(error) => tracing::error!("Failed to open online gift query window: {error}"),
         }
     }
 
@@ -430,7 +541,28 @@ impl GiftView {
 
         v_flex()
             .w_full()
+            .flex_shrink_0()
             .bg(Colors::bg_secondary_with_opacity(opacity))
+            .border_b_1()
+            .border_color(Colors::border())
+            .child(
+                v_flex()
+                    .px_3()
+                    .py_2()
+                    .gap_1()
+                    .child(
+                        div()
+                            .text_size(px(12.0))
+                            .font_weight(FontWeight::MEDIUM)
+                            .child("本地礼物记录"),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(10.0))
+                            .text_color(Colors::text_muted())
+                            .child("本工具接收并保存的直播间礼物"),
+                    ),
+            )
             // Filter controls - in content area
             .child(
                 h_flex()
@@ -546,6 +678,53 @@ impl GiftView {
             )
     }
 
+    fn render_online_query_shortcut(&self, cx: &Context<Self>) -> impl IntoElement {
+        h_flex()
+            .w_full()
+            .flex_shrink_0()
+            .px_3()
+            .py_2()
+            .gap_3()
+            .items_center()
+            .justify_between()
+            .border_t_1()
+            .border_color(Colors::border())
+            .bg(Colors::bg_secondary_with_opacity(self.opacity))
+            .child(
+                v_flex()
+                    .flex_1()
+                    .min_w_0()
+                    .gap_1()
+                    .child(
+                        div()
+                            .text_size(px(11.0))
+                            .font_weight(FontWeight::MEDIUM)
+                            .child("B 站历史记录"),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(10.0))
+                            .text_color(Colors::text_muted())
+                            .child(if self.online_account.is_some() {
+                                "仅限当前登录账号 · 独立窗口"
+                            } else {
+                                "登录后可查询 · 独立窗口"
+                            }),
+                    ),
+            )
+            .child(
+                Button::new("open-online-gift-query")
+                    .outline()
+                    .small()
+                    .flex_shrink_0()
+                    .icon(IconName::Search)
+                    .label("查询 B 站记录")
+                    .tooltip("仅查询当前登录账号收到的礼物记录")
+                    .disabled(self.online_account.is_none())
+                    .on_click(cx.listener(|this, _, _, cx| this.open_online_query(cx))),
+            )
+    }
+
     fn render_gift_list(
         &mut self,
         _window: &mut Window,
@@ -561,6 +740,7 @@ impl GiftView {
         h_flex()
             .id("gift-container")
             .flex_1()
+            .min_h_0()
             .w_full()
             .overflow_hidden()
             .child(
@@ -610,6 +790,7 @@ impl Render for GiftView {
             .text_color(Colors::text_primary())
             .child(self.render_toolbar(window, cx))
             .child(self.render_gift_list(window, cx))
+            .child(self.render_online_query_shortcut(cx))
             // Confirmation dialog overlay
             .when(show_confirm, |this| {
                 this.child(

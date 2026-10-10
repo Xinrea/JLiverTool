@@ -23,6 +23,19 @@ pub enum UiCommand {
     RequestQrLogin,
     /// Request logout
     RequestLogout,
+    /// Load the authenticated creator center's category and gift catalog.
+    FetchOnlineGiftTypes {
+        request_id: u64,
+        account_uid: u64,
+    },
+    /// Query received gifts for the authenticated account (never the watched room).
+    QueryOnlineGifts {
+        request_id: u64,
+        account_uid: u64,
+        begin: String,
+        end: String,
+        filter: jlivertool_core::bilibili::api::GiftStreamFilter,
+    },
     /// Change room
     ChangeRoom(u64),
     /// Send danmu message
@@ -147,9 +160,10 @@ pub fn run_app_with_plugins(
         .map(|c| c.read().get_window_config(WindowType::Main))
         .unwrap_or_default();
 
-    Application::new().run(move |cx| {
+    Application::new().with_assets(crate::assets::UiAssets).run(move |cx| {
         // Initialize gpui-component
         init(cx);
+        gpui_component::set_locale("zh-CN");
 
         // Configure gpui-component theme colors based on current theme
         update_gpui_component_theme(cx);
@@ -233,9 +247,10 @@ pub fn run_app_with_tray(
         .map(|c| c.read().get_window_config(WindowType::Main))
         .unwrap_or_default();
 
-    Application::new().run(move |cx| {
+    Application::new().with_assets(crate::assets::UiAssets).run(move |cx| {
         // Initialize gpui-component
         init(cx);
+        gpui_component::set_locale("zh-CN");
 
         // Configure gpui-component theme colors based on current theme
         update_gpui_component_theme(cx);

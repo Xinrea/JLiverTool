@@ -89,6 +89,18 @@ pub enum Event {
         user_info: Option<UserInfoData>,
     },
 
+    OnlineGiftTypesFetched {
+        request_id: u64,
+        account_uid: u64,
+        result: Result<Vec<crate::bilibili::api::GiftStreamCategory>, String>,
+    },
+
+    OnlineGiftsFetched {
+        request_id: u64,
+        account_uid: u64,
+        result: Result<Vec<crate::bilibili::api::GiftStreamRecord>, String>,
+    },
+
     /// Request to start QR login
     RequestQrLogin,
 
@@ -277,6 +289,8 @@ impl EventBus {
             Event::LiveEnd => "live_end",
             Event::ConnectionStatus { .. } => "connection_status",
             Event::LoginStatusChanged { .. } => "login_status_changed",
+            Event::OnlineGiftsFetched { .. } => "online_gifts_fetched",
+            Event::OnlineGiftTypesFetched { .. } => "online_gift_types_fetched",
             Event::RequestQrLogin => "request_qr_login",
             Event::QrCodeGenerated { .. } => "qr_code_generated",
             Event::QrLoginStatus { .. } => "qr_login_status",
@@ -315,6 +329,8 @@ pub enum EventType {
     LiveEnd,
     ConnectionStatus,
     LoginStatusChanged,
+    OnlineGiftsFetched,
+    OnlineGiftTypesFetched,
     RequestQrLogin,
     QrCodeGenerated,
     QrLoginStatus,
@@ -343,6 +359,8 @@ impl EventType {
             Self::LiveEnd => "live_end",
             Self::ConnectionStatus => "connection_status",
             Self::LoginStatusChanged => "login_status_changed",
+            Self::OnlineGiftsFetched => "online_gifts_fetched",
+            Self::OnlineGiftTypesFetched => "online_gift_types_fetched",
             Self::RequestQrLogin => "request_qr_login",
             Self::QrCodeGenerated => "qr_code_generated",
             Self::QrLoginStatus => "qr_login_status",

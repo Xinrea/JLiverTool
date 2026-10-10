@@ -4,6 +4,7 @@ pub mod audience_view;
 mod dashboard;
 pub mod danmu_item;
 pub mod gift_view;
+pub mod online_gift_view;
 pub mod interact_item;
 pub mod main_view;
 pub mod setting_view;

@@ -136,6 +136,14 @@ impl MainView {
                     logged_in,
                     user_info,
                 } => {
+                    let account = if logged_in {
+                        user_info.as_ref().map(|u| (u.mid, u.name.clone()))
+                    } else {
+                        None
+                    };
+                    self.gift_view.update(cx, |view, cx| {
+                        view.set_online_account(account, cx)
+                    });
                     self.logged_in = logged_in;
                     // Store the logged-in user's UID
                     self.logged_in_uid = if logged_in {
@@ -147,6 +155,24 @@ impl MainView {
                         view.set_login_status(logged_in, user_info, cx);
                     });
                     self.update_tray_state();
+                }
+                Event::OnlineGiftTypesFetched {
+                    request_id,
+                    account_uid,
+                    result,
+                } => {
+                    self.gift_view.update(cx, |view, cx| {
+                        view.receive_online_gift_types(request_id, account_uid, result, cx)
+                    });
+                }
+                Event::OnlineGiftsFetched {
+                    request_id,
+                    account_uid,
+                    result,
+                } => {
+                    self.gift_view.update(cx, |view, cx| {
+                        view.receive_online_gifts(request_id, account_uid, result, cx)
+                    });
                 }
                 Event::QrCodeGenerated { url, qrcode_key: _ } => {
                     self.setting_view.update(cx, |view, cx| {
@@ -213,8 +239,10 @@ impl MainView {
                     // Force rebuild of render rows
                     self.last_render_width = 0.0;
                     self.render_rows_source_count = 0;
-                    self.gift_view
-                        .update(cx, |v, cx| v.set_opacity(opacity, cx));
+                    self.gift_view.update(cx, |v, cx| {
+                        v.set_opacity(opacity, cx);
+                        v.set_online_query_always_on_top(always_on_top, cx);
+                    });
                     self.superchat_view
                         .update(cx, |v, cx| v.set_opacity(opacity, cx));
                     self.statistics_view
