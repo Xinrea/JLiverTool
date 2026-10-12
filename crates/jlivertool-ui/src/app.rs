@@ -1,6 +1,6 @@
 //! Application entry point
 
-use crate::http::IsahcHttpClient;
+use crate::http::ImageHttpClient;
 use crate::theme::update_gpui_component_theme;
 use crate::tray::{TrayCommand, TrayManager};
 use crate::views::MainView;
@@ -171,8 +171,9 @@ pub fn run_app_with_plugins(
         update_gpui_component_theme(cx);
 
         // Setup HTTP client for loading remote images
-        if let Ok(http_client) = IsahcHttpClient::new() {
-            cx.set_http_client(http_client);
+        match ImageHttpClient::new() {
+            Ok(http_client) => cx.set_http_client(http_client),
+            Err(error) => tracing::error!("failed to create image HTTP client: {error:#}"),
         }
 
         // Create main window bounds - use saved or default
@@ -258,8 +259,9 @@ pub fn run_app_with_tray(
         update_gpui_component_theme(cx);
 
         // Setup HTTP client for loading remote images
-        if let Ok(http_client) = IsahcHttpClient::new() {
-            cx.set_http_client(http_client);
+        match ImageHttpClient::new() {
+            Ok(http_client) => cx.set_http_client(http_client),
+            Err(error) => tracing::error!("failed to create image HTTP client: {error:#}"),
         }
 
         // Initialize tray icon AFTER GPUI has initialized (inside the event loop)

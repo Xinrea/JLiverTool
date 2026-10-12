@@ -40,8 +40,8 @@ tray-icon = "0.19"
 muda = "0.15"
 image = { version = "0.25", default-features = false, features = ["png"] }
 
-# HTTP client for image loading
-isahc = { version = "1.7", default-features = false, features = ["text-decoding"] }
+# Image downloads. Same client as API calls; libcurl stalls on Windows.
+reqwest = { workspace = true }
 bytes = "1.5"
 http-body-util = "0.1"
 

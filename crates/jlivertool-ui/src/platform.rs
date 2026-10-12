@@ -246,7 +246,7 @@ mod windows_impl {
         let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
 
         unsafe {
-            ShowWindow(hwnd, SW_SHOW);
+            let _ = ShowWindow(hwnd, SW_SHOW);
             tracing::info!("Window shown");
         }
     }
@@ -269,7 +269,7 @@ mod windows_impl {
         let hwnd = HWND(win32_handle.hwnd.get() as *mut _);
 
         unsafe {
-            ShowWindow(hwnd, SW_HIDE);
+            let _ = ShowWindow(hwnd, SW_HIDE);
             tracing::info!("Window hidden");
         }
     }
