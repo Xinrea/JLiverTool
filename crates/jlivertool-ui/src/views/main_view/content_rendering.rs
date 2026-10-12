@@ -121,6 +121,8 @@ pub enum RenderRow {
         content_slice: String,
         continuation_index: usize,
     },
+    /// An indivisible emoji moved below a prefix that leaves too little room.
+    DanmuEmoji { danmu: DanmuMessage },
     /// One fixed-height line of a wrapped gift message.
     GiftLine {
         gift: GiftMessage,
@@ -193,13 +195,32 @@ pub(crate) fn append_message_rows(
 ) {
     match message {
         DisplayMessage::Danmu(danmu) => {
-            if danmu.emoji_content.is_some() {
-                rows.push(RenderRow::Full(message.clone()));
-                return;
-            }
-
             let prefix_width =
                 estimate_danmu_prefix_width(danmu, font_size, lite_mode, medal_display);
+            if danmu
+                .emoji_content
+                .as_ref()
+                .is_some_and(|emoji| !emoji.url.is_empty())
+            {
+                let emoji_size = font_size + if lite_mode { 2.0 } else { 6.0 };
+                let mirror_width = if danmu.is_mirror {
+                    estimate_text_width("[跨房]", font_size * 0.8) + 4.0
+                } else {
+                    0.0
+                };
+                if prefix_width + mirror_width + emoji_size > available_width {
+                    rows.push(RenderRow::DanmuFirstLine {
+                        danmu: danmu.clone(),
+                        content_slice: String::new(),
+                    });
+                    rows.push(RenderRow::DanmuEmoji {
+                        danmu: danmu.clone(),
+                    });
+                } else {
+                    rows.push(RenderRow::Full(message.clone()));
+                }
+                return;
+            }
             let first_line_content_width = available_width - prefix_width;
             let padding = if lite_mode { 4.0 * 2.0 } else { 8.0 * 2.0 };
             let continuation_content_width = available_width - padding;
@@ -691,6 +712,90 @@ mod tests {
     use core::prelude::v1::test;
     use jlivertool_core::messages::GiftInfo;
     use jlivertool_core::types::Sender;
+
+    fn emoji_danmu() -> DanmuMessage {
+        DanmuMessage {
+            sender: Sender {
+                uname: "测试用户".into(),
+                ..Default::default()
+            },
+            content: "一个很长很长的表情文本占位符".into(),
+            is_generated: false,
+            is_special: false,
+            is_mirror: false,
+            emoji_content: Some(jlivertool_core::types::EmojiContent {
+                bulge_display: 0,
+                emoticon_unique: "test".into(),
+                height: 100,
+                in_player_area: 0,
+                is_dynamic: 1,
+                url: "https://example.com/emoji.webp".into(),
+                width: 100,
+            }),
+            side_index: -1,
+            reply_uname: None,
+        }
+    }
+
+    #[test]
+    fn emoji_moves_intact_to_next_row_when_prefix_leaves_too_little_room() {
+        for lite_mode in [false, true] {
+            let mut danmu = emoji_danmu();
+            danmu.sender.medal_info.medal_name = "测试勋章".into();
+            danmu.sender.medal_info.is_lighted = true;
+            danmu.reply_uname = Some("回复用户".into());
+            for medal_display in [false, true] {
+                let prefix = estimate_danmu_prefix_width(&danmu, 14.0, lite_mode, medal_display);
+                let emoji_size = 14.0 + if lite_mode { 2.0 } else { 6.0 };
+                let message = DisplayMessage::Danmu(danmu.clone());
+                let wide = build_render_rows(
+                    [&message],
+                    prefix + emoji_size,
+                    14.0,
+                    lite_mode,
+                    medal_display,
+                );
+                assert!(matches!(wide.as_slice(), [RenderRow::Full(_)]));
+                let narrow = build_render_rows(
+                    [&message],
+                    prefix + emoji_size - 1.0,
+                    14.0,
+                    lite_mode,
+                    medal_display,
+                );
+                assert!(
+                    matches!(narrow.as_slice(), [RenderRow::DanmuFirstLine { content_slice, .. }, RenderRow::DanmuEmoji { .. }] if content_slice.is_empty())
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn mirror_marker_is_included_in_emoji_line_width() {
+        let mut danmu = emoji_danmu();
+        danmu.is_mirror = true;
+        let width = estimate_danmu_prefix_width(&danmu, 14.0, false, true) + 20.0;
+        let rows = build_render_rows([&DisplayMessage::Danmu(danmu)], width, 14.0, false, true);
+        assert!(matches!(
+            rows.as_slice(),
+            [
+                RenderRow::DanmuFirstLine { .. },
+                RenderRow::DanmuEmoji { .. }
+            ]
+        ));
+    }
+
+    #[test]
+    fn empty_emoji_url_uses_normal_text_wrapping() {
+        let mut danmu = emoji_danmu();
+        danmu.emoji_content.as_mut().unwrap().url.clear();
+        let message = DisplayMessage::Danmu(danmu);
+        let rows = build_render_rows([&message], 100.0, 14.0, false, true);
+        assert!(rows.len() > 1);
+        assert!(rows
+            .iter()
+            .all(|row| !matches!(row, RenderRow::DanmuEmoji { .. })));
+    }
 
     fn gift(name: &str) -> GiftMessage {
         GiftMessage {

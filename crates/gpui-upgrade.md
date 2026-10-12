@@ -107,6 +107,61 @@ The intervening patch releases primarily fix behavior and pin dependencies;
 [0.5.1](https://github.com/longbridge/gpui-kit/releases/tag/v0.5.1) fixes macOS
 `core-text` compatibility.
 
+## Danmaku wrapping and animated emoji review (2026-10-12)
+
+The current lists use `uniform_list`, which requires every row to have the
+same height. `append_message_rows` estimates character widths and splits one
+message into several fixed-height rows. Upgrading GPUI alone cannot remove
+this constraint.
+
+Native text soft wrapping and GPUI's variable-height `list` / `ListState`
+already existed in 0.2.2. In the pinned 0.3.8 sources, `list` measures actual
+element heights, invalidates those heights when the viewport width changes,
+and exposes `remeasure_items` / `remeasure` with scroll-anchor preservation.
+The newer Kit releases also describe width-aware virtual-list measurement and
+expanded rich text / selection support in the
+[0.6.0 release notes](https://github.com/longbridge/gpui-kit/releases/tag/v0.6.0).
+These make a migration more practical; they do not automatically change the
+application's existing `uniform_list` rendering.
+
+For a future migration, use one message per `gpui::list` item, allow its height
+to grow, and render ordinary content as native text / `StyledText` with runs
+for username, reply, and link colors. Keep clickable BV ranges and medals
+explicitly supported; putting separate text `div`s in a wrapping flex container
+does not produce a single continuous paragraph. Preserve auto-follow only
+near the bottom, scroll position on resize, and incremental front eviction.
+Use `ListState::splice` for message insertion/removal. Kit's `v_virtual_list`
+is another option, but its API still takes application-provided `item_sizes`;
+it is not a drop-in automatic height-measurement replacement.
+
+The emoji fixes keep the existing list architecture:
+
+- A nonempty emoji URL reserves a fixed square (`row_height - 4`), fitted with
+  `Contain` and excluded from flex shrinking. If the prefix plus image will
+  not fit, the prefix and intact image become separate rows in both lists.
+  Empty URLs fall back to normal text wrapping.
+- The old 0.2.2 image player advanced frames regardless of window focus. The
+  new 0.3.8 `img` player gates both frame advancement and animation requests
+  on `window.is_window_active()` and `!cx.reduce_motion()`. This pauses an
+  unfocused overlay even when the decoded GIF/WebP has multiple frames.
+- The emoji canvas reuses `ImgResourceLoader` and its cached `RenderImage`,
+  paints the frame selected by elapsed time and decoded frame delays, and
+  requests further frames while visible, including when unfocused. It still
+  respects reduced motion. Frame delays below 10 ms are clamped; all emoji
+  instances share a playback clock, so list recycling does not reset playback.
+
+The prefix width remains an estimate until the variable-height migration.
+An image wider than the entire viewport retains its size and is clipped.
+The decoder can animate only URLs that actually return animated GIF/WebP;
+this change does not discover dynamic assets for arbitrary static URLs.
+
+Validation for this follow-up: `cargo check --workspace --all-targets --locked
+--offline` passed, and `cargo test --workspace --locked --offline` passed all
+43 tests, including six new emoji/wrapping regressions. The full test run
+needed sandbox exceptions for existing loopback HTTP and macOS disk-image
+tests. The unfocused playback check uses GPUI's headless renderer and synthetic
+frames; real livestream assets and GPU playback have not been exercised.
+
 ## Suggested next work
 
 1. Prototype variable-height, selectable message rows using mock traffic.

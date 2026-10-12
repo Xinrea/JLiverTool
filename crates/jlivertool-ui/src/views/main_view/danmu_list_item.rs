@@ -7,6 +7,7 @@ use super::content_rendering::{
     guard_icon_url, guard_level_name, render_content_with_links, DisplayMessage, GiftTextRole,
     GiftTextRun, RenderRow,
 };
+use super::emoji_image::emoji_image;
 use super::user_info_card::{SelectedUser, SelectedUserState};
 use crate::theme::Colors;
 use gpui::*;
@@ -208,13 +209,6 @@ impl DanmuListItemView {
             // Only render if URL is not empty to avoid GPUI crash on empty images
             if !emoji.url.is_empty() {
                 let emoji_size = row_height - 4.0;
-                // Use a hash of the URL in the element ID to ensure fresh state when
-                // the image changes. This prevents GPUI's animated image frame_index
-                // from becoming stale when a different image is displayed at the same index.
-                use std::hash::{Hash, Hasher};
-                let mut hasher = std::collections::hash_map::DefaultHasher::new();
-                emoji.url.hash(&mut hasher);
-                let url_hash = hasher.finish();
                 if danmu.is_mirror {
                     el = el.child(
                         div()
@@ -223,13 +217,7 @@ impl DanmuListItemView {
                             .child("[跨房]"),
                     );
                 }
-                el = el.child(
-                    img(emoji.url.clone())
-                        .id(SharedString::from(format!("emoji-{}-{:x}", item_index, url_hash)))
-                        .max_w(px(emoji_size))
-                        .max_h(px(emoji_size))
-                        .object_fit(ObjectFit::Contain),
-                );
+                el = el.child(emoji_image(emoji.url.clone(), emoji_size));
             } else {
                 // Fallback to text content if emoji URL is empty
                 // Add mirror indicator if it's a mirror danmu
@@ -623,6 +611,31 @@ impl DanmuListItemView {
             }
             RenderRow::DanmuContinuation { danmu, content_slice, continuation_index } => {
                 self.render_danmu_continuation(danmu, content_slice, *continuation_index)
+            }
+            RenderRow::DanmuEmoji { danmu } => {
+                let mut el = h_flex()
+                    .w_full()
+                    .h(px(self.row_height()))
+                    .gap_1()
+                    .items_center()
+                    .overflow_hidden();
+                el = if self.lite_mode {
+                    el.px_1()
+                } else {
+                    el.px_2()
+                };
+                if danmu.is_mirror {
+                    el = el.child(
+                        div()
+                            .text_size(px(self.font_size * 0.8))
+                            .text_color(Colors::text_muted())
+                            .child("[跨房]"),
+                    );
+                }
+                if let Some(emoji) = &danmu.emoji_content {
+                    el = el.child(emoji_image(emoji.url.clone(), self.row_height() - 4.0));
+                }
+                el
             }
             RenderRow::GiftLine {
                 gift,
