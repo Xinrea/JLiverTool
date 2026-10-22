@@ -900,6 +900,10 @@ impl MainView {
         };
 
         let setting_view = self.setting_view.clone();
+        if let Some(config) = &self.config {
+            let directory = config.read().data_dir();
+            setting_view.update(cx, |view, _| view.set_feedback_data_directory(directory));
+        }
         let always_on_top = self.always_on_top;
         let command_tx = self.command_tx.clone();
 
@@ -965,6 +969,10 @@ impl MainView {
         };
 
         let setting_view = self.setting_view.clone();
+        if let Some(config) = &self.config {
+            let directory = config.read().data_dir();
+            setting_view.update(cx, |view, _| view.set_feedback_data_directory(directory));
+        }
         let always_on_top = self.always_on_top;
         let command_tx = self.command_tx.clone();
 

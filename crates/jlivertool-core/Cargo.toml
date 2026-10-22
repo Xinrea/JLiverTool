@@ -11,7 +11,8 @@ tokio = { workspace = true }
 futures = { workspace = true }
 
 # HTTP client
-reqwest = { workspace = true }
+reqwest = { workspace = true, features = ["multipart"] }
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
 
 # WebSocket
 tokio-tungstenite = { workspace = true }

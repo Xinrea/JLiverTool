@@ -13,6 +13,7 @@ pub mod bilibili;
 pub mod config;
 pub mod database;
 pub mod events;
+pub mod feedback;
 pub mod messages;
 pub mod protobuf;
 pub mod tts;

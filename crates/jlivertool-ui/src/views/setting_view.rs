@@ -133,6 +133,8 @@ pub struct SettingView {
     update_status: Arc<RwLock<UpdateStatus>>,
     on_check_update: Option<UpdateCheckCallback>,
     on_auto_update_change: Option<AutoUpdateCallback>,
+    feedback_dialog: Option<Entity<crate::components::feedback_dialog::FeedbackDialog>>,
+    feedback_data_directory: Option<std::path::PathBuf>,
 }
 
 /// Update check status
@@ -335,7 +337,14 @@ impl SettingView {
             update_status: Arc::new(RwLock::new(UpdateStatus::default())),
             on_check_update: None,
             on_auto_update_change: None,
+            feedback_dialog: None,
+            feedback_data_directory: None,
         }
+    }
+
+    /// Configure the source for application logs and private feedback storage.
+    pub fn set_feedback_data_directory(&mut self, directory: std::path::PathBuf) {
+        self.feedback_data_directory = Some(directory);
     }
 
     /// Set room ID and owner UID to display
@@ -3502,6 +3511,7 @@ impl SettingView {
                                 .child(
                                     div()
                                         .id("issues-link")
+                                        .debug_selector(|| "issues-link".into())
                                         .w_full()
                                         .px_3()
                                         .py_2()
@@ -3509,8 +3519,13 @@ impl SettingView {
                                         .cursor_pointer()
                                         .bg(Colors::bg_secondary())
                                         .hover(|s| s.bg(Colors::bg_hover()))
-                                        .on_click(cx.listener(|_this, _event, _window, cx| {
-                                            cx.open_url("https://github.com/Xinrea/JLiverTool/issues");
+                                        .on_click(cx.listener(|this, _event, window, cx| {
+                                            let directory = this.feedback_data_directory.clone();
+                                            let dialog = this.feedback_dialog.get_or_insert_with(|| {
+                                                cx.new(|cx| crate::components::feedback_dialog::FeedbackDialog::new(directory, cx))
+                                            });
+                                            dialog.update(cx, |dialog, cx| dialog.show(window, cx));
+                                            cx.notify();
                                         }))
                                         .child(
                                             h_flex()
@@ -3740,6 +3755,7 @@ impl Render for SettingView {
                     ),
             )
             .when_some(self.update_dialog.clone(), |this, dialog| this.child(dialog))
+            .when_some(self.feedback_dialog.clone(), |this, dialog| this.child(dialog))
             // Face auth dialog overlay
             .when(self.show_face_auth_dialog, |this| {
                 this.child(
@@ -3814,7 +3830,7 @@ impl Render for SettingView {
 #[cfg(test)]
 mod update_tests {
     use super::{SettingView, UpdateStatus};
-    use gpui::{Modifiers, TestAppContext};
+    use gpui::{AppContext, Modifiers, TestAppContext};
     use std::sync::mpsc;
 
     #[gpui::test]
@@ -3835,5 +3851,31 @@ mod update_tests {
         cx.simulate_click(button.center(), Modifiers::default());
         assert!(rx.try_recv().is_ok(), "manual check invokes its callback");
         assert!(cx.opened_url().is_none(), "manual check does not open a download URL");
+    }
+
+    #[gpui::test]
+    fn about_feedback_link_opens_the_modal(cx: &mut TestAppContext) {
+        cx.update(gpui_component::init);
+        let mut settings = None;
+        let (_, cx) = cx.add_window_view(|window, cx| {
+            let view = cx.new(SettingView::new);
+            settings = Some(view.clone());
+            gpui_component::Root::new(view, window, cx)
+        });
+        let settings = settings.unwrap();
+        settings.update(cx, |settings, cx| {
+            settings.active_tab = 6;
+            cx.notify();
+        });
+        cx.run_until_parked();
+        let feedback = cx.debug_bounds("issues-link").expect("About includes the feedback entry");
+        cx.simulate_click(feedback.center(), Modifiers::default());
+        cx.run_until_parked();
+        assert!(cx.opened_url().is_none(), "feedback opens inside Settings");
+        assert!(cx.debug_bounds("feedback-modal-overlay").is_some());
+        cx.read(|cx| {
+            let settings = settings.read(cx);
+            assert!(settings.feedback_dialog.as_ref().unwrap().read(cx).visible);
+        });
     }
 }
